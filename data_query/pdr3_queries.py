@@ -12,7 +12,7 @@ def add_photoz(mt):
 
 def submit_job(fname_sql,output_format,do_preview=False,do_download=True,do_delete=True,output_file='query.sql',release='pdr3') :
 
-	command=f"python hscReleaseQueryDR3.py --user=tmcornish --release-version={release}"
+	command=f"python hscReleaseQueryDR3.py --user=tmcornish --release-version=pdr3-citus-columnar"
 	if do_preview :
 		command+=" -p"
 	command+=" -f "+output_format

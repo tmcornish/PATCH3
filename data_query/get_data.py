@@ -19,8 +19,10 @@ if not os.path.exists(PATH_SQL):
 
 
 #Per-frame metadata
-write_frames('pdr3_wide', f'{PATH_SQL}frames_wide.sql', submit=True, dir_out=PATH_DATA, do_download=True)
-'''
+#write_frames('pdr3_wide', f'{PATH_SQL}frames_wide.sql', submit=True, dir_out=PATH_DATA, do_download=True)
+
+
+
 #retrieve the field names and boundary coordinates
 bounds_file = './field_counts_and_boundaries.fits'
 t_bounds = Table.read(bounds_file).to_pandas().set_index('field')
@@ -50,11 +52,11 @@ for fld in t_bounds.index:
 			decmax_now = decmin_now + ddec
 			
 			#write and submit a query for the data in this sub-field
-			write_fieldsearch('pdr3_wide', fd, f'{PATH_SQL}run_{fd}_part{i+1}.sql', dir_out=PATH_DATA, do_photoz=True, submit=False, strict_cuts=True, dec_range=[decmin_now,decmax_now])
+			write_fieldsearch('pdr3_wide', fd, f'{PATH_SQL}run_{fd}_part{i+1}.sql', dir_out=PATH_DATA, do_photoz=True, submit=True, strict_cuts=True, dec_range=[decmin_now,decmax_now], do_download=True, part=i+1)
 	else:
-		write_fieldsearch('pdr3_wide', fd, f'{PATH_SQL}run_{fd}.sql', dir_out=PATH_DATA, do_photoz=True, submit=False, strict_cuts=True)
+		write_fieldsearch('pdr3_wide', fd, f'{PATH_SQL}run_{fd}.sql', dir_out=PATH_DATA, do_photoz=True, submit=True, strict_cuts=True, do_download=True)
 
-'''
+
 
 
 	
