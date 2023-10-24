@@ -224,6 +224,6 @@ def write_fieldsearch(
 	if submit:
 		submit_job(fname_out, output_format, do_download=do_download, output_file=fname_job)
 
-write_fieldsearch('pdr3_wide', 'hectomap', 'HECTOMAP_query_test.sql', dir_out='/Users/thomascornish/Desktop/LSST_clustering/Data/HSC_DR3/', submit=False, strict_cuts=True, do_photoz=True)
+#write_fieldsearch('pdr3_wide', 'hectomap', 'HECTOMAP_query_test.sql', dir_out='/Users/thomascornish/Desktop/LSST_clustering/Data/HSC_DR3/', submit=False, strict_cuts=True, do_photoz=True)
 
 
