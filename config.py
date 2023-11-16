@@ -10,17 +10,18 @@
 class cf_global:
 
 	#relevant directories
-	PATH_PIPE = '/Users/thomascornish/Desktop/LSST_clustering/pHSC3/'			#path to pipeline scripts
-	PATH_DATA = '/Users/thomascornish/Desktop/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
+	PATH_PIPE = '/home/cornisht/LSST_clustering/pHSC3/'			#path to pipeline scripts
+	PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
 	PATH_OUT =  f'{PATH_PIPE}out/'												#main directory for outputs
 
 	#data release
 	dr = 'pdr3_wide'
 	#fields for which the pipeline is to be run
-	fields = ['aegis', 'equator00', 'equator01', 'equator02', 'equator08',
-				'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
-				'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
-				'hectomap']
+	#fields = ['aegis']#, 'equator00', 'equator01', 'equator02', 'equator08',
+				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
+				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
+				#'hectomap']
+	fields = ['hectomap']
 
 	#file containing the metadata
 	metafile = f'{PATH_DATA}PDR3_WIDE_frames.fits'
@@ -43,8 +44,8 @@ class cf_global:
 class getData(cf_global):
 
 	#submit/download data requests
-	submit = False
-	download = False
+	submit = True
+	download = True
 	#include photo-z information
 	photoz = True
 	#apply cuts based on existing flags in the catalogues
@@ -80,6 +81,24 @@ class cleanCats(cf_global):
 	#S/N thresholds in primary band and other bands
 	sn_pri = 10.
 	sn_sec = 5.
+
+
+
+###################
+#### make_maps ####
+###################
+
+class makeMaps(cf_global):
+
+	#NSIDE parameter for the low- and high-resolution components of the maps
+	nside_lo = 32
+	nside_hi = 8192
+
+	#basenames for the various maps
+	base_dust = 'dustmaps.hs'
+
+
+
 
 
 

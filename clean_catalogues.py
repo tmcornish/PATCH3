@@ -4,7 +4,7 @@
 #####################################################################################################
 
 import os
-import config as cf
+import config
 from astropy.table import Table, vstack
 from astropy.io import fits
 import numpy as np
@@ -12,7 +12,7 @@ import glob
 from output_utils import colour_string, error_message
 
 ### SETTINGS ###
-cc = cf.cleanCats
+cf = config.cleanCats
 
 
 ###################
@@ -72,24 +72,24 @@ def photom_cuts(t):
 
 	#magnitude cut in primary band
 	sel_maglim = np.ones(len(t), dtype=bool)
-	maglim_mask = (t[f'{cc.band}_cmodel_mag'] - t[f'a_{cc.band}']) > cc.depth_cut
+	maglim_mask = (t[f'{cf.band}_cmodel_mag'] - t[f'a_{cf.band}']) > cf.depth_cut
 	sel_maglim[maglim_mask] = False
 
 	#blending cut
 	sel_blend = np.ones(len(t), dtype=bool)
-	blend_mask = t[f'{cc.band}_blendedness_abs'] >= cc.blend_cut
+	blend_mask = t[f'{cf.band}_blendedness_abs'] >= cf.blend_cut
 	sel_blend[blend_mask] = False
 
 	#S/N cut in primary band
 	sel_sn_pri = np.ones(len(t), dtype=bool)
-	sn_pri_mask = (t[f'{cc.band}_cmodel_flux'] / t[f'{cc.band}_cmodel_fluxerr']) < cc.sn_pri
+	sn_pri_mask = (t[f'{cf.band}_cmodel_flux'] / t[f'{cf.band}_cmodel_fluxerr']) < cf.sn_pri
 	sel_sn_pri[sn_pri_mask] = False
 
 	#S/N cut in all other bands
 	sel_sn_sec = []
-	for b in [x for x in cc.bands if x != cc.band]:
+	for b in [x for x in cf.bands if x != cf.band]:
 		sel_sn_now = np.ones(len(t), dtype=bool)
-		sn_sec_mask = (t[f'{b}_cmodel_flux'] / t[f'{b}_cmodel_fluxerr']) < cc.sn_sec
+		sn_sec_mask = (t[f'{b}_cmodel_flux'] / t[f'{b}_cmodel_fluxerr']) < cf.sn_sec
 		sel_sn_now[sn_sec_mask] = False
 		sel_sn_sec.append(sel_sn_now)
 	#ensure that source is above threshold in at least two of these bands
@@ -120,7 +120,7 @@ def gal_cut(t):
 	'''
 
 	#identify stars via their 'extendedness' in the primary band
-	star_mask = t[f'{cc.band}_extendedness_value'] == 0.
+	star_mask = t[f'{cf.band}_extendedness_value'] == 0.
 
 	#split the catalogue into stars and galaxies
 	t_stars = t[star_mask]
@@ -144,8 +144,8 @@ def write_output(t, fname):
 
 	#set up the header
 	hdr = fits.Header()
-	hdr['BAND'] = cc.band
-	hdr['DEPTH'] = cc.depth_cut
+	hdr['BAND'] = cf.band
+	hdr['DEPTH'] = cf.depth_cut
 	prm_hdu = fits.PrimaryHDU(header=hdr)
 
 	#convert the catalogue into an HDU
@@ -162,18 +162,18 @@ def write_output(t, fname):
 
 
 #cycle through each of the fields
-for fd in cc.fields:
+for fd in cf.fields:
 
 	print(colour_string(fd, 'purple'))
 
 	#create output directory for this field
-	OUT = cc.PATH_OUT + fd
+	OUT = cf.PATH_OUT + fd
 	print(OUT)
 	if not os.path.exists(OUT):
 		os.system(f'mkdir -p {OUT}')
 	
 	#see if the field has been split into multiple parts
-	fname = f'{cc.PATH_DATA}{cc.prefix}{fd.upper()}{cc.suffix}.fits'
+	fname = f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}{cf.suffix}.fits'
 	print(fname)
 	if os.path.exists(fname):
 		data_all = Table.read(fname, format='fits')
@@ -186,7 +186,7 @@ for fd in cc.fields:
 
 	else: 
 		#see if catalogues exist for separate parts of the field
-		parts = sorted(glob.glob(f'{cc.PATH_DATA}{cc.prefix}{fd.upper()}_part?{cc.suffix}.fits'))
+		parts = sorted(glob.glob(f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}_part?{cf.suffix}.fits'))
 		if len(parts) >= 1:
 			#set up a list to contain data from all catalogues associated with this field
 			data_all = []
@@ -206,7 +206,7 @@ for fd in cc.fields:
 			data_all = vstack(data_all)
 
 		else:
-			error_message(cc.__name__, f'No catalogues found for field {fd.upper()}.')
+			error_message(cf.__name__, f'No catalogues found for field {fd.upper()}.')
 			continue
 
 	print(f'Began with {l_init} sources.')
@@ -218,8 +218,8 @@ for fd in cc.fields:
 
 	#write the catalogues to output files
 	print('Writing outputs...')
-	write_output(data_gals, f'{OUT}/{cc.cat_main}')
-	write_output(data_stars, f'{OUT}/{cc.cat_stars}')
+	write_output(data_gals, f'{OUT}/{cf.cat_main}')
+	write_output(data_stars, f'{OUT}/{cf.cat_stars}')
 
 
 

@@ -2,6 +2,8 @@
 # Module containing functions and variables for formatting plots.
 ###########################################################################################################
 
+import colorsys
+
 #dictionary containing custom formatting for plots
 styledict = {
 	'figure.figsize' : (8., 6.),

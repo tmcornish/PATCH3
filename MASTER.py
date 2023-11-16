@@ -14,24 +14,28 @@ import output_utils as opu
 
 #toggle `switches' for determining which scripts to run
 get_data = False		#run data acquisition script
-clean_cats = True		#apply various cuts to clean the catalogues
+clean_cats = False		#apply various cuts to clean the catalogues
+make_maps = True		#make maps for various quantities
 
 
 ####################
 
 settings = [
 	get_data,
-	clean_cats
+	clean_cats,
+	make_maps
 	]
 
 proc = [
 	'Downloading data from HSC database',
-	'Cleaning catalogues'
+	'Cleaning catalogues',
+	'Making maps'
 	]
 
 run_str = [
 	'cd data_query/ && python get_data.py; cd ..',
-	'python clean_catalogues.py'
+	'python clean_catalogues.py',
+	'python make_maps.py'
 	]
 
 print(opu.colour_string(opu.string_important('PROCESSES TO RUN')+'\n', 'cyan'))
