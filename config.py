@@ -32,9 +32,14 @@ class cf_global:
 	bands = ['g', 'r', 'i', 'z', 'y']
 
 	#names to be given to the clean catalogues and the star catalogues
-	cat_main = 'clean_catalogue.fits'
-	cat_stars = 'star_catalogue.fits'
+	cat_main = 'clean_catalogue.hdf5'
+	cat_stars = 'star_catalogue.hdf5'
+	cat_tomo = 'tomography_catalogue.hdf5'
 
+	#redshift column to use for tomography
+	zcol = 'pz_best_dnnz'
+	#redshift bin edges
+	zbins = [0.3, 0.6, 0.9, 1.2, 1.5]
 
 
 ##################

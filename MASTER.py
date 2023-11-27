@@ -14,8 +14,8 @@ import output_utils as opu
 
 #toggle `switches' for determining which scripts to run
 get_data = False		#run data acquisition script
-clean_cats = False		#apply various cuts to clean the catalogues
-make_maps = True		#make maps for various quantities
+clean_cats = True		#apply various cuts to clean the catalogues
+make_maps = False		#make maps for various quantities
 
 
 ####################
