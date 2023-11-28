@@ -210,9 +210,12 @@ for fd in cf.fields:
 		data_all = Table.read(fname, format='fits')
 		l_init = len(data_all)
 		#apply basic clean and write to HDF file
+		print('Applying basic clean...')
 		data_all = basic_clean(data_all)
+		l_bc = len(data_all)
 		write_output_hdf(data_all, hdf_basic)
 		#apply photometric cuts and write to HDF file
+		print('Applying photometric cuts...')
 		data_all = photom_cuts(data_all)
 		write_output_hdf(data_all, hdf_full)
 		l_final = len(data_all)
@@ -222,16 +225,21 @@ for fd in cf.fields:
 		if len(parts) >= 1:
 			#set up a list to contain data from all catalogues associated with this field
 			data_all = []
-			l_init = 0
-			l_final = 0
+			l_init = 0		#counter for number of sources in raw data
+			l_bc = 0		#counter for number of sources in basic-cleaned data
+			l_final = 0		#counter for number of sources in final catalogue
 			#cycle through each catalogue
-			for cat in parts:
+			for i,cat in enumerate(parts):
+				print(f'Cleaning part {i+1}...')
 				data = Table.read(cat, format='fits')
 				l_init += len(data)
 				#apply basic clean and write to HDF file
+				print('Applying basic clean...')
 				data = basic_clean(data)
-				write_output_hdf(data, hdf_basic, mode=mode)
+				l_bc += len(data)
+				write_output_hdf(data, hdf_basic, mode=mode, group='photometry')
 				#apply photometric cuts and write to HDF file
+				print('Applying photometric cuts...')
 				data = photom_cuts(data)
 				write_output_hdf(data, hdf_full, mode=mode, group='photometry')
 				data_all.append(data)
@@ -247,12 +255,13 @@ for fd in cf.fields:
 			error_message(cf.__name__, f'No catalogues found for field {fd.upper()}.')
 			continue
 
-	print(f'Began with {l_init} sources.')
-	print(f'{l_final} sources remaining after cleaning.')
+	print(colour_string(f'Began with {l_init} sources.', 'green'))
+	print(colour_string(f'{l_bc} remained after basic cleaning.', 'green'))
+	print(colour_string(f'{l_final} sources remaining after full cleaning.', 'green'))
 
 	#split catalogue into stars and galaxies
 	data_gals, data_stars = gal_cut(data_all)
-	print(f'{len(data_gals)} galaxies; {len(data_stars)} stars.')
+	print(colour_string(f'{len(data_gals)} galaxies; {len(data_stars)} stars.', 'green'))
 
 	#write the catalogues to output files
 	#print('Writing outputs...')
