@@ -122,3 +122,87 @@ def error_message(module, message):
 		colour_string('Error: '),
 		colour_string(message, 'white')]
 	print(''.join(err_str))
+
+
+
+def write_output(t, fname):
+	'''
+	Writes an astropy Table to a file (type inferred from filename) with appropriate metadata.
+
+	Parameters
+	----------
+	t: astropy.table.Table
+		Input catalogue.
+
+	fname: str
+		Filename to be given to the output file.
+	'''
+
+	#set up the header
+	hdr = fits.Header()
+	hdr['BAND'] = cf.band
+	hdr['DEPTH'] = cf.depth_cut
+	prm_hdu = fits.PrimaryHDU(header=hdr)
+
+	#convert the catalogue into an HDU
+	cat_hdu = fits.table_to_hdu(t)
+
+	#write to file
+	hdul = fits.HDUList([prm_hdu, cat_hdu])
+	hdul.writeto(fname, overwrite=True)
+
+
+def write_output_hdf(t, fname, colnames=None, group=None, mode='a'):
+	'''
+	Writes an astropy Table to a hdf5 file.
+
+	Parameters
+	----------
+	t: astropy.table.Table
+		Input catalogue.
+
+	fname: str
+		Filename to be given to the output file. If the file already exists, will try
+		to append to existing data in the file.
+
+	colnames: list or None
+		List of columns to be included in the output file. If None, writes all columns
+		to the output.
+
+	group: str
+		Name of the group to which the data will be written. If None, will write the data
+		to the 'root' of the hierarchy in the output file.
+
+	mode: str
+		Mode in which to open the HDF file (e.g. 'w' for 'write', 'r' for 'read', etc.)
+	'''
+	import h5py
+
+	#if colnames=None, set equal to the list of column names in t
+	if colnames is None:
+		colnames = t.colnames
+	#if group=None, assign an empty string
+	if group is None:
+		group = ''
+
+	#get the length of the Table
+	N = len(t)
+	#open the file
+	with h5py.File(fname, mode) as hf:
+		#cycle through the columns
+		for col in colnames:
+			#get the dtype of the column data
+			dt = t[col].dtype
+			#create the relevant group if it doesn't already exist
+			if len(group) != 0:
+				_ = hf.require_group(group)
+			#see if the current column already exists as a DataSet
+			if col in hf[f'/{group}'].keys():
+				#reshape the existing data and fill the empty entries with the new data
+				dset = hf[f'/{group}/{col}']
+				dset.resize((len(dset)+N,))
+				dset[-N:] = t[col]
+			else:
+				#create the dataset if it doesn't exist
+				dset = hf.create_dataset(f'{group}/{col}', shape=(N,), data=t[col], maxshape=(None,), dtype=dt)
+

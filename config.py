@@ -31,7 +31,8 @@ class cf_global:
 	#list of all photometric bands
 	bands = ['g', 'r', 'i', 'z', 'y']
 
-	#names to be given to the clean catalogues and the star catalogues
+	#names to be given to the relevant catalogues
+	cat_basic = 'basicclean_catalogue.hdf5'
 	cat_main = 'clean_catalogue.hdf5'
 	cat_stars = 'star_catalogue.hdf5'
 	cat_tomo = 'tomography_catalogue.hdf5'
