@@ -1,0 +1,16 @@
+astropy
+#scipy
+healpy
+healsparse
+hpgeom
+decasu
+matplotlib
+numpy>=1.16.0
+fitsio>=1.0.5
+esutil>=0.6.5
+LSSTDESC.Coord
+pyyaml>=5.0
+setuptools_scm
+setuptools_scm_git_archive
+sqlite3
+h5py
