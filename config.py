@@ -100,10 +100,17 @@ class makeMaps(cf_global):
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 8192
+	nside_hi = 2048
+	#NSIDE for the upgraded-resolution version of the bright object mask
+	nside_mask = 16384
+
+	#column names for flags identifying sources near bright objects
+	bo_flags = [f'{cf_global.band}_pixelflags_bright_objectcenter',
+				f'{cf_global.band}_pixelflags_bright_object']
 
 	#basenames for the various maps
-	base_dust = 'dustmaps.hs'
+	dustmaps = 'dustmaps.hsp'
+	bo_mask = 'bo_mask.hsp'
 
 
 
