@@ -181,7 +181,21 @@ def make_tomography_cat(z, zbins, fname):
 			dset = g.create_dataset(n, data=d, shape=(len(d),), dtype=d.dtype)
 
 
+def flag_stars(t):
+	'''
+	Adds a column to the provided table flagging all stars.
 
+	Parameters
+	----------
+	t: astropy.table.Table
+		Input catalogue.
+
+	'''
+
+	#identify stars via their 'extendedness' in the primary band
+	star_mask = t[f'{cf.band}_extendedness_value'] == 0.
+	#add this as a column to the Table
+	t['is_star'] = star_mask
 
 #######################################################
 ###############    START OF SCRIPT    #################
@@ -236,6 +250,7 @@ for fd in cf.fields:
 				#apply basic clean and write to HDF file
 				print('Applying basic clean...')
 				data = basic_clean(data)
+				flag_stars(data)
 				l_bc += len(data)
 				write_output_hdf(data, hdf_basic, mode=mode, group='photometry')
 				#apply photometric cuts and write to HDF file
@@ -264,9 +279,10 @@ for fd in cf.fields:
 	print(colour_string(f'{len(data_gals)} galaxies; {len(data_stars)} stars.', 'green'))
 
 	#write the catalogues to output files
-	#print('Writing outputs...')
-	#write_output(data_gals, f'{OUT}/{cf.cat_main}')
-	#write_output(data_stars, f'{OUT}/{cf.cat_stars}')
+	print('Writing outputs...')
+	hdf_stars = f'{OUT}/{cf.cat_stars}'
+	write_output_hdf(data_gals, hdf_full, mode='w', group='photometry')
+	write_output_hdf(data_stars, hdf_stars, mode='w', group='photometry')
 
 	#also produce a tomgraphy catalogue
 	hdf_tomo = f'{OUT}/{cf.cat_tomo}'

@@ -33,6 +33,10 @@ class cf_global:
 	#list of all photometric bands
 	bands = ['g', 'r', 'i', 'z', 'y']
 
+	#S/N thresholds in primary band and other bands
+	sn_pri = 10.
+	sn_sec = 5.
+
 	#names to be given to the relevant catalogues
 	cat_basic = 'basicclean_catalogue.hdf5'
 	cat_main = 'clean_catalogue.hdf5'
@@ -86,10 +90,6 @@ class cleanCats(cf_global):
 	#blending cut (maximum allowed flux estimated to be from blending)
 	blend_cut = 10. ** (-0.375)
 
-	#S/N thresholds in primary band and other bands
-	sn_pri = 10.
-	sn_sec = 5.
-
 
 
 ###################
@@ -111,7 +111,10 @@ class makeMaps(cf_global):
 	#basenames for the various maps
 	dustmaps = 'dustmaps.hsp'
 	bo_mask = 'bo_mask.hsp'
-
+	masked_frac = 'masked_fraction.hsp'
+	survey_mask = 'survey_mask.hsp'
+	star_map = 'star_counts.hsp'
+	depth_map = 'depth_map.hsp'
 
 
 

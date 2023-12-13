@@ -6,7 +6,6 @@ import numpy as np
 import healpy as hp
 import healsparse as hsp
 
-
 def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', primary=None, return_pix=True, return_unique=True):
 	'''
 	Initialises a RecArray of HealSparse maps. Useful e.g. when a single quantity is
@@ -130,8 +129,7 @@ def pixelMeanStd(quant, pix=None, remove_zeros=True):
 		Values of the quantity being pixelised.
 
 	pix: array-like or None
-		Pixels corresponding to the coordinates at which the quantity is measured. 
-		If None, RAs and Decs must be provided.
+		Pixels corresponding to the coordinates at which the quantity is measured.
 
 	remove_zeros: bool
 		If True, only returns results for pixels containing data.
@@ -178,6 +176,42 @@ def pixelMeanStd(quant, pix=None, remove_zeros=True):
 	return qmean, qstd
 
 
+def createMeanStdMap(ra, dec, quant, nside_cover, nside_sparse):
+	'''
+	Creates maps containing the mean and standard deviation of a given quantity in each pixel.
+
+	Parameters
+	----------
+	ra: array-like
+		RAs at which the flags are provided.
+
+	dec: array-like
+		Decs at which the flags are provided.
+
+	quant: array-like or list of array-likes
+		Values of the desired quantity at each position defined by the provided RAs and Decs.
+
+	nside_cover: int
+		NSIDE parameter definining the low-resolution regions of the map (where no data exist).
+
+	nside_sparse: int
+		NSIDE parameter definining the high-resolution regions of the map (where data exist).
+
+	'''
+
+	#set up two maps with the desired resolutions (one for mean and one for std)
+	mean_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.float64)
+	std_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.float64)
+
+	#convert the provided coordinates into pixel coordinates in the high-resolution map
+	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	px_data_u = np.unique(px_data)
+
+	#calculate the mean and std of the quantity at each pixel and populate the maps
+	mean_map[px_data_u], std_map[px_data_u] = pixelMeanStd(quant, px_data, remove_zeros=True)
+	
+	return mean_map, std_map
+
 
 def createMask(ra, dec, flags, nside_cover, nside_sparse):
 	'''
@@ -195,6 +229,16 @@ def createMask(ra, dec, flags, nside_cover, nside_sparse):
 		Boolean arrays containing the flag at each position. Pixels containing any
 		True flags will be masked.
 
+	nside_cover: int
+		NSIDE parameter definining the low-resolution regions of the map (where no data exist).
+
+	nside_sparse: int
+		NSIDE parameter definining the high-resolution regions of the map (where data exist).
+
+	Returns
+	-------
+	mask: HealSparseMap
+		Map containing 0s at masked positions and 1s elsewhere.
 	'''
 
 	#begin by counting sources in each pixel, since pixels with zero sources will be masked
@@ -219,4 +263,50 @@ def createMask(ra, dec, flags, nside_cover, nside_sparse):
 
 	return mask
 
+
+def healsparseToHDF(hsp_map, fname, pix_scheme='ring', group=''):
+	'''
+	Takes a HealSparse map and reformats it to an HDF5 dataset containing the pixel IDs
+	and values.
+
+	Parameters
+	----------
+	hsp_map: HealSparseMap
+		Map to be converted from HealSparseMap to HDF5 format.
+
+	fname: str
+		Filename for the output HDF5 file.
+
+	pix_scheme: str
+		The desired pixelisation scheme of the map. Either 'ring' or 'nest'. Input map
+		is assumed to be 'nest' as HealSparse maps have this scheme by definition.
+
+	group: str
+		Group within which the relevant data are expected to reside.
+	'''
+
+	import h5py
+
+	#get the valid pixels and correpsonding values from the map
+	vpix = hsp_map.valid_pixels
+	values = hsp_map[vpix]
+	#if output is to be in ring scheme, convert pixel IDs to ring equivalent
+	if pix_scheme.lower() == 'ring':
+		vpix = hp.nest2ring(hsp_map.nside_sparse, vpix)
+	elif pix_scheme.lower() == 'nest':
+		pass
+	else:
+		raise ValueError('pix_scheme must be either "nest" or "ring".')
+
+	with h5py.File(fname, 'w') as hf:
+		#create the relevant group if it doesn't already exist
+		if len(group) != 0:
+			g = hf.create_group(group)
+		else:
+			g = hf
+		#add some metadata to describe the pixelisation
+		g.attrs['pixelization'] = 'healpix'
+		g.attrs['nside'] = hsp_map.nside_sparse
+		_ = hf.create_dataset(f'{group}/pixel', data=vpix, dtype=vpix.dtype)
+		_ = hf.create_dataset(f'{group}/value', data=values, dtype=values.dtype)
 
