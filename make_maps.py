@@ -240,12 +240,15 @@ def makeSurveyMask(mf_map, thresh=0.4):
 	mask = hsp.HealSparseMap.make_empty(mf_map.nside_coverage, mf_map.nside_sparse, dtype=np.float64)
 	#identify valid pixels
 	vpix = mf_map.valid_pixels
+	'''
 	#identify pixels above and below the masked fraction threshold
 	above = mf_map[vpix] >= thresh
 	below = mf_map[vpix] < thresh
 	#populate the binary mask with 0s and 1s accordingly
 	mask[vpix[above]] = 0.
 	mask[vpix[below]] = 1.
+	'''
+	mask[vpix] = 1. - mf_map[vpix]
 
 	return mask
 
