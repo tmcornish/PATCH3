@@ -16,7 +16,7 @@ import numpy as np
 from output_utils import colour_string
 from map_utils import *
 import h5py
-
+from functools import reduce
 
 ### SETTINGS ###
 cf = config.makeMaps
@@ -112,8 +112,24 @@ def makeMaskedFrac(cat, group=''):
 	dec = cat[f'{group}/dec'][:]
 	#get the columns containing bright-object flags
 	flags = [cat[f'{group}/{flag_col}'][:] for flag_col in cf.bo_flags]
+	#multiply all the masks together
+	mult = lambda x,y : x*y
+	flagged = reduce(mult, flags)
 
-	mf_map = createMask(ra, dec, flags, cf.nside_lo, cf.nside_mask)
+	#create counts map of all sources
+	Ntotal_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_mask)
+	vpix_total = Ntotal_map.valid_pixels
+	#create counts map of flagged sources
+	Nflagged_map = pixelCountsFromCoords(ra[flagged], dec[flagged], cf.nside_lo, cf.nside_mask)
+	vpix_flagged = Nflagged_map.valid_pixels
+	#identify pixels that only contain unflagged sources
+	vpix_unflagged_only = np.array(list(set(vpix_total) - set(vpix_flagged)))
+	print(vpix_unflagged_only)
+	Nflagged_map[vpix_unflagged_only] = np.zeros(len(vpix_unflagged_only), dtype=np.int32)
+	#calculate the fraction of masked sources in each pixel
+	mf_map = hsp.HealSparseMap.make_empty(cf.nside_lo, cf.nside_mask, dtype=np.float64)
+	mf_map[vpix_total] = Nflagged_map[vpix_total] / Ntotal_map[vpix_total]
+	#mf_map = createMask(ra, dec, flags, cf.nside_lo, cf.nside_mask)
 	#degrade the resolution to the resolution of the bright object mask
 	mf_map = mf_map.degrade(cf.nside_hi, reduction='mean')
 	#current values are actually 'unmasked' fraction - convert to masked fraction
