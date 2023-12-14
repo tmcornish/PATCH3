@@ -217,7 +217,7 @@ def makeDepthMap(cat, group='', stars_only=True):
 	return depth_map
 
 
-def makeSurveyMask(mf_map, thresh=0.4):
+def makeSurveyMask(mf_map):
 	'''
 	Creates a binary mask from the masked fraction map by applying a threshold for the
 	masked fraction.
@@ -226,9 +226,6 @@ def makeSurveyMask(mf_map, thresh=0.4):
 	----------
 	mf_map: HealSparseMap
 		Masked fraction map.
-
-	thresh: float
-		Minimum masked fraction allowed for a pixel to remain unmasked.
 
 	Returns
 	-------
@@ -248,7 +245,10 @@ def makeSurveyMask(mf_map, thresh=0.4):
 	mask[vpix[above]] = 0.
 	mask[vpix[below]] = 1.
 	'''
-	mask[vpix] = 1. - mf_map[vpix]
+	#mask[vpix] = 1. - mf_map[vpix]
+
+	#fill the survey mask with the masked fraction at the relevant pixels
+	mask[vpix] = mf_map[vpix]
 
 	return mask
 
@@ -294,6 +294,6 @@ for fd in cf.fields:
 	star_map.write(f'{OUT}/{cf.star_map}', clobber=True)
 
 	#make the depth map
-	depth_map = makeDepthMap(cat_basic, group='photometry')
+	depth_map = makeDepthMap(cat_basic, group='photometry', stars_only=True)
 	#write to a file
 	depth_map.write(f'{OUT}/{cf.depth_map}', clobber=True)
