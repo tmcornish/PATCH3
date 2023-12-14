@@ -245,11 +245,10 @@ def makeSurveyMask(mf_map):
 	mask[vpix[above]] = 0.
 	mask[vpix[below]] = 1.
 	'''
-	#mask[vpix] = 1. - mf_map[vpix]
 
-	#fill the survey mask with the masked fraction at the relevant pixels
-	mask[vpix] = mf_map[vpix]
-
+	#fill the survey mask with 1 minus the masked fraction at the relevant pixels
+	mask[vpix] = 1. - mf_map[vpix]
+	
 	return mask
 
 
@@ -283,7 +282,7 @@ for fd in cf.fields:
 	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)
 
 	#make a survey mask by applying a masked fraction threshold
-	survey_mask = makeSurveyMask(mf_map, thresh=0.5)
+	survey_mask = makeSurveyMask(mf_map)
 	#write to a file
 	survey_mask.write(f'{OUT}/{cf.survey_mask}', clobber=True)
 	healsparseToHDF(survey_mask, f'{OUT}/{cf.survey_mask[:-4]}.hdf5', group='maps/mask')
