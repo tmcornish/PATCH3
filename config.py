@@ -36,6 +36,8 @@ class cf_global:
 	#S/N thresholds in primary band and other bands
 	sn_pri = 10.
 	sn_sec = 5.
+	#depth limit in primary band
+	depth_cut = 24.5
 
 	#names to be given to the relevant catalogues
 	cat_basic = 'basicclean_catalogue.hdf5'
@@ -84,9 +86,6 @@ class cleanCats(cf_global):
 	prefix = f'{cf_global.dr.upper()}_'
 	suffix = getData.suffix()
 
-	#depth limit in primary band
-	depth_cut = 24.5
-
 	#blending cut (maximum allowed flux estimated to be from blending)
 	blend_cut = 10. ** (-0.375)
 
@@ -103,10 +102,13 @@ class makeMaps(cf_global):
 	nside_hi = 2048
 	#NSIDE for the upgraded-resolution version of the bright object mask
 	nside_mask = 16384
+	#threshold below which pixels in the survey mask will be considered masked
+	weight_thresh = 0.5
 
 	#column names for flags identifying sources near bright objects
-	bo_flags = [f'{cf_global.band}_pixelflags_bright_objectcenter',
-				f'{cf_global.band}_pixelflags_bright_object']
+	bo_flags = [f'{cf_global.band}_mask_brightstar_ghost15',
+				f'{cf_global.band}_mask_brightstar_halo',
+				f'{cf_global.band}_mask_brightstar_blooming']
 
 	#basenames for the various maps
 	dustmaps = 'dustmaps.hsp'

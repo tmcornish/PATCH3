@@ -112,9 +112,9 @@ def makeMaskedFrac(cat, group=''):
 	dec = cat[f'{group}/dec'][:]
 	#get the columns containing bright-object flags
 	flags = [cat[f'{group}/{flag_col}'][:] for flag_col in cf.bo_flags]
-	#multiply all the masks together
-	mult = lambda x,y : x*y
-	flagged = reduce(mult, flags)
+	#add all the masks together
+	add = lambda x,y : x+y
+	flagged = reduce(add, flags)
 
 	#create counts map of all sources
 	Ntotal_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_mask)
@@ -217,7 +217,7 @@ def makeDepthMap(cat, group='', stars_only=True):
 	return depth_map
 
 
-def makeSurveyMask(mf_map):
+def makeSurveyMask(mf_map, depth_map=None):
 	'''
 	Creates a binary mask from the masked fraction map by applying a threshold for the
 	masked fraction.
@@ -226,6 +226,10 @@ def makeSurveyMask(mf_map):
 	----------
 	mf_map: HealSparseMap
 		Masked fraction map.
+
+	depth_map: HealSparseMap or None
+		(Optional) Map of the survey depth. If provided, will additionally set to 0 the
+		weight of any pixels below the depth threshold specified in the config file. 
 
 	Returns
 	-------
@@ -237,18 +241,16 @@ def makeSurveyMask(mf_map):
 	mask = hsp.HealSparseMap.make_empty(mf_map.nside_coverage, mf_map.nside_sparse, dtype=np.float64)
 	#identify valid pixels
 	vpix = mf_map.valid_pixels
-	'''
-	#identify pixels above and below the masked fraction threshold
-	above = mf_map[vpix] >= thresh
-	below = mf_map[vpix] < thresh
-	#populate the binary mask with 0s and 1s accordingly
-	mask[vpix[above]] = 0.
-	mask[vpix[below]] = 1.
-	'''
 
 	#fill the survey mask with 1 minus the masked fraction at the relevant pixels
 	mask[vpix] = 1. - mf_map[vpix]
-	
+
+	#mask pixels below the depth threshold if a depth map is provided
+	if depth_map is not None:
+		vpix_dm = depth_map.valid_pixels
+		vpix_shallow = vpix_dm[depth_map[vpix_dm] < cf.depth_cut]
+		mask[vpix_shallow] = 0.
+
 	return mask
 
 
@@ -281,12 +283,6 @@ for fd in cf.fields:
 	#write to a file
 	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)
 
-	#make a survey mask by applying a masked fraction threshold
-	survey_mask = makeSurveyMask(mf_map)
-	#write to a file
-	survey_mask.write(f'{OUT}/{cf.survey_mask}', clobber=True)
-	healsparseToHDF(survey_mask, f'{OUT}/{cf.survey_mask[:-4]}.hdf5', group='maps/mask')
-
 	#make the star counts map
 	star_map = makeStarMap(cat_stars, group='photometry')
 	#write to a file
@@ -296,3 +292,12 @@ for fd in cf.fields:
 	depth_map = makeDepthMap(cat_basic, group='photometry', stars_only=True)
 	#write to a file
 	depth_map.write(f'{OUT}/{cf.depth_map}', clobber=True)
+
+	#make a survey mask by applying a masked fraction threshold
+	survey_mask = makeSurveyMask(mf_map, depth_map=depth_map)
+	#write to a file
+	survey_mask.write(f'{OUT}/{cf.survey_mask}', clobber=True)
+	#calculate the area above the mask threshold and the fractional sky coverage
+	A_unmasked, f_sky = maskAreaSkyCoverage(survey_mask, thresh=cf.weight_thresh)
+	mask_meta = {'area' : A_unmasked, 'f_sky': f_sky}
+	healsparseToHDF(survey_mask, f'{OUT}/{cf.survey_mask[:-4]}.hdf5', group='maps/mask', metadata=mask_meta)

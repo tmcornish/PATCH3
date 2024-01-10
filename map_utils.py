@@ -264,7 +264,41 @@ def createMask(ra, dec, flags, nside_cover, nside_sparse):
 	return mask
 
 
-def healsparseToHDF(hsp_map, fname, pix_scheme='ring', group=''):
+def maskAreaSkyCoverage(mask, thresh=0.):
+	'''
+	Takes a HealSparseMap mask and calculates the unmasked area and the fractional sky coverage. 
+	Assumes that pixels with smaller values are `more heavily masked'. 
+
+	Parameters
+	----------
+	mask: HealSparseMap
+		The mask for which the unmasked area and fractional sky coverage will be calculated.
+
+	thresh: float
+		Threshold below which pixels will be classed as masked.
+
+	Returns
+	-------
+	A: float
+		Unmasked area (in square degrees).
+
+	f_sky: float
+		Fractional sky coverage.
+	'''
+	
+	#calculate the area of one pixel in square degrees
+	A_pix = hp.nside2pixarea(mask.nside_sparse, degrees=True)
+	#determine the number of pixels above the mask threshold
+	vpix = mask.valid_pixels
+	N_hits = (mask[vpix] > thresh).sum()
+	#calculate the total unmasked area and fractional sky coverage
+	A = N_hits * A_pix
+	f_sky = A / (4. * np.pi * (180. / np.pi) ** 2.)
+
+	return A, f_sky
+
+
+def healsparseToHDF(hsp_map, fname, pix_scheme='ring', group='', metadata=None):
 	'''
 	Takes a HealSparse map and reformats it to an HDF5 dataset containing the pixel IDs
 	and values.
@@ -283,6 +317,9 @@ def healsparseToHDF(hsp_map, fname, pix_scheme='ring', group=''):
 
 	group: str
 		Group within which the relevant data are expected to reside.
+
+	metadata: dict or None
+		Dictionary of additional metadata to be stored for the specified group.
 	'''
 
 	import h5py
@@ -307,6 +344,11 @@ def healsparseToHDF(hsp_map, fname, pix_scheme='ring', group=''):
 		#add some metadata to describe the pixelisation
 		g.attrs['pixelization'] = 'healpix'
 		g.attrs['nside'] = hsp_map.nside_sparse
+		#add any additional metadata
+		if metadata is not None:
+			for md in metadata:
+				#g.attrs = dict(g.attrs, **metadata)
+				g.attrs[md] = metadata[md]
 		_ = hf.create_dataset(f'{group}/pixel', data=vpix, dtype=vpix.dtype)
 		_ = hf.create_dataset(f'{group}/value', data=values, dtype=values.dtype)
 
