@@ -127,6 +127,9 @@ def write_fieldsearch(
 		add_filters('_cmodel_flag'),
 		add_filters('_cmodel_mag'),
 		add_filters('_cmodel_magerr'),
+		'masks.i_mask_brightstar_ghost15',
+		'masks.i_mask_brightstar_halo',
+		'masks.i_mask_brightstar_blooming',
 	]
 	if do_photoz:
 		pzcodes = ['demp', 'dnnz', 'mizu']
@@ -140,7 +143,8 @@ def write_fieldsearch(
 		f'LEFT JOIN {tablename}.forced2 USING (object_id)',
 		f'LEFT JOIN {tablename}.forced3 USING (object_id)',
 		f'LEFT JOIN {tablename}.meas meas USING (object_id)',
-		f'LEFT JOIN {tablename}.meas2 meas2 USING (object_id)'
+		f'LEFT JOIN {tablename}.meas2 meas2 USING (object_id)',
+		f'LEFT JOIN {tablename}.masks masks USING (object_id)'
 	]
 	if do_photoz:
 		pzcodes_full = ['demp', 'dnnz', 'mizuki']
