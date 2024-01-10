@@ -290,7 +290,7 @@ def maskAreaSkyCoverage(mask, thresh=0.):
 	A_pix = hp.nside2pixarea(mask.nside_sparse, degrees=True)
 	#determine the number of pixels above the mask threshold
 	vpix = mask.valid_pixels
-	N_hits = (mask[vpix] > thresh).sum()
+	N_hits = mask[vpix][mask[vpix] > thresh].sum()
 	#calculate the total unmasked area and fractional sky coverage
 	A = N_hits * A_pix
 	f_sky = A / (4. * np.pi * (180. / np.pi) ** 2.)
