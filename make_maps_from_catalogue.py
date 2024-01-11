@@ -5,6 +5,7 @@
 #	- binary bright object mask
 #	- masked fraction map
 #	- depth map
+#	- survey mask
 #####################################################################################################
 
 import os
@@ -19,7 +20,7 @@ import h5py
 from functools import reduce
 
 ### SETTINGS ###
-cf = config.makeMaps
+cf = config.makeMapsFromCat
 
 
 ###################

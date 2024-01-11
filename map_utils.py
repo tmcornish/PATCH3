@@ -62,7 +62,7 @@ def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', pr
 	else:
 		dtype_maps = [(l, dtypes) for l in labels]
 	if primary is None:
-		primary = l[0]
+		primary = labels[0]
 	all_maps = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, dtype=dtype_maps, primary=primary)
 
 	#identify pixels in the HealSparse map that contain sources from the catalogue
@@ -77,7 +77,7 @@ def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', pr
 	return all_maps, px_data, px_data_u
 
 
-def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse):
+def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse, return_pix_and_vals=False):
 	'''
 	Given sets of coordinates (RA and Dec.), counts the number of objects in each pixel
 	of a HealPIX map with the specified NSIDE.
@@ -95,6 +95,9 @@ def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse):
 
 	nside_sparse: int
 		Resolution of the regions of the HealSparse map in which data exist.
+
+	return_pix_and_vals: bool
+		If True, also returns the IDs and corresponding values for occupied pixels.
 
 	Returns
 	-------
@@ -115,7 +118,10 @@ def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse):
 	#fill the map at these positions with the number of sources in the pixel
 	counts_map[px_data_u] = N[good]
 
-	return counts_map
+	if return_pix_and_vals:
+		return counts_map, px_data_u, N[good]
+	else:
+		return counts_map
 
 
 

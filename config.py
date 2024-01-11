@@ -45,6 +45,21 @@ class cf_global:
 	cat_stars = 'star_catalogue.hdf5'
 	cat_tomo = 'tomography_catalogue.hdf5'
 
+	#NSIDE parameter for the low- and high-resolution components of the maps
+	nside_lo = 32
+	nside_hi = 2048
+	
+	#threshold below which pixels in the survey mask will be considered masked
+	weight_thresh = 0.5
+
+	#basenames for the various maps
+	dustmaps = 'dustmaps.hsp'
+	bo_mask = 'bo_mask.hsp'
+	masked_frac = 'masked_fraction.hsp'
+	survey_mask = 'survey_mask.hsp'
+	star_map = 'star_counts.hsp'
+	depth_map = 'depth_map.hsp'
+
 	#redshift column to use for tomography
 	zcol = 'pz_best_dnnz'
 	#redshift bin edges
@@ -91,36 +106,31 @@ class cleanCats(cf_global):
 
 
 
-###################
-#### make_maps ####
-###################
+##################################
+#### make_maps_from_catalogue ####
+##################################
 
-class makeMaps(cf_global):
+class makeMapsFromCat(cf_global):
 
-	#NSIDE parameter for the low- and high-resolution components of the maps
-	nside_lo = 32
-	nside_hi = 2048
 	#NSIDE for the upgraded-resolution version of the bright object mask
 	nside_mask = 16384
-	#threshold below which pixels in the survey mask will be considered masked
-	weight_thresh = 0.5
 
 	#column names for flags identifying sources near bright objects
 	bo_flags = [f'{cf_global.band}_mask_brightstar_ghost15',
 				f'{cf_global.band}_mask_brightstar_halo',
 				f'{cf_global.band}_mask_brightstar_blooming']
 
-	#basenames for the various maps
-	dustmaps = 'dustmaps.hsp'
-	bo_mask = 'bo_mask.hsp'
-	masked_frac = 'masked_fraction.hsp'
-	survey_mask = 'survey_mask.hsp'
-	star_map = 'star_counts.hsp'
-	depth_map = 'depth_map.hsp'
 
 
+##################################
+#### make_maps_from_catalogue ####
+##################################
 
+class makeGalaxyMaps(cf_global):
 
+	#basenames for the count and density maps
+	ngal_maps = 'ngal_maps.hsp'
+	deltag_maps = 'deltag_maps.hsp'
 
 
 
