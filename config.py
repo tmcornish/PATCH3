@@ -105,7 +105,6 @@ class cleanCats(cf_global):
 	blend_cut = 10. ** (-0.375)
 
 
-
 ##################################
 #### make_maps_from_catalogue ####
 ##################################
@@ -121,16 +120,26 @@ class makeMapsFromCat(cf_global):
 				f'{cf_global.band}_mask_brightstar_blooming']
 
 
+#################################
+#### make_maps_from_metadata ####
+#################################
 
-##################################
-#### make_maps_from_catalogue ####
-##################################
+class makeMapsFromMetadata(cf_global):
+
+	#number of cores to use for parallelisation
+	ncores = 16
+	#whether to divide the 
+
+	
+
+
+##########################
+#### make_galaxy_maps ####
+##########################
 
 class makeGalaxyMaps(cf_global):
 
 	#basenames for the count and density maps
 	ngal_maps = 'ngal_maps.hsp'
 	deltag_maps = 'deltag_maps.hsp'
-
-
 

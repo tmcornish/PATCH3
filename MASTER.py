@@ -15,8 +15,9 @@ import output_utils as opu
 #toggle `switches' for determining which scripts to run
 get_data = False		#run data acquisition script
 clean_cats = False		#apply various cuts to clean the catalogues
-catbased_maps = False	#make maps for various quantities
-galaxy_maps = True		#make galaxy count and density maps in tomographic bins
+catbased_maps = False	#make maps for various quantities using the catalogue
+metadata_maps = True	#make maps for various quantities using the frame metadata (uses decasu)
+galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 
 
 ####################
@@ -25,6 +26,7 @@ settings = [
 	get_data,
 	clean_cats,
 	catbased_maps,
+	metadata_maps,
 	galaxy_maps
 	]
 
@@ -32,6 +34,7 @@ proc = [
 	'Downloading data from HSC database',
 	'Cleaning catalogues',
 	'Making maps from catalogue data',
+	'Making maps from frame metadata',
 	'Making galaxy count and density maps in z bins'
 	]
 
@@ -39,6 +42,7 @@ run_str = [
 	'cd data_query/ && python get_data.py; cd ..',
 	'python clean_catalogues.py',
 	'python make_maps_from_catalogue.py',
+	'python make_maps_from_metadata.py',
 	'python make_galaxy_maps.py'
 	]
 
