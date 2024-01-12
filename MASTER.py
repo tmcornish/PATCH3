@@ -14,30 +14,38 @@ import output_utils as opu
 
 #toggle `switches' for determining which scripts to run
 get_data = False		#run data acquisition script
+split_meta = True		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
+split_by_pixel = False	#split the catalogues by pixel 
 catbased_maps = False	#make maps for various quantities
-galaxy_maps = True		#make galaxy count and density maps in tomographic bins
+galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 
 
 ####################
 
 settings = [
 	get_data,
+	split_meta,
 	clean_cats,
+	split_by_pixel,
 	catbased_maps,
 	galaxy_maps
 	]
 
 proc = [
 	'Downloading data from HSC database',
+	'Splitting metadata by field',
 	'Cleaning catalogues',
+	'Splitting data by pixel',
 	'Making maps from catalogue data',
 	'Making galaxy count and density maps in z bins'
 	]
 
 run_str = [
 	'cd data_query/ && python get_data.py; cd ..',
+	'python split_metadata.py',
 	'python clean_catalogues.py',
+	'python split_data_by_pixel.py',
 	'python make_maps_from_catalogue.py',
 	'python make_galaxy_maps.py'
 	]
