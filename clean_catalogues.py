@@ -10,7 +10,7 @@ from astropy.io import fits
 import numpy as np
 import glob
 import h5py
-from output_utils import colour_string, error_message, write_output_hdf
+from output_utils import colour_string, error_message, write_output_hdf, h5py_dataset_iterator
 
 ### SETTINGS ###
 cf = config.cleanCats
@@ -202,92 +202,126 @@ def flag_stars(t):
 #######################################################
 
 
-#cycle through each of the fields
-for fd in cf.fields:
+#get a dictionary of all fields being analysed and their respective subfields
+f_in_g = cf.fields_in_global()
 
-	print(colour_string(fd, 'purple'))
+#cycle through each global field
+for g in f_in_g:
+	print(colour_string(g.upper(), 'orange'))
+	#cycle through each of the subfields
+	for fd in f_in_g[g]:
 
-	#create output directory for this field
-	OUT = cf.PATH_OUT + fd
-	print(f'Output directory: {OUT}')
-	if not os.path.exists(OUT):
-		os.system(f'mkdir -p {OUT}')
-	
-	#filenames to be given to the HDF format output files
-	hdf_basic = f'{OUT}/{cf.cat_basic}'
-	hdf_full = f'{OUT}/{cf.cat_main}'
-	#see if the field has been split into multiple parts
-	fname = f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}{cf.suffix}.fits'
-	#initially enable 'write' mode for output files
-	mode = 'w'
-	if os.path.exists(fname):
-		data_all = Table.read(fname, format='fits')
-		l_init = len(data_all)
-		#apply basic clean and write to HDF file
-		print('Applying basic clean...')
-		data_all = basic_clean(data_all)
-		l_bc = len(data_all)
-		write_output_hdf(data_all, hdf_basic)
-		#apply photometric cuts and write to HDF file
-		print('Applying photometric cuts...')
-		data_all = photom_cuts(data_all)
-		write_output_hdf(data_all, hdf_full)
-		l_final = len(data_all)
-	else: 
-		#see if catalogues exist for separate parts of the field
-		parts = sorted(glob.glob(f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}_part?{cf.suffix}.fits'))
-		if len(parts) >= 1:
-			#set up a list to contain data from all catalogues associated with this field
-			data_all = []
-			l_init = 0		#counter for number of sources in raw data
-			l_bc = 0		#counter for number of sources in basic-cleaned data
-			l_final = 0		#counter for number of sources in final catalogue
-			#cycle through each catalogue
-			for i,cat in enumerate(parts):
-				print(f'Cleaning part {i+1}...')
-				data = Table.read(cat, format='fits')
-				l_init += len(data)
-				#apply basic clean and write to HDF file
-				print('Applying basic clean...')
-				data = basic_clean(data)
-				flag_stars(data)
-				l_bc += len(data)
-				write_output_hdf(data, hdf_basic, mode=mode, group='photometry')
-				#apply photometric cuts and write to HDF file
-				print('Applying photometric cuts...')
-				data = photom_cuts(data)
-				write_output_hdf(data, hdf_full, mode=mode, group='photometry')
-				data_all.append(data)
-				l_final += len(data)
-				try: 
-					assert mode == 'a'
-				except AssertionError:
-					mode = 'a'
-			#stack the data from each part
-			data_all = vstack(data_all)
+		print(colour_string(fd, 'purple'))
 
-		else:
-			error_message(cf.__name__, f'No catalogues found for field {fd.upper()}.')
-			continue
+		#create output directory for this field
+		OUT = f'{cf.PATH_OUT}{g}/{fd}'
+		print(f'Output directory: {OUT}')
+		if not os.path.exists(OUT):
+			os.system(f'mkdir -p {OUT}')
+		
+		#filenames to be given to the HDF format output files
+		hdf_basic = f'{OUT}/{cf.cat_basic}'
+		hdf_full = f'{OUT}/{cf.cat_main}'
+		#see if the field has been split into multiple parts
+		fname = f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}{cf.suffix}.fits'
+		#initially enable 'write' mode for output files
+		mode = 'w'
+		if os.path.exists(fname):
+			data_all = Table.read(fname, format='fits')
+			l_init = len(data_all)
+			#apply basic clean and write to HDF file
+			print('Applying basic clean...')
+			data_all = basic_clean(data_all)
+			l_bc = len(data_all)
+			write_output_hdf(data_all, hdf_basic)
+			#apply photometric cuts and write to HDF file
+			print('Applying photometric cuts...')
+			data_all = photom_cuts(data_all)
+			write_output_hdf(data_all, hdf_full)
+			l_final = len(data_all)
+		else: 
+			#see if catalogues exist for separate parts of the field
+			parts = sorted(glob.glob(f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}_part?{cf.suffix}.fits'))
+			if len(parts) >= 1:
+				#set up a list to contain data from all catalogues associated with this field
+				data_all = []
+				l_init = 0		#counter for number of sources in raw data
+				l_bc = 0		#counter for number of sources in basic-cleaned data
+				l_final = 0		#counter for number of sources in final catalogue
+				#cycle through each catalogue
+				for i,cat in enumerate(parts):
+					print(f'Cleaning part {i+1}...')
+					data = Table.read(cat, format='fits')
+					l_init += len(data)
+					#apply basic clean and write to HDF file
+					print('Applying basic clean...')
+					data = basic_clean(data)
+					flag_stars(data)
+					l_bc += len(data)
+					write_output_hdf(data, hdf_basic, mode=mode, group='photometry')
+					#apply photometric cuts and write to HDF file
+					print('Applying photometric cuts...')
+					data = photom_cuts(data)
+					write_output_hdf(data, hdf_full, mode=mode, group='photometry')
+					data_all.append(data)
+					l_final += len(data)
+					try: 
+						assert mode == 'a'
+					except AssertionError:
+						mode = 'a'
+				#stack the data from each part
+				data_all = vstack(data_all)
 
-	print(colour_string(f'Began with {l_init} sources.', 'green'))
-	print(colour_string(f'{l_bc} remained after basic cleaning.', 'green'))
-	print(colour_string(f'{l_final} sources remaining after full cleaning.', 'green'))
+			else:
+				error_message(cf.__name__, f'No catalogues found for field {fd.upper()}.')
+				continue
 
-	#split catalogue into stars and galaxies
-	data_gals, data_stars = gal_cut(data_all)
-	print(colour_string(f'{len(data_gals)} galaxies; {len(data_stars)} stars.', 'green'))
+		print(colour_string(f'Began with {l_init} sources.', 'green'))
+		print(colour_string(f'{l_bc} remained after basic cleaning.', 'green'))
+		print(colour_string(f'{l_final} sources remaining after full cleaning.', 'green'))
 
-	#write the catalogues to output files
-	print('Writing outputs...')
-	hdf_stars = f'{OUT}/{cf.cat_stars}'
-	write_output_hdf(data_gals, hdf_full, mode='w', group='photometry')
-	write_output_hdf(data_stars, hdf_stars, mode='w', group='photometry')
+		#split catalogue into stars and galaxies
+		data_gals, data_stars = gal_cut(data_all)
+		print(colour_string(f'{len(data_gals)} galaxies; {len(data_stars)} stars.', 'green'))
 
-	#also produce a tomgraphy catalogue
-	hdf_tomo = f'{OUT}/{cf.cat_tomo}'
-	make_tomography_cat(data_gals[cf.zcol], cf.zbins, hdf_tomo)
+		#write the catalogues to output files
+		print('Writing outputs...')
+		hdf_stars = f'{OUT}/{cf.cat_stars}'
+		write_output_hdf(data_gals, hdf_full, mode='w', group='photometry')
+		write_output_hdf(data_stars, hdf_stars, mode='w', group='photometry')
 
+		#also produce a tomgraphy catalogue
+		hdf_tomo = f'{OUT}/{cf.cat_tomo}'
+		make_tomography_cat(data_gals[cf.zcol], cf.zbins, hdf_tomo)
+
+
+
+
+print('Consolidating catalogues from subfields...')
+cats = [cf.cat_basic, cf.cat_main, cf.cat_stars, cf.cat_tomo]
+for g in f_in_g:
+	print(colour_string(g.upper(), 'orange'))
+	#cycle through the catalogue types
+	for cat in cats:
+		print(colour_string(cat, 'cyan')) 
+		fname = f'{cf.PATH_OUT}{g}/{cat}'
+		with h5py.File(fname, 'w') as fmain:
+			for fd in f_in_g[g]:
+				print(f'Adding data from subfield {fd}...')
+				cat_now = f'{cf.PATH_OUT}{g}/{fd}/{cat}'
+				with h5py.File(cat_now, 'r') as fnow:
+					#check the current structure of the main file
+					paths_current = [p for p,_ in h5py_dataset_iterator(fmain)]
+					#iterate through each branch of the file tree
+					for (path, dset) in h5py_dataset_iterator(fnow):
+						N = len(dset)
+						dt = dset.dtype
+						if path in paths_current:
+							dset_main = fmain[path]
+							dset_main.resize((len(dset_main)+N,))
+							dset_main[-N:] = dset[:]
+						else:
+							dset = fmain.create_dataset(path, shape=(N,), data=dset[:], maxshape=(None,), dtype=dt)
 
 
 

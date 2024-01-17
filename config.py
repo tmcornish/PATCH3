@@ -149,13 +149,6 @@ class cleanCats(cf_global):
 	#blending cut (maximum allowed flux estimated to be from blending)
 	blend_cut = 10. ** (-0.375)
 
-
-#############################
-#### split_data_by_pixel ####
-#############################
-
-class splitByPixel(cf_global):
-
 	@classmethod
 	def fields_in_global(cls):
 		fields_global = cls.get_global_fields()
@@ -168,6 +161,7 @@ class splitByPixel(cf_global):
 			else:
 				f_in_g[g] = [g]
 		return f_in_g
+
 
 
 ##################################
