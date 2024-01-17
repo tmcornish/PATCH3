@@ -60,6 +60,10 @@ class cf_global:
 	star_map = 'star_counts.hsp'
 	depth_map = 'depth_map.hsp'
 
+	#basenames for the count and density maps
+	ngal_maps = 'ngal_maps.hsp'
+	deltag_maps = 'deltag_maps.hsp'
+
 	#redshift column to use for tomography
 	zcol = 'pz_best_dnnz'
 	#redshift bin edges
@@ -71,6 +75,8 @@ class cf_global:
 ##################
 
 class getData(cf_global):
+
+	name = 'getData'
 
 	#submit/download data requests
 	submit = True
@@ -97,6 +103,8 @@ class getData(cf_global):
 
 class cleanCats(cf_global):
 
+	name = 'cleanCats'
+
 	#parts of the naming structure for raw data files
 	prefix = f'{cf_global.dr.upper()}_'
 	suffix = getData.suffix()
@@ -111,6 +119,8 @@ class cleanCats(cf_global):
 ##################################
 
 class makeMapsFromCat(cf_global):
+
+	name = 'makeMapsFromCat'
 
 	#NSIDE for the upgraded-resolution version of the bright object mask
 	nside_mask = 16384
@@ -128,9 +138,23 @@ class makeMapsFromCat(cf_global):
 
 class makeGalaxyMaps(cf_global):
 
-	#basenames for the count and density maps
-	ngal_maps = 'ngal_maps.hsp'
-	deltag_maps = 'deltag_maps.hsp'
+	name = 'makeGalaxyMaps'
 
 
 
+
+###############################
+#### compute_power_spectra ####
+###############################
+
+class computePowerSpectra(cf_global):
+
+	name = 'computePowerSpectra'
+
+	#systematics maps to deproject
+	systs = [
+		cf_global.dustmaps
+		]
+	#bandpower edges
+	bpw_edges = [0, 100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000, 3800,
+					4600]#, 6200, 7800, 9400, 12600, 15800]
