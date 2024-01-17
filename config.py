@@ -14,19 +14,24 @@ class cf_global:
 	PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
 	#PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'
 	#PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'
-	PATH_OUT =  f'{PATH_PIPE}out/'												#main directory for outputs
+	PATH_OUT =  f'{PATH_PIPE}out/'								#main directory for outputs
 
 	#data release
 	dr = 'pdr3_wide'
 	#fields for which the pipeline is to be run
-	#fields = ['aegis']#, 'equator00', 'equator01', 'equator02', 'equator08',
+	#fields = ['aegis', 'equator00', 'equator01', 'equator02', 'equator08',
 				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
 				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
 				#'hectomap']
 	fields = ['hectomap']
+	#lists detailing which sub-fields belong to which equatorial field
+	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
+	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
 
 	#file containing the metadata
 	metafile = f'{PATH_DATA}PDR3_WIDE_frames.fits'
+	#basename to be given to the split metadata files
+	metasplit = 'frames_metadata.fits'
 
 	#main photometric band
 	band = 'i'
@@ -48,6 +53,8 @@ class cf_global:
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
 	nside_hi = 2048
+	#low-resolution NSIDE parameter to use for splitting the data
+	nside_cover = 8
 	
 	#threshold below which pixels in the survey mask will be considered masked
 	weight_thresh = 0.5
@@ -64,6 +71,21 @@ class cf_global:
 	zcol = 'pz_best_dnnz'
 	#redshift bin edges
 	zbins = [0.3, 0.6, 0.9, 1.2, 1.5]
+
+
+	@classmethod
+	def get_global_fields(cls):
+		fields_global = []
+		if 'hectomap' in cls.fields:
+			fields_global.append('hectomap')
+		if 'aegis' in cls.fields:
+			fields_global.append('aegis')
+		if any(x in cls.equatora for x in cls.fields):
+			fields_global.append('equatora')
+		if any(x in cls.equatorb for x in cls.fields):
+			fields_global.append('equatorb')
+
+		return fields_global
 
 
 ##################
@@ -91,6 +113,21 @@ class getData(cf_global):
 		return suff
 
 
+########################
+#### split_metadata ####
+########################
+
+class splitMetadata(cf_global):
+
+	#boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
+	bounds = {
+		'aegis' : [212., 216., 51.6, 53.6],
+		'equatora' : [326.25, 41.25, -8., 8.],
+		'equatorb' : [125., 227.5, -4., 7.],
+		'hectomap' : [195., 255., 41.5, 45.]
+	}
+
+
 ##########################
 #### clean_catalogues ####
 ##########################
@@ -103,6 +140,26 @@ class cleanCats(cf_global):
 
 	#blending cut (maximum allowed flux estimated to be from blending)
 	blend_cut = 10. ** (-0.375)
+
+
+#############################
+#### split_data_by_pixel ####
+#############################
+
+class splitByPixel(cf_global):
+
+	@classmethod
+	def fields_in_global(cls):
+		fields_global = cls.get_global_fields()
+		f_in_g = {}
+		for g in fields_global:
+			if g == 'equatora':
+				f_in_g[g] = [f for f in cls.equatora if f in cls.fields]
+			elif g == 'equatorb':
+				f_in_g[g] = [f for f in cls.equatorb if f in cls.fields]
+			else:
+				f_in_g[g] = [g]
+		return f_in_g
 
 
 ##################################
@@ -128,7 +185,7 @@ class makeMapsFromMetadata(cf_global):
 
 	#number of cores to use for parallelisation
 	ncores = 16
-	#whether to divide the 
+
 
 	
 
