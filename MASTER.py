@@ -18,7 +18,7 @@ split_meta = True		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
 split_by_pixel = False	#split the catalogues by pixel 
 catbased_maps = False	#make maps for various quantities using the catalogue
-metadata_maps = True	#make maps for various quantities using the frame metadata (uses decasu)
+metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 
 

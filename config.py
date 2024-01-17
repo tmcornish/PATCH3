@@ -23,7 +23,7 @@ class cf_global:
 				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
 				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
 				#'hectomap']
-	fields = ['hectomap']
+	fields = ['hectomap', 'equator00', 'equator01']
 	#lists detailing which sub-fields belong to which equatorial field
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
@@ -37,6 +37,11 @@ class cf_global:
 	band = 'i'
 	#list of all photometric bands
 	bands = ['g', 'r', 'i', 'z', 'y']
+	#dictionary of alternative names for certain bands
+	bands_alt = {
+		'i' : ['i2'],
+		'r' : ['r2']
+	}
 
 	#S/N thresholds in primary band and other bands
 	sn_pri = 10.
@@ -126,6 +131,9 @@ class splitMetadata(cf_global):
 		'equatorb' : [125., 227.5, -4., 7.],
 		'hectomap' : [195., 255., 41.5, 45.]
 	}
+
+	#whether to further split the metadata by filter (can help Decasu avoid memory issues)
+	split_by_band = True
 
 
 ##########################
