@@ -260,7 +260,8 @@ def makeSurveyMask(mf_map, depth_map=None):
 #######################################################
 
 #cycle through each of the fields
-for fd in cf.fields:
+for fd in cf.get_global_fields():
+	print(colour_string(fd.upper(), 'orange'))
 	#output directory for this field
 	OUT = cf.PATH_OUT + fd
 	#load the basic and fully cleaned galaxy/star catalogues for this field

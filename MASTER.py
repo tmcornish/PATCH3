@@ -17,9 +17,9 @@ get_data = False		#run data acquisition script
 split_meta = False		#splits metadata by global field
 clean_cats = True		#apply various cuts to clean the catalogues
 split_by_pixel = False	#split the catalogues by pixel 
-catbased_maps = False	#make maps for various quantities using the catalogue
+catbased_maps = True	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
-galaxy_maps = False		#make galaxy count and density maps in tomographic bins
+galaxy_maps = True		#make galaxy count and density maps in tomographic bins
 
 
 ####################
@@ -53,6 +53,9 @@ run_str = [
 	'python make_maps_from_metadata.py',
 	'python make_galaxy_maps.py'
 	]
+
+#TODO: change to output bash script which runs relevant scripts
+#TODO: add option for above bash script to be formatted for SLURM (i.e. glamdring)
 
 print(opu.colour_string(opu.string_important('PROCESSES TO RUN')+'\n', 'cyan'))
 setting_str = []

@@ -118,7 +118,8 @@ def makeDensityMaps(ngal_maps, mask):
 #######################################################
 
 #cycle through each of the fields
-for fd in cf.fields:
+for fd in cf.get_global_fields():
+	print(colour_string(fd.upper(), 'orange'))
 	#output directory for this field
 	OUT = cf.PATH_OUT + fd
 	#load the fully cleaned galaxy catalogue for this field
