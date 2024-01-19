@@ -187,6 +187,9 @@ def write_output_hdf(t, fname, colnames=None, group=None, mode='a'):
 
 	#get the length of the Table
 	N = len(t)
+	#if the Table has zero entries, skip the remaining steps or an error will occur
+	if N == 0:
+		return
 	#open the file
 	with h5py.File(fname, mode) as hf:
 		#cycle through the columns
