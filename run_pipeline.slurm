@@ -7,4 +7,4 @@
 #SBATCH --time=24:00:00          # total run time limit (HH:MM:SS)
 #SBATCH --partition=cmb			 # queue on which the process is to be run
 
-srun python MASTER.py
+srun python -u MASTER.py

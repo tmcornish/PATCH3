@@ -47,13 +47,13 @@ proc = [
 	]
 
 run_str = [
-	'cd data_query/ && python get_data.py; cd ..',
-	'python split_metadata.py',
-	'python clean_catalogues.py',
-	'python split_data_by_pixel.py',
-	'python make_maps_from_catalogue.py',
-	#'python make_maps_from_metadata.py',
-	'python make_galaxy_maps.py'
+	'cd data_query/ && python -u get_data.py; cd ..',
+	'python -u split_metadata.py',
+	'python -u clean_catalogues.py',
+	'python -u split_data_by_pixel.py',
+	'python -u make_maps_from_catalogue.py',
+	#'python -u make_maps_from_metadata.py',
+	'python -u make_galaxy_maps.py'
 	]
 
 

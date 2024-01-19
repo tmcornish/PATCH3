@@ -7,4 +7,4 @@
 #SBATCH --time=48:00:00          # total run time limit (HH:MM:SS)
 #SBATCH --partition=cmb			 # queue on which the process is to be run
 
-srun python make_maps_from_metadata.py
+srun python -u make_maps_from_metadata.py
