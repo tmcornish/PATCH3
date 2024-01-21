@@ -232,6 +232,7 @@ for g in f_in_g:
 			#apply basic clean and write to HDF file
 			print('Applying basic clean...')
 			data_all = basic_clean(data_all)
+			flag_stars(data_all)
 			l_bc = len(data_all)
 			write_output_hdf(data_all, hdf_basic, mode=mode, group='photometry')
 			#apply photometric cuts and write to HDF file
