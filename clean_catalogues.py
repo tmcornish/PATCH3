@@ -233,11 +233,11 @@ for g in f_in_g:
 			print('Applying basic clean...')
 			data_all = basic_clean(data_all)
 			l_bc = len(data_all)
-			write_output_hdf(data_all, hdf_basic)
+			write_output_hdf(data_all, hdf_basic, mode=mode, group='photometry')
 			#apply photometric cuts and write to HDF file
 			print('Applying photometric cuts...')
 			data_all = photom_cuts(data_all)
-			write_output_hdf(data_all, hdf_full)
+			write_output_hdf(data_all, hdf_full, mode=mode, group='photometry')
 			l_final = len(data_all)
 		else: 
 			#see if catalogues exist for separate parts of the field
