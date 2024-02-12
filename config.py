@@ -47,7 +47,7 @@ class cf_global:
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 2048
+	nside_hi = 512
 	
 	#threshold below which pixels in the survey mask will be considered masked
 	weight_thresh = 0.5
@@ -158,3 +158,6 @@ class computePowerSpectra(cf_global):
 	#bandpower edges
 	bpw_edges = [0, 100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000, 3800,
 					4600]#, 6200, 7800, 9400, 12600, 15800]
+
+	#directory for figures
+	PATH_PLOTS = cf_global.PATH_OUT + 'figures/'
