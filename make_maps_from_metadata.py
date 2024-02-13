@@ -31,12 +31,14 @@ configfile = cf.configfile
 #create Configuration object for Decasu
 CONF = Configuration.load_yaml(configfile)
 #get the number of cores assigned from SLURM configuration
-ncores = int(os.getenv('SLURM_CPUS_PER_TASK'))
+ncores = int(os.getenv('SLURM_NTASKS'))
 
 #get the extension of the metadata file and its character length
 ext = cf.metafile.split('.')[-1]
 lenext = len(ext)
 
+
+b = sys.argv[1]
 #cycle through the fields being analysed
 for fd in cf.get_global_fields():
 	print(colour_string(fd.upper(), 'orange'))
@@ -45,6 +47,7 @@ for fd in cf.get_global_fields():
 
 	#set up Decasu mapper
 	mapper = MultiHealpixMapper(CONF, OUT, ncores=ncores)
+	'''
 	#check if metadata was split by filter
 	if cf.split_by_band:
 		for b in cf.bands:
@@ -56,7 +59,8 @@ for fd in cf.get_global_fields():
 		bands = ','.join(cf.bands)
 		#run the Decasu mapper for all bands
 		mapper(infile, bands=b, clear_intermediate_files=True)
-
-			
+	'''
+	infile = f'{OUT}{cf.metasplit[:-(lenext+1)]}_{b}.fits'
+	mapper(infile, bands=b, clear_intermediate_files=True)
 		
 	

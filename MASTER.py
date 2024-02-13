@@ -56,7 +56,7 @@ run_str = [
 	#'python -u split_data_by_pixel.py',
 	'python -u make_maps_from_catalogue.py',
 	#'python -u make_maps_from_metadata.py',
-	'python -u make_galaxy_maps.py'
+	'python -u make_galaxy_maps.py',
 	'python -u compute_power_spectra.py'
 	]
 
