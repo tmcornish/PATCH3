@@ -9,14 +9,18 @@
 
 class cf_global:
 
-	#relevant directories
-	PATH_PIPE = '/home/cornisht/LSST_clustering/pHSC3/'			#path to pipeline scripts
-	PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
-	PATH_OUT =  f'{PATH_PIPE}out/'								#main directory for outputs
-	#equivalents for running on glamdring
-	#PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'
-	#PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'
-	#PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'
+	#whether to run on glamdring or locally
+	LOCAL = False
+
+	#relevant directories (dependent on whether being run locally or on glamdring)
+	if LOCAL:
+		PATH_PIPE = '/home/cornisht/LSST_clustering/pHSC3/'			#path to pipeline scripts
+		PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
+		PATH_OUT =  f'{PATH_PIPE}out/'								#main directory for outputs
+	else:
+		PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'					#path to pipeline scripts
+		PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'	#where the raw data are stored
+		PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
 	
 
 	#data release
@@ -26,7 +30,7 @@ class cf_global:
 				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
 				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
 				#'hectomap']
-	#fields = ['equator00', 'equator01']
+	fields = ['equator21', 'equator22', 'equator23', 'equator00', 'equator01', 'equator02', 'equator08', 'equator09', 'equator10', 'equator11', 'equator12', 'equator13', 'equator14', 'equator15']
 	#lists detailing which sub-fields belong to which equatorial field
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
