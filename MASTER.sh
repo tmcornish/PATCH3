@@ -43,6 +43,7 @@ function metamaps_job () {
         #get the list of all bands and run them simultaneously
         b=$($PYEX -c "import config as cf; print(','.join(cf.cf_global.bands))")
         submit_job $1 $2 $b
+    fi
 }
 
 ##### Uncomment all steps below that you wish to run. #####
