@@ -1,0 +1,11 @@
+#directories to ignore
+jp_notebooks
+out/
+__pycache__
+decasu_files
+.ipynb_checkpoints
+data_query/sql_files
+txpipe_logs
+
+#files to ignore
+.repo_PAT.txt

@@ -5,7 +5,7 @@
 #TODO: write function to create decasu config file from pipeline config info
 #TODO: Integrate properly into pipeline (currently written to be run via SLURM bash script for multiprocessing)
 
-import os
+import os, sys
 import config
 from decasu.multi_healpix_mapper import MultiHealpixMapper
 from decasu.configuration import Configuration
@@ -31,7 +31,7 @@ configfile = cf.configfile
 #create Configuration object for Decasu
 CONF = Configuration.load_yaml(configfile)
 #get the number of cores assigned from SLURM configuration
-ncores = int(os.getenv('SLURM_NTASKS'))
+ncores = int(os.getenv('OMP_NUM_THREADS'))
 
 #get the extension of the metadata file and its character length
 ext = cf.metafile.split('.')[-1]
