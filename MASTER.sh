@@ -19,7 +19,7 @@ function getID () {
 #   $2: Name of the script being run.
 #   $3: (Optional) Arguments to pass to the python script itself.
 function submit_job () {
-    if [ test -f $jobfile ]
+    if [ -f $jobfile ]
     then
         jobID=$(getID)
         addqueue $1 --runafter $jobID $PYEX -u $2 $3 > $jobfile
@@ -32,7 +32,7 @@ function submit_job () {
 # Function for specifying the conditions of running make_maps_from_metadata.py.
 function metamaps_job () {
     #see if pipeline configured to split metadata
-    if [ $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True" ]
+    if $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True"
     then
         #get the band and run the script for each one
         for b in $($PYEX -c "import config as cf; print(' '.join(cf.cf_global.bands))")
