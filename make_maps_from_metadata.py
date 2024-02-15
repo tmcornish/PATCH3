@@ -31,7 +31,7 @@ configfile = cf.configfile
 #create Configuration object for Decasu
 CONF = Configuration.load_yaml(configfile)
 #get the number of cores assigned from SLURM configuration
-ncores = int(os.getenv('OMP_NUM_THREADS'))
+ncores = int(os.getenv('SLURM_NTASKS_PER_NODE'))
 
 #get the extension of the metadata file and its character length
 ext = cf.metafile.split('.')[-1]
