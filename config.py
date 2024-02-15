@@ -30,7 +30,8 @@ class cf_global:
 				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
 				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
 				#'hectomap']
-	fields = ['equator21', 'equator22', 'equator23', 'equator00', 'equator01', 'equator02', 'equator08', 'equator09', 'equator10', 'equator11', 'equator12', 'equator13', 'equator14', 'equator15']
+	#fields = ['equator21', 'equator22', 'equator23', 'equator00', 'equator01', 'equator02', 'equator08', 'equator09', 'equator10', 'equator11', 'equator12', 'equator13', 'equator14', 'equator15']
+	fields = ['aegis']
 	#lists detailing which sub-fields belong to which equatorial field
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
@@ -204,6 +205,8 @@ class makeMapsFromMetadata(splitMetadata):
 
 	#decasu config file
 	configfile = f'{cf_global.PATH_PIPE}decasu_config_hpix_hsc_dr3.yaml'
+	#number of cores to use if running locally (if running on glamdring need to specify that elsewhere)
+	ncores = 18
 	
 
 

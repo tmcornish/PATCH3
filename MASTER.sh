@@ -14,21 +14,36 @@ function getID () {
 }
 
 # Function to to submit a job to the queue.
-# Expects two arguments:
+# Expects two arguments plus an optional third:
 #   $1: Arguments and their values passed to addqueue.
 #   $2: Name of the script being run.
+#   $3: (Optional) Arguments to pass to the python script itself.
 function submit_job () {
     if [test -f $jobfile]
     then
         jobID=$(getID)
-        addqueue $1 --runafter $jobID $PYEX -u $2 > $jobfile
+        addqueue $1 --runafter $jobID $PYEX -u $2 $3 > $jobfile
     else
-        addqueue $1 $PYEX -u $2 > $jobfile
+        addqueue $1 $PYEX -u $2 $3 > $jobfile
     fi    
 }
 
 
-
+# Function for specifying the conditions of running make_maps_from_metadata.py.
+function metamaps_job () {
+    #see if pipeline configured to split metadata
+    if [$($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)") = "True"]
+    then
+        #get the band and run the script for each one
+        for b in $($PYEX -c "import config as cf; print(' '.join(cf.cf_global.bands))")
+        do
+            submit_job $1 $2 $b
+        done
+    else
+        #get the list of all bands and run them simultaneously
+        b=$($PYEX -c "import config as cf; print(','.join(cf.cf_global.bands))")
+        submit_job $1 $2 $b
+}
 
 ##### Uncomment all steps below that you wish to run. #####
 
@@ -46,7 +61,7 @@ function submit_job () {
 submit_job "-q cmb -m 40" make_maps_from_catalogue.py
 
 ### making maps from the frame metadata
-# TODO: figure this out
+# metamaps_job "-q cmb -n 1x20 -m 5 -s" make_maps_from_metadata.py
 
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_job "-q cmb -m 40" make_galaxy_maps.py
