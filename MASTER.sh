@@ -10,7 +10,7 @@ jobfile="$PIPEDIR/prevjob.txt"   #file to which job ID will be output
 
 # Function for retrieving previous job ID from file
 function getID () {
-    sed -n '1p' $jobfile | awk -F'sh-' '{ print $NF }' | awk -F'.out' '{ print $1 }'
+    sed -n '1p' $jobfile | awk -F'python-' '{ print $NF }' | awk -F'.out' '{ print $1 }'
 }
 
 # Function to to submit a job to the queue.
