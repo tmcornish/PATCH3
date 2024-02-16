@@ -48,6 +48,10 @@ function metamaps_job () {
 
 ##### Uncomment all steps below that you wish to run. #####
 
+##### If jobfile exists from previous run, delete it #####
+if [ -f $jobfile ]
+    rm -f $jobfile
+fi
 
 ### downloading data
 #cd data_query/ && submit_job "-q cmb -m 10" get_data.py; cd ..
@@ -70,7 +74,3 @@ submit_job "-q cmb -m 40" make_maps_from_catalogue.py
 ### computing power spectra
 #submit_job "-q cmb -n 1x20 -m 2 compute_power_spectra.py" 
 
-
-
-##### Remove the jobfile so that it doesn't interfere with future runs #####
-rm -f $jobfile
