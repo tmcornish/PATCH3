@@ -10,7 +10,7 @@ jobfile="$PIPEDIR/prevjob.txt"   #file to which job ID will be output
 
 # Function for retrieving previous job ID from file
 function getID () {
-    sed -n '1p' $jobfile | awk -F'python-' '{ print $NF }' | awk -F'.out' '{ print $1 }'
+    tail -3 $jobfile | head -1 | awk -F'python-' '{ print $NF }' | awk -F'.out' '{ print $1 }'
 }
 
 # Function to to submit a job to the queue.
@@ -64,7 +64,7 @@ fi
 #submit_job "-q cmb -m 40" clean_catalogues.py
 
 ### making maps from the catalogue data
-submit_job "-q cmb -m 40" make_maps_from_catalogue.py
+#submit_job "-q cmb -m 40" make_maps_from_catalogue.py
 
 ### making maps from the frame metadata
 # metamaps_job "-q cmb -n 1x20 -m 5 -s" make_maps_from_metadata.py
@@ -73,5 +73,5 @@ submit_job "-q cmb -m 40" make_maps_from_catalogue.py
 #submit_job "-q cmb -m 40" make_galaxy_maps.py
 
 ### computing power spectra
-#submit_job "-q cmb -n 1x20 -m 2 compute_power_spectra.py" 
+submit_job "-q cmb -n 1x20 -m 2 -s" compute_power_spectra.py 
 
