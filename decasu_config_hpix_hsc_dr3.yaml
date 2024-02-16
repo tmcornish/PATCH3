@@ -1,4 +1,4 @@
-outbase: 'decasu'
+outbase: 'decasu_8192'
 nside: 8192
 map_types:
   nexp: ['sum']

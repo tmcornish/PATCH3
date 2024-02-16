@@ -9,14 +9,18 @@
 
 class cf_global:
 
-	#relevant directories
-	PATH_PIPE = '/home/cornisht/LSST_clustering/pHSC3/'			#path to pipeline scripts
-	PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
-	PATH_OUT =  f'{PATH_PIPE}out/'								#main directory for outputs
-	#equivalents for running on glamdring
-	#PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'
-	#PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'
-	#PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'
+	#whether to run on glamdring or locally
+	LOCAL = False
+
+	#relevant directories (dependent on whether being run locally or on glamdring)
+	if LOCAL:
+		PATH_PIPE = '/home/cornisht/LSST_clustering/pHSC3/'			#path to pipeline scripts
+		PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
+		PATH_OUT =  f'{PATH_PIPE}out/'								#main directory for outputs
+	else:
+		PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'					#path to pipeline scripts
+		PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'	#where the raw data are stored
+		PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
 	
 
 	#data release
@@ -200,6 +204,8 @@ class makeMapsFromMetadata(splitMetadata):
 
 	#decasu config file
 	configfile = f'{cf_global.PATH_PIPE}decasu_config_hpix_hsc_dr3.yaml'
+	#number of cores to use if running locally (if running on glamdring need to specify that elsewhere)
+	ncores = 18
 	
 
 
