@@ -50,6 +50,7 @@ function metamaps_job () {
 
 ##### If jobfile exists from previous run, delete it #####
 if [ -f $jobfile ]
+then
     rm -f $jobfile
 fi
 
