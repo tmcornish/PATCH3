@@ -70,3 +70,7 @@ submit_job "-q cmb -m 40" make_maps_from_catalogue.py
 ### computing power spectra
 #submit_job "-q cmb -n 1x20 -m 2 compute_power_spectra.py" 
 
+
+
+##### Remove the jobfile so that it doesn't interfere with future runs #####
+rm -f $jobfile
