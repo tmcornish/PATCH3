@@ -8,6 +8,12 @@ PIPEDIR=$(pwd)
 PYEX=$(which python)    #get the Python executable path
 jobfile="$PIPEDIR/prevjob.txt"   #file to which job ID will be output
 
+### If jobfile exists from previous run, delete it ###
+if [ -f $jobfile ]
+then
+    rm -f $jobfile
+fi
+
 # Function for retrieving previous job ID from file
 function getID () {
     tail -3 $jobfile | head -1 | awk -F'python-' '{ print $NF }' | awk -F'.out' '{ print $1 }'
@@ -46,13 +52,23 @@ function metamaps_job () {
     fi
 }
 
+
+# Function for submitting compute_power_spectra.py to the queue.
+function power_spectra_job () {
+    #create an executable file which will be used to run the script properly
+    runfile=run_power_spectra.sh
+    echo \#\!/bin/bash >> $runfile
+    #set the number of threads in that file
+    echo export OMP_NUM_THREADS=$1 >> $runfile
+    echo /usr/local/shared/slurm/bin/srun -n 1 --cpus-per-task $1 --mem-per-cpu $2 $PYEX $3 >> $runfile
+    #make the file executable
+    chmod u+x $runfile
+    #submit the job to the queue
+    submit_job "-q cmb -n 1x$1 -m $2 -s" $runfile
+}
+
 ##### Uncomment all steps below that you wish to run. #####
 
-##### If jobfile exists from previous run, delete it #####
-if [ -f $jobfile ]
-then
-    rm -f $jobfile
-fi
 
 ### downloading data
 #cd data_query/ && submit_job "-q cmb -m 10" get_data.py; cd ..
@@ -72,6 +88,9 @@ fi
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_job "-q cmb -m 40" make_galaxy_maps.py
 
-### computing power spectra
-submit_job "-q cmb -n 1x20 -m 2 -s" compute_power_spectra.py 
+### computing power spectra; function takes as arguments...
+###     1: number of cores to use
+###     2: memory per CPU
+###     3: name of the python script to run
+power_spectra_job 20 2 compute_power_spectra.py
 

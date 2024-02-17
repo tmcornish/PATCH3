@@ -30,7 +30,7 @@ class cf_global:
 				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
 				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
 				#'hectomap']
-	fields = ['equator08', 'equator09', 'equator10', 'equator11', 'equator12', 'equator13', 'equator14', 'equator15']
+	fields = ['aegis']
 	#lists detailing which sub-fields belong to which equatorial field
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
