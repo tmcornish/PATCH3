@@ -87,6 +87,8 @@ def array_to_fits(data, filename, CTYPE1='RA', CTYPE2='DEC', CRPIX=[1,1], CRVAL=
 	CDELT: array-like
 		Pixel scales in [X,Y].
 	'''
+	from astropy.io import fits 
+
 	#create a PrimaryHDU from the chi^2 grid
 	hdu = fits.PrimaryHDU(data)
 	#update the relevant parameters in the header
@@ -125,7 +127,7 @@ def error_message(module, message):
 
 
 
-def write_output(t, fname):
+def write_output(t, fname, **kwargs):
 	'''
 	Writes an astropy Table to a file (type inferred from filename) with appropriate metadata.
 
@@ -137,11 +139,12 @@ def write_output(t, fname):
 	fname: str
 		Filename to be given to the output file.
 	'''
+	from astropy.io import fits 
 
 	#set up the header
 	hdr = fits.Header()
-	hdr['BAND'] = cf.band
-	hdr['DEPTH'] = cf.depth_cut
+	for key in kwargs:
+		hdr[key.upper()] = kwargs[key]
 	prm_hdu = fits.PrimaryHDU(header=hdr)
 
 	#convert the catalogue into an HDU
