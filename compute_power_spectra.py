@@ -159,7 +159,6 @@ for fd in cf.fields:
 	fig = plt.figure(figsize=(xsize, ysize))
 	gs = fig.add_gridspec(ncols=nbins, nrows=nbins)
 
-
 	#path to the directory containing the maps
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
 	#load the N_g and delta_g maps
@@ -180,120 +179,145 @@ for fd in cf.fields:
 	#set all pixels below the weight threshold to 0
 	mask[~above_thresh] = 0
 
-
-	#cycle through the redshift bins (TODO: edit to allow for all pairings of z bins)
-	for p in pairings:
-		i,j = p
-
-		#load the density maps for the current pairing and create NmtFields
-		dg_i = hspToFullSky(deltag_maps[f'delta_{i}'])
-		f_i = nmt.NmtField(mask, [dg_i], templates=systmaps)
-		if j == i:
-			f_j = nmt.NmtField(mask, [dg_i], templates=systmaps)
-		else:
-			dg_j = hspToFullSky(deltag_maps[f'delta_{j}'])
-			f_j = nmt.NmtField(mask, [dg_j], templates=systmaps)
-
-		#compute the mode coupling matrix
-		w.compute_coupling_matrix(f_i, f_j, b)
-
-		#compute coupled C_ell
-		cl_coupled = nmt.workspaces.compute_coupled_cell(f_i, f_j)
-		#use these along with the mask to get a guess of the true C_ell
-		cl_guess = cl_coupled / np.mean(mask * mask)
-		#compute the deprojection bias
-		cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-
-		#compute the decoupled C_ell, with and without deprojecting the bias
-		cl_decoupled = w.decouple_cell(cl_coupled)
-		cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-		#decoule the bias C_ells as well
-		cl_bias_decoupled = w.decouple_cell(cl_bias)
-
-		#split the deprojection bias into positive and negative components (for plotting purposes)
-		#mask_pve = cl_bias_decoupled[0] > 0
-		#mask_nve = cl_bias_decoupled[0] <= 0
-
-
-		########################
-		# NOISE POWER SPECTRUM #
-		########################
-
-		#Only calculate for autocorrelations
-		if i == j:
-			#retrieve the Ngal map for this redshift bin
-			ng_full = hspToFullSky(ngal_maps[f'ngal_{i}'])
-			#calculate the mean number of galaxies per pixel (above weight threshold)
-			mu_N = np.sum(ng_full[above_thresh]) / np.sum(mask[above_thresh])
-			#calculate the mean value of the mask
-			mu_w = np.mean(mask)
-			#get pixel area in units of steradians
-			Apix = hp.nside2pixarea(cf.nside_hi)
-
-			#calculate the noise power spectrum
-			N_ell_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
-			#decouple
-			N_ell_decoupled = w.decouple_cell(N_ell_coupled)
-
-		if cw is None:
-			#covariance matrix calculation: create covariance workspace
-			cw = nmt.NmtCovarianceWorkspace()
-			#compute coupling coefficients
-			cw.compute_coupling_coefficients(f_i, f_j)
-
-		#extract (gaussian) covariance matrix
-		n_ell = len(cl_decoupled[0])
-		covar = nmt.gaussian_covariance(cw, 
-										0, 0, 0, 0,			#spin of each field
-										[cl_guess[0]],	
-										[cl_guess[0]],
-										[cl_guess[0]],
-										[cl_guess[0]],
-										w)
-		#errorbars for each bandpower
-		err_cell = np.diag(covar) ** 0.5
+	#full path to the output file
+	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
+	#open the file, creating it if it doesn't exist
+	with h5py.File(outfile, mode='a') as psfile:
 		
+		#cycle through all possible pairings of redshift bins
+		for p in pairings:
+			i,j = p
+
+			#see if a group for the current pairing already exists
+			p_str = str(p)
+			if p_str in psfile.keys():
+				#retrieve the relevant qualities for creating the plot
+				cl_bias_decoupled = psfile[f'{p_str}/cl_bias_decoupled'][...]
+				cl_decoupled_debiased = psfile[f'{p_str}/cl_decoupled_debiased'][...]
+				err_cell = psfile[f'{p_str}/err_cell'][...]
+				N_ell_decoupled = psfile[f'{p_str}/N_ell_decoupled'][...]
+
+			else:
+
+				#load the density maps for the current pairing and create NmtFields
+				dg_i = hspToFullSky(deltag_maps[f'delta_{i}'])
+				f_i = nmt.NmtField(mask, [dg_i], templates=systmaps)
+				if j == i:
+					f_j = nmt.NmtField(mask, [dg_i], templates=systmaps)
+				else:
+					dg_j = hspToFullSky(deltag_maps[f'delta_{j}'])
+					f_j = nmt.NmtField(mask, [dg_j], templates=systmaps)
 
 
-		####################
-		# PLOTTING RESULTS #
-		####################
+				cl_coupled = nmt.workspaces.compute_coupled_cell(f_i, f_j)
+				#use these along with the mask to get a guess of the true C_ell
+				cl_guess = cl_coupled / np.mean(mask * mask)
 
-		#add subplot to gridspec
-		ax = fig.add_subplot(gs[j,i])
-		#only label axes if on outer edge of figure
-		if j == (nbins-1):
-			ax.set_xlabel(r'$\ell$')
-		if i == 0:
-			ax.set_ylabel(r'$C_{\ell}$')
-		#set loglog scale
-		ax.set_xscale('log')
-		ax.set_yscale('log')
+				
+				#compute the deprojection bias
+				cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
 
-		#plot the deporojection bias
-		bias_plot, *_ = ax.plot(b.get_effective_ells(), cl_bias_decoupled[0], c=pu.magenta)
-		ax.plot(b.get_effective_ells(), -cl_bias_decoupled[0], ls='--', c=pu.magenta)
-		#at this point retrieve the x limits
-		xmin, xmax = ax.get_xlim()
+				#compute the mode coupling matrix
+				w.compute_coupling_matrix(f_i, f_j, b)
+				#compute the decoupled C_ell, with and without deprojecting the bias
+				cl_decoupled = w.decouple_cell(cl_coupled)
+				cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+				#decoule the bias C_ells as well
+				cl_bias_decoupled = w.decouple_cell(cl_bias)
 
-		#plot the debiased power spectrum, using open symbols for abs(negative) values
-		mask_pve = cl_decoupled_debiased[0] > 0
-		mask_nve = cl_decoupled_debiased[0] <= 0
-		Y_pve = cl_decoupled_debiased[0][mask_pve]
-		Y_nve = cl_decoupled_debiased[0][mask_nve]
-		cell_plot = ax.errorbar(b.get_effective_ells()[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
-		ax.errorbar(b.get_effective_ells()[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
-		
 
-		#plot the shot noise if autocorrelation
-		if i == j:
-			noise_plot, *_ = ax.plot(b.get_effective_ells(), N_ell_decoupled[0], c=pu.teal)
 
-		#reset the axis limits
-		ax.set_xlim(xmin, xmax)
+				########################
+				# NOISE POWER SPECTRUM #
+				########################
 
-		#add text to the top-right corner to indicate which bins have been compared
-		ax.text(0.95, 0.95, f'({i},{j})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
+				#Only calculate for autocorrelations
+				if i == j:
+					#retrieve the Ngal map for this redshift bin
+					ng_full = hspToFullSky(ngal_maps[f'ngal_{i}'])
+					#calculate the mean number of galaxies per pixel (above weight threshold)
+					mu_N = np.sum(ng_full[above_thresh]) / np.sum(mask[above_thresh])
+					#calculate the mean value of the mask
+					mu_w = np.mean(mask)
+					#get pixel area in units of steradians
+					Apix = hp.nside2pixarea(cf.nside_hi)
+
+					#calculate the noise power spectrum
+					N_ell_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
+					#decouple
+					N_ell_decoupled = w.decouple_cell(N_ell_coupled)
+
+				if cw is None:
+					#covariance matrix calculation: create covariance workspace
+					cw = nmt.NmtCovarianceWorkspace()
+					#compute coupling coefficients
+					cw.compute_coupling_coefficients(f_i, f_j)
+
+				#extract (gaussian) covariance matrix
+				n_ell = len(cl_decoupled[0])
+				covar = nmt.gaussian_covariance(cw, 
+												0, 0, 0, 0,			#spin of each field
+												[cl_guess[0]],	
+												[cl_guess[0]],
+												[cl_guess[0]],
+												[cl_guess[0]],
+												w)
+				#errorbars for each bandpower
+				err_cell = np.diag(covar) ** 0.5
+
+
+				#populate the output file with the results
+				gp = psfile.require_group(p_str)
+				_ = gp.create_dataset('cl_coupled', data=cl_coupled)
+				_ = gp.create_dataset('cl_guess', data=cl_guess)
+				_ = gp.create_dataset('cl_bias', data=cl_bias)
+				_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
+				_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
+				_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
+				_ = gp.create_dataset('covar', data=covar)
+				_ = gp.create_dataset('err_cell', data=err_cell)
+
+
+
+			####################
+			# PLOTTING RESULTS #
+			####################
+
+			#add subplot to gridspec
+			ax = fig.add_subplot(gs[j,i])
+			#only label axes if on outer edge of figure
+			if j == (nbins-1):
+				ax.set_xlabel(r'$\ell$')
+			if i == 0:
+				ax.set_ylabel(r'$C_{\ell}$')
+			#set loglog scale
+			ax.set_xscale('log')
+			ax.set_yscale('log')
+
+			#plot the deporojection bias
+			bias_plot, *_ = ax.plot(b.get_effective_ells(), cl_bias_decoupled[0], c=pu.magenta)
+			ax.plot(b.get_effective_ells(), -cl_bias_decoupled[0], ls='--', c=pu.magenta)
+			#at this point retrieve the x limits
+			xmin, xmax = ax.get_xlim()
+
+			#plot the debiased power spectrum, using open symbols for abs(negative) values
+			mask_pve = cl_decoupled_debiased[0] > 0
+			mask_nve = cl_decoupled_debiased[0] <= 0
+			Y_pve = cl_decoupled_debiased[0][mask_pve]
+			Y_nve = cl_decoupled_debiased[0][mask_nve]
+			cell_plot = ax.errorbar(b.get_effective_ells()[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
+			ax.errorbar(b.get_effective_ells()[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
+			
+
+			#plot the shot noise if autocorrelation
+			if i == j:
+				noise_plot, *_ = ax.plot(b.get_effective_ells(), N_ell_decoupled[0], c=pu.teal)
+
+			#reset the axis limits
+			ax.set_xlim(xmin, xmax)
+
+			#add text to the top-right corner to indicate which bins have been compared
+			ax.text(0.95, 0.95, f'({i},{j})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
 
 	
 	#create a legend		

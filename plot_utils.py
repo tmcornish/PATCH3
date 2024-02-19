@@ -32,12 +32,10 @@ styledict = {
 	'ytick.right' : True,
 	'ytick.major.right' : True,
 	'ytick.minor.right' : True,
-	#font.family: serif,
-	#font.serif: Computer Modern Roman,
 	'font.size' : 22,
 	'font.weight' : 'bold',
 	'ytick.direction' : 'in',
-	'text.usetex' : True,				#enables the use of LaTeX style fonts and symbols
+	#'text.usetex' : True,				#enables the use of LaTeX style fonts and symbols
 	'mathtext.fontset' : 'stix',
 	'font.family' : 'STIXGeneral',
 	'axes.formatter.useoffset' : False,

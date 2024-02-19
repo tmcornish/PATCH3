@@ -21,6 +21,8 @@ class cf_global:
 		PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'					#path to pipeline scripts
 		PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'	#where the raw data are stored
 		PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
+	#directory for figures
+	PATH_PLOTS = PATH_OUT + 'figures/'
 	
 
 	#data release
@@ -30,7 +32,7 @@ class cf_global:
 				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
 				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
 				#'hectomap']
-	fields = ['aegis']
+	fields = ['hectomap']
 	#lists detailing which sub-fields belong to which equatorial field
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
@@ -64,7 +66,7 @@ class cf_global:
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 4096
+	nside_hi = 512
 	#low-resolution NSIDE parameter to use for splitting the data
 	nside_cover = 8
 	
@@ -137,6 +139,8 @@ class getData(cf_global):
 
 class splitMetadata(cf_global):
 
+	name = 'splitMetadata'
+
 	#boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
 	bounds = {
 		'aegis' : [212., 216., 51.6, 53.6],
@@ -202,6 +206,8 @@ class makeMapsFromCat(cf_global):
 
 class makeMapsFromMetadata(splitMetadata):
 
+	name = 'makeMapsFromMetadata'
+
 	#decasu config file
 	configfile = f'{cf_global.PATH_PIPE}decasu_config_hpix_hsc_dr3.yaml'
 	#number of cores to use if running locally (if running on glamdring need to specify that elsewhere)
@@ -230,10 +236,9 @@ class computePowerSpectra(cf_global):
 	systs = [
 		cf_global.dustmaps
 		]
-	#bandpower edges
-	bpw_edges = [0, 100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000, 3800,
-					4600]#, 6200, 7800, 9400, 12600, 15800]
+	
+	#output file for power spectrum information
+	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
 
-	#directory for figures
-	PATH_PLOTS = cf_global.PATH_OUT + 'figures/'
+	
 
