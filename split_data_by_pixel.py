@@ -41,7 +41,7 @@ for g in f_in_g.keys():
 	print('Splitting metadata...')
 	for v in vpix_u:
 		#identifier for this pixel
-		PID = f'{cf.nside_cover}_{vp}'
+		PID = f'{cf.nside_cover}_{v}'
 		print(colour_string(PID, 'purple'))
 
 		#output directory for (meta)data belonging to this pixel
