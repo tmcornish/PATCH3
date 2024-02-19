@@ -165,13 +165,16 @@ for fd in cf.get_global_fields():
 	ngal_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.ngal_maps)
 	deltag_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.deltag_maps)
 
-	#load the systematics maps and convert to full-sky realisations
-	systmaps = load_maps([PATH_MAPS + s for s in cf.systs], normalise=True)
-	#reshape the resultant list to have dimensions (nsyst, 1, npix)
-	nsyst = len(systmaps)
-	npix = len(systmaps[0])
-	systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
-	
+	if len(cf.systs) > 0:
+		#load the systematics maps and convert to full-sky realisations
+		systmaps = load_maps([PATH_MAPS + s for s in cf.systs], normalise=True)
+		#reshape the resultant list to have dimensions (nsyst, 1, npix)
+		nsyst = len(systmaps)
+		npix = len(systmaps[0])
+		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
+	else:
+		systmaps = None
+
 	#load the survey mask and convert to full-sky realisation
 	mask, = load_maps([PATH_MAPS+cf.survey_mask])
 	#identify pixels above the weight threshold
@@ -213,16 +216,16 @@ for fd in cf.get_global_fields():
 				#use these along with the mask to get a guess of the true C_ell
 				cl_guess = cl_coupled / np.mean(mask * mask)
 
-				
-				#compute the deprojection bias
-				cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
 
 				#compute the mode coupling matrix
 				w.compute_coupling_matrix(f_i, f_j, b)
-				#compute the decoupled C_ell, with and without deprojecting the bias
+				#compute the decoupled C_ell (w/o deprojection)
 				cl_decoupled = w.decouple_cell(cl_coupled)
+				#compute the deprojection bias
+				cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+				#compute the decoupled C_ell (w/ deprojection)
 				cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-				#decoule the bias C_ells as well
+				#decouple the bias C_ells as well
 				cl_bias_decoupled = w.decouple_cell(cl_bias)
 
 
@@ -269,6 +272,8 @@ for fd in cf.get_global_fields():
 				#populate the output file with the results
 				gp = psfile.require_group(p_str)
 				_ = gp.create_dataset('cl_coupled', data=cl_coupled)
+				_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
+				_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
 				_ = gp.create_dataset('cl_guess', data=cl_guess)
 				_ = gp.create_dataset('cl_bias', data=cl_bias)
 				_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
