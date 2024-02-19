@@ -10,7 +10,7 @@
 class cf_global:
 
 	#whether to run on glamdring or locally
-	LOCAL = False
+	LOCAL = True
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
 	if LOCAL:

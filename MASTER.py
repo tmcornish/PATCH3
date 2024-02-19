@@ -16,13 +16,13 @@ import output_utils as opu
 
 #toggle `switches' for determining which scripts to run
 get_data = False		#run data acquisition script
-split_meta = False		#splits metadata by global field
+split_meta = True		#splits metadata by global field
 clean_cats = True		#apply various cuts to clean the catalogues
 #split_by_pixel = False	#split the catalogues by pixel 
-catbased_maps = False	#make maps for various quantities using the catalogue
-#metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
-galaxy_maps = False		#make galaxy count and density maps in tomographic bins
-power_spectra = False	#compute power spectra
+catbased_maps = True	#make maps for various quantities using the catalogue
+metadata_maps = True	#make maps for various quantities using the frame metadata (uses decasu)
+galaxy_maps = True		#make galaxy count and density maps in tomographic bins
+power_spectra = True	#compute power spectra
 
 
 ####################
@@ -33,7 +33,7 @@ settings = [
 	clean_cats,
 	#split_by_pixel,
 	catbased_maps,
-	#metadata_maps,
+	metadata_maps,
 	galaxy_maps,
 	power_spectra
 	]
@@ -44,7 +44,7 @@ proc = [
 	'Cleaning catalogues',
 	#'Splitting data by pixel',
 	'Making maps from catalogue data',
-	#'Making maps from frame metadata',
+	'Making maps from frame metadata',
 	'Making galaxy count and density maps in z bins',
 	'Computing power spectra'
 	]
@@ -55,7 +55,7 @@ run_str = [
 	'python -u clean_catalogues.py',
 	#'python -u split_data_by_pixel.py',
 	'python -u make_maps_from_catalogue.py',
-	#'python -u make_maps_from_metadata.py',
+	'python -u make_maps_from_metadata.py',
 	'python -u make_galaxy_maps.py',
 	'python -u compute_power_spectra.py'
 	]
