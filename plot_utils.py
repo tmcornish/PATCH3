@@ -4,6 +4,27 @@
 
 import colorsys
 
+def check_for_latex():
+	'''
+	Checks if LaTeX is installed on machine; returns True if so and False otherwise.
+
+	Returns
+	-------
+	installed: bool
+		True if LaTeX is installed and False otherwise.
+	'''
+	import shutil
+	
+	if shutil.which('latex'):
+		installed = True
+	else:
+		installed = False
+	
+	return installed
+
+#see if LaTeX installed; if so, enable its use in figures
+
+
 #dictionary containing custom formatting for plots
 styledict = {
 	'figure.figsize' : (8., 6.),
@@ -35,7 +56,7 @@ styledict = {
 	'font.size' : 22,
 	'font.weight' : 'bold',
 	'ytick.direction' : 'in',
-	#'text.usetex' : True,				#enables the use of LaTeX style fonts and symbols
+	'text.usetex' : check_for_latex(),				#enables the use of LaTeX style fonts and symbols
 	'mathtext.fontset' : 'stix',
 	'font.family' : 'STIXGeneral',
 	'axes.formatter.useoffset' : False,
