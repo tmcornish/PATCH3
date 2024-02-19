@@ -154,7 +154,7 @@ cw = None
 
 
 #cycle through the fields being analysed (TODO: later change to global fields)
-for fd in cf.fields:
+for fd in cf.get_global_fields():
 	#set up a figure for the power spectra from each redshift bin
 	fig = plt.figure(figsize=(xsize, ysize))
 	gs = fig.add_gridspec(ncols=nbins, nrows=nbins)
