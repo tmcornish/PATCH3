@@ -27,15 +27,17 @@ class cf_global:
 
 	#data release
 	dr = 'pdr3_wide'
-	#fields for which the pipeline is to be run
-	#fields = ['aegis', 'equator00', 'equator01', 'equator02', 'equator08',
-				#'equator09', 'equator10', 'equator11', 'equator12', 'equator13',
-				#'equator14', 'equator15', 'equator21', 'equator22', 'equator23',
-				#'hectomap']
-	fields = ['hectomap']
+
 	#lists detailing which sub-fields belong to which equatorial field
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
+	
+	#fields for which the pipeline is to be run
+	#fields = ['aegis']
+	fields = ['hectomap']
+	#fields = equatora
+	#fields = equatorb
+	#fields = ['aegis', 'hectomap'] + equatora + equatorb
 
 	#file containing the metadata
 	metafile = f'{PATH_DATA}PDR3_WIDE_frames.fits'
@@ -234,8 +236,9 @@ class computePowerSpectra(cf_global):
 
 	#systematics maps to deproject
 	systs = [
-		cf_global.dustmaps
 		]
+	
+	#TODO: add option to incorporate all decasu output maps in systs
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'

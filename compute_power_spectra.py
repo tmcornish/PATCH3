@@ -1,6 +1,8 @@
 #####################################################################################################
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
+# - TODO: ensure that script doesn't use previous output if deprojection is to occur and didn't on previous
+#	run.
 #####################################################################################################
 
 import os
@@ -236,7 +238,8 @@ for fd in cf.get_global_fields():
 					#decouple the bias C_ells as well
 					cl_bias_decoupled = w.decouple_cell(cl_bias)
 				else:
-					cl_bias = cl_bias_decoupled = None
+					cl_bias = np.zeros_like(cl_guess)
+					cl_bias_decoupled = np.zeros_like(cl_decoupled)
 					cl_decoupled_debiased = cl_decoupled[...]
 
 
@@ -284,14 +287,14 @@ for fd in cf.get_global_fields():
 				_ = gp.create_dataset('ell_effs', data=ell_effs)
 				_ = gp.create_dataset('cl_coupled', data=cl_coupled)
 				_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
-				_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
 				_ = gp.create_dataset('cl_guess', data=cl_guess)
-				_ = gp.create_dataset('cl_bias', data=cl_bias)
-				_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 				_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
 				_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
 				_ = gp.create_dataset('covar', data=covar)
 				_ = gp.create_dataset('err_cell', data=err_cell)
+				_ = gp.create_dataset('cl_bias', data=cl_bias)
+				_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
+				_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
 
 
 
@@ -310,7 +313,7 @@ for fd in cf.get_global_fields():
 			ax.set_xscale('log')
 			ax.set_yscale('log')
 
-			if cl_bias_decoupled is not None:
+			if cl_bias_decoupled.any():
 				#plot the deporojection bias
 				bias_plot, *_ = ax.plot(b.get_effective_ells(), cl_bias_decoupled[0], c=pu.magenta)
 				ax.plot(b.get_effective_ells(), -cl_bias_decoupled[0], ls='--', c=pu.magenta)
@@ -345,15 +348,20 @@ for fd in cf.get_global_fields():
 		'Signal',
 		'Noise'
 		]
-	if cl_bias_decoupled is not None:
+	if cl_bias_decoupled.any():
 		handles.insert(1, bias_plot)
 		labels.insert(1, 'Deprojection bias')
+		#figure name also depends on whether deprojection has occurred
+		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra.png'
+	else:
+		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_raw.png'
 	
 
 	fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
 
 	plt.tight_layout()
-	plt.savefig(f'{cf.PATH_PLOTS}{fd}_power_spectra.png', dpi=300)
+
+	plt.savefig(figname, dpi=300)
 		
 
 

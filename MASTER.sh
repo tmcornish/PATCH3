@@ -102,7 +102,7 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
 
 ### making maps from the frame metadata
-# metamaps_job "-q cmb -n 1x20 -m 5 -s" make_maps_from_metadata.py
+# metamaps_job "-q cmb -n 1x20 -m 7 -s" make_maps_from_metadata.py
 
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py
