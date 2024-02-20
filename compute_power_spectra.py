@@ -5,17 +5,14 @@
 #	run.
 #####################################################################################################
 
-import os
 import config
 import healpy as hp
 import healsparse as hsp
 import numpy as np
-from output_utils import colour_string
 from map_utils import *
 import h5py
 import pymaster as nmt
 from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
 import plot_utils as pu
 import itertools
 
@@ -32,7 +29,7 @@ plt.style.use(pu.styledict)
 ###################
 
 
-def hspToFullSky(hsp_map, normalise=False):
+def hspToFullSky(hsp_map, is_systmap=False):
 	'''
 	Converts a HealSparse map into a full-sky realisation that NaMaster can use.
 
@@ -41,9 +38,8 @@ def hspToFullSky(hsp_map, normalise=False):
 	hsp_map: HealSparseMap
 		The map being converted.
 
-	normalise: bool
-		If True, normalises the data by performing the following operation to each valid pixel:
-		value --> (value / <value>) - 1
+	is_systmap: bool
+		If True, subtracts the mean form the value of all pixels (necessary for systematics maps).
 
 	Returns
 	-------
@@ -61,17 +57,16 @@ def hspToFullSky(hsp_map, normalise=False):
 	#fill the relevant pixels in the full-sky map
 	fs_map[vpix_ring] = hsp_map[vpix]
 	#if told to normalise, divide by the mean and subtract 1
-	if normalise:
+	if is_systmap:
 		mu = np.mean(hsp_map[vpix])
-		fs_map /= mu
-		fs_map -= 1
+		fs_map -= mu
 
 	return fs_map
 
 	
 
 
-def load_maps(map_paths, normalise=False):
+def load_maps(map_paths, is_systmap=False):
 	'''
 	Loads any number of provided HealSparse maps and returns their pixel values in healPIX 
 	RING ordering.
@@ -83,18 +78,14 @@ def load_maps(map_paths, normalise=False):
 	map_paths: list
 		List of paths to the maps being read.
 
-	normalise: bool
-		If True, normalises the data by performing the following operation to each valid pixel:
-		value --> (value / <value>) - 1
+	is_systmap: bool
+		If True, subtracts the mean form the value of all pixels (necessary for systematics maps).
 
 	Returns
 	-------
 	maps: list
 		List containing data from each map.
 	'''
-	#determine how many pixels are in a full-sky map at the resolution of the maps
-	npix = hp.nside2npix(cf.nside_hi)
-
 	maps = []
 
 	#cycle through the list of paths
@@ -106,10 +97,10 @@ def load_maps(map_paths, normalise=False):
 		nmaps = len(map_data.dtype)
 		if nmaps > 0:
 			#append the data from each map to the list
-			maps.extend([hspToFullSky(map_data[n], normalise) for n in map_data.dtype.names])
+			maps.extend([hspToFullSky(map_data[n], is_systmap) for n in map_data.dtype.names])
 		else:
 			#append the data to the list
-			maps.append(hspToFullSky(map_data, normalise))
+			maps.append(hspToFullSky(map_data, is_systmap))
 
 	return maps
 
@@ -174,7 +165,7 @@ for fd in cf.get_global_fields():
 
 	if len(cf.systs) > 0:
 		#load the systematics maps and convert to full-sky realisations
-		systmaps = load_maps([PATH_MAPS + s for s in cf.systs], normalise=True)
+		systmaps = load_maps([PATH_MAPS + s for s in cf.systs], is_systmap=True)
 		#reshape the resultant list to have dimensions (nsyst, 1, npix)
 		nsyst = len(systmaps)
 		npix = len(systmaps[0])
