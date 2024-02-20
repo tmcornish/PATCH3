@@ -133,6 +133,11 @@ b = nmt.NmtBin.from_edges(bpw_edges_lo, bpw_edges_hi)
 '''
 #create pymaster NmtBin object using resolution of the maps
 b = nmt.NmtBin.from_nside_linear(cf.nside_hi, 100)
+ell_effs = b.get_effective_ells()
+#use this to define the x-limits of the figures
+xmin = ell_effs.min() / 1.5
+xmax = ell_effs.max() * 1.2
+
 #set up a pymaster Workspace object
 w = nmt.NmtWorkspace()
 
@@ -221,13 +226,18 @@ for fd in cf.get_global_fields():
 				w.compute_coupling_matrix(f_i, f_j, b)
 				#compute the decoupled C_ell (w/o deprojection)
 				cl_decoupled = w.decouple_cell(cl_coupled)
-				#compute the deprojection bias
-				cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-				#compute the decoupled C_ell (w/ deprojection)
-				cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-				#decouple the bias C_ells as well
-				cl_bias_decoupled = w.decouple_cell(cl_bias)
 
+				#only calculate bias-related quantities if templates have been provided
+				if systmaps is not None:
+					#compute the deprojection bias
+					cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+					#compute the decoupled C_ell (w/ deprojection)
+					cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+					#decouple the bias C_ells as well
+					cl_bias_decoupled = w.decouple_cell(cl_bias)
+				else:
+					cl_bias = cl_bias_decoupled = None
+					cl_decoupled_debiased = cl_decoupled[...]
 
 
 				########################
@@ -271,6 +281,7 @@ for fd in cf.get_global_fields():
 
 				#populate the output file with the results
 				gp = psfile.require_group(p_str)
+				_ = gp.create_dataset('ell_effs', data=ell_effs)
 				_ = gp.create_dataset('cl_coupled', data=cl_coupled)
 				_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
 				_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
@@ -299,11 +310,12 @@ for fd in cf.get_global_fields():
 			ax.set_xscale('log')
 			ax.set_yscale('log')
 
-			#plot the deporojection bias
-			bias_plot, *_ = ax.plot(b.get_effective_ells(), cl_bias_decoupled[0], c=pu.magenta)
-			ax.plot(b.get_effective_ells(), -cl_bias_decoupled[0], ls='--', c=pu.magenta)
-			#at this point retrieve the x limits
-			xmin, xmax = ax.get_xlim()
+			if cl_bias_decoupled is not None:
+				#plot the deporojection bias
+				bias_plot, *_ = ax.plot(b.get_effective_ells(), cl_bias_decoupled[0], c=pu.magenta)
+				ax.plot(b.get_effective_ells(), -cl_bias_decoupled[0], ls='--', c=pu.magenta)
+				#at this point retrieve the x limits
+				#xmin, xmax = ax.get_xlim()
 
 			#plot the debiased power spectrum, using open symbols for abs(negative) values
 			mask_pve = cl_decoupled_debiased[0] > 0
@@ -324,18 +336,20 @@ for fd in cf.get_global_fields():
 			#add text to the top-right corner to indicate which bins have been compared
 			ax.text(0.95, 0.95, f'({i},{j})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
 
-	
 	#create a legend		
 	handles = [
 		cell_plot,
-		bias_plot,
 		noise_plot
 		]
 	labels = [
 		'Signal',
-		'Deprojection bias',
 		'Noise'
 		]
+	if cl_bias_decoupled is not None:
+		handles.insert(1, bias_plot)
+		labels.insert(1, 'Deprojection bias')
+	
+
 	fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
 
 	plt.tight_layout()
