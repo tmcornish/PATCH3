@@ -74,7 +74,7 @@ function metamaps_job () {
 function power_spectra_job () {
     #create an executable file which will be used to run the script properly
     runfile=run_power_spectra.sh
-    echo \#\!/bin/bash >> $runfile
+    echo \#\!/bin/bash > $runfile
     #set the number of threads in that file
     echo export OMP_NUM_THREADS=$1 >> $runfile
     echo /usr/local/shared/slurm/bin/srun -n 1 --cpus-per-task $1 --mem-per-cpu $2G --mpi=pmi2 $PYEX -u $3 >> $runfile
@@ -82,8 +82,6 @@ function power_spectra_job () {
     chmod u+x $runfile
     #submit the job to the queue
     submit_job "-q cmb -n 1x$1 -m $2 -s" $runfile
-    #delete the runfile to avoid errors when re-running
-    rm -f $runfile
 }
 
 ##### Uncomment all steps below that you wish to run. #####
