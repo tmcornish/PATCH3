@@ -343,9 +343,9 @@ for fd in cf.get_global_fields():
 		handles.insert(1, bias_plot)
 		labels.insert(1, 'Deprojection bias')
 		#figure name also depends on whether deprojection has occurred
-		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra.png'
+		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_{cf.nside_hi}.png'
 	else:
-		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_raw.png'
+		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_raw_{cf.nside_hi}.png'
 	
 
 	fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
