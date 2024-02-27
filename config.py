@@ -68,7 +68,7 @@ class cf_global:
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 512
+	nside_hi = 4096
 	#low-resolution NSIDE parameter to use for splitting the data
 	nside_cover = 8
 	
@@ -236,9 +236,17 @@ class computePowerSpectra(cf_global):
 
 	#systematics maps to deproject
 	systs = [
+		cf_global.dustmaps
 		]
 	
 	#TODO: add option to incorporate all decasu output maps in systs
+
+	#approximately logarithmically-spaced bandpowers used in Nicola+19
+	use_N19_bps = True
+	bpw_edges = [100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
+			 3800, 4600, 6200, 7800, 9400, 12600, 15800]
+	#width of each bandpower to use if not using the bandpowers from Nicola+19
+	nbl = 100
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
