@@ -118,14 +118,14 @@ ell_max = 3 * cf.nside_hi - 1
 
 if cf.use_N19_bps:
 	#retrieve bandpower edges from config
-	bpw_edges = np.array(cf.bpw_edges)
+	bpw_edges = np.array(cf.bpw_edges).astype(int)
 	#only include bandpowers < 3 * NSIDE
 	bpw_edges = bpw_edges[bpw_edges <= ell_max]
 else:
 	if cf.log_spacing:
-		bpw_edges = np.geomspace(cf.ell_min, ell_max, cf.nbpws)
+		bpw_edges = np.geomspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
 	else:
-		bpw_edges = np.linspace(cf.ell_min, ell_max, cf.nbpws)
+		bpw_edges = np.linspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
 #lower and upper edges
 bpw_edges_lo = bpw_edges[:-1]
 bpw_edges_hi = bpw_edges[1:].copy()
