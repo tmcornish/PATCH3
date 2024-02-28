@@ -189,7 +189,7 @@ for fd in cf.get_global_fields():
 	with h5py.File(outfile, mode='a') as psfile:
 		
 		#cycle through all possible pairings of redshift bins
-		for p in pairings:
+		for ip,p in enumerate(pairings):
 			i,j = p
 
 			#see if a group for the current pairing already exists
@@ -217,9 +217,10 @@ for fd in cf.get_global_fields():
 				#use these along with the mask to get a guess of the true C_ell
 				cl_guess = cl_coupled / np.mean(mask * mask)
 
-
-				#compute the mode coupling matrix
-				w.compute_coupling_matrix(f_i, f_j, b)
+				if ip == 0:
+					#compute the mode coupling matrix (only need to compute once since same mask used for everything)
+					w.compute_coupling_matrix(f_i, f_j, b)
+				
 				#compute the decoupled C_ell (w/o deprojection)
 				cl_decoupled = w.decouple_cell(cl_coupled)
 
