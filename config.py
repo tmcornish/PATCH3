@@ -246,7 +246,7 @@ class computePowerSpectra(cf_global):
 	bpw_edges = [100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
 			 3800, 4600, 6200, 7800, 9400, 12600, 15800]
 	#Number of bandpowers to use if not using edges from Nicola+19
-	nbps = 20
+	nbpws = 20
 	#minimum ell (i.e. largest scale) to use
 	ell_min = 100
 	#whether to use linear or log spacing for the bandpowers
