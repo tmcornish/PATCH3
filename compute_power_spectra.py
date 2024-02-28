@@ -113,21 +113,27 @@ def load_maps(map_paths, is_systmap=False):
 ###############    START OF SCRIPT    #################
 #######################################################
 
+#maximum ell allowed by the resolution
+ell_max = 3 * cf.nside_hi - 1
+
 if cf.use_N19_bps:
 	#retrieve bandpower edges from config
 	bpw_edges = np.array(cf.bpw_edges)
 	#only include bandpowers < 3 * NSIDE
-	bpw_edges = bpw_edges[bpw_edges < (3. * cf.nside_hi)]
-	#lower and upper edges
-	bpw_edges_lo = bpw_edges[:-1]
-	bpw_edges_hi = bpw_edges[1:].copy()
-	#add 1 to the lower edges so that each multipole is only included in one bandpower
-	bpw_edges_lo += 1
-	#create pymaster NmtBin object using these bandpower objects
-	b = nmt.NmtBin.from_edges(bpw_edges_lo, bpw_edges_hi)
+	bpw_edges = bpw_edges[bpw_edges <= ell_max]
 else:
-	#create pymaster NmtBin object using resolution of the maps
-	b = nmt.NmtBin.from_nside_linear(cf.nside_hi, cf.nbl)
+	if cf.log_spacing:
+		bpw_edges = np.geomspace(cf.ell_min, ell_max, cf.nbpws)
+	else:
+		bpw_edges = np.linspace(cf.ell_min, ell_max, cf.nbpws)
+#lower and upper edges
+bpw_edges_lo = bpw_edges[:-1]
+bpw_edges_hi = bpw_edges[1:].copy()
+#add 1 to the lower edges so that each multipole is only included in one bandpower
+bpw_edges_lo += 1
+#create pymaster NmtBin object using these bandpower objects
+b = nmt.NmtBin.from_edges(bpw_edges_lo, bpw_edges_hi)
+
 
 #get the effective ells
 ell_effs = b.get_effective_ells()
@@ -144,8 +150,6 @@ nbins = len(cf.zbins) - 1
 xsize = nbins * 4
 ysize = nbins * 3.5
 
-#maximum ell allowed by the resolution
-ell_max = 3 * cf.nside_hi
 
 #also get all possible pairings of bins
 l = list(range(nbins))
