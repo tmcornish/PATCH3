@@ -15,6 +15,7 @@ import pymaster as nmt
 from matplotlib import pyplot as plt
 import plot_utils as pu
 import itertools
+from output_utils import colour_string
 
 
 import faulthandler
@@ -156,6 +157,8 @@ cw = None
 
 #cycle through the fields being analysed (TODO: later change to global fields)
 for fd in cf.get_global_fields():
+	print(colour_string(fd.upper(), 'orange'))
+
 	#set up a figure for the power spectra from each redshift bin
 	fig = plt.figure(figsize=(xsize, ysize))
 	gs = fig.add_gridspec(ncols=nbins, nrows=nbins)
@@ -166,22 +169,6 @@ for fd in cf.get_global_fields():
 	ngal_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.ngal_maps)
 	deltag_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.deltag_maps)
 
-	if len(cf.systs) > 0:
-		#load the systematics maps and convert to full-sky realisations
-		systmaps = load_maps([PATH_MAPS + s for s in cf.systs], is_systmap=True)
-		#reshape the resultant list to have dimensions (nsyst, 1, npix)
-		nsyst = len(systmaps)
-		npix = len(systmaps[0])
-		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
-	else:
-		systmaps = None
-
-	#load the survey mask and convert to full-sky realisation
-	mask, = load_maps([PATH_MAPS+cf.survey_mask])
-	#identify pixels above the weight threshold
-	above_thresh = mask > cf.weight_thresh
-	#set all pixels below the weight threshold to 0
-	mask[~above_thresh] = 0
 
 	#full path to the output file
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
@@ -194,6 +181,7 @@ for fd in cf.get_global_fields():
 
 			#see if a group for the current pairing already exists
 			p_str = str(p)
+			print(colour_string(p_str, 'green'))
 			if p_str in psfile.keys():
 				#retrieve the relevant qualities for creating the plot
 				cl_bias_decoupled = psfile[f'{p_str}/cl_bias_decoupled'][...]
@@ -202,7 +190,29 @@ for fd in cf.get_global_fields():
 				N_ell_decoupled = psfile[f'{p_str}/N_ell_decoupled'][...]
 
 			else:
+				print('Loading maps...')
+				if len(cf.systs) > 0:
+					#load the systematics maps and convert to full-sky realisations
+					systmaps = load_maps([PATH_MAPS + s for s in cf.systs], is_systmap=True)
+					#reshape the resultant list to have dimensions (nsyst, 1, npix)
+					nsyst = len(systmaps)
+					npix = len(systmaps[0])
+					systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
+					deproj = True
+				else:
+					systmaps = None
+					deproj = False
 
+				#load the survey mask and convert to full-sky realisation
+				mask, = load_maps([PATH_MAPS+cf.survey_mask])
+				#identify pixels above the weight threshold
+				above_thresh = mask > cf.weight_thresh
+				#set all pixels below the weight threshold to 0
+				mask[~above_thresh] = 0
+				print('Done!')
+
+
+				print('Creating NmtFields...')
 				#load the density maps for the current pairing and create NmtFields
 				dg_i = hspToFullSky(deltag_maps[f'delta_{i}'])
 				f_i = nmt.NmtField(mask, [dg_i], templates=systmaps)
@@ -211,28 +221,41 @@ for fd in cf.get_global_fields():
 				else:
 					dg_j = hspToFullSky(deltag_maps[f'delta_{j}'])
 					f_j = nmt.NmtField(mask, [dg_j], templates=systmaps)
-
+					del dg_j
+				del dg_i
+				del systmaps
+				print('Done!')
 
 				cl_coupled = nmt.workspaces.compute_coupled_cell(f_i, f_j)
 				#use these along with the mask to get a guess of the true C_ell
 				cl_guess = cl_coupled / np.mean(mask * mask)
 
+				#calculate anything to do with the mask so that it can also be cleared from memory
+				W_above_thresh = np.sum(mask[above_thresh])
+				mu_w = np.mean(mask)
+				del mask
+
 				if ip == 0:
 					#compute the mode coupling matrix (only need to compute once since same mask used for everything)
+					print('Computing mode coupling matrix...')
 					w.compute_coupling_matrix(f_i, f_j, b)
+					print('Done!')
 				
 				#compute the decoupled C_ell (w/o deprojection)
 				cl_decoupled = w.decouple_cell(cl_coupled)
 
 				#only calculate bias-related quantities if templates have been provided
-				if systmaps is not None:
+				if deproj:
+					print('Calculating deprojection bias...')
 					#compute the deprojection bias
 					cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
 					#compute the decoupled C_ell (w/ deprojection)
 					cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
 					#decouple the bias C_ells as well
 					cl_bias_decoupled = w.decouple_cell(cl_bias)
+					print('Done!')
 				else:
+					print('No systematics maps provided; skipping deprojection bias calculation.')
 					cl_bias = np.zeros_like(cl_guess)
 					cl_bias_decoupled = np.zeros_like(cl_decoupled)
 					cl_decoupled_debiased = cl_decoupled[...]
@@ -247,9 +270,7 @@ for fd in cf.get_global_fields():
 					#retrieve the Ngal map for this redshift bin
 					ng_full = hspToFullSky(ngal_maps[f'ngal_{i}'])
 					#calculate the mean number of galaxies per pixel (above weight threshold)
-					mu_N = np.sum(ng_full[above_thresh]) / np.sum(mask[above_thresh])
-					#calculate the mean value of the mask
-					mu_w = np.mean(mask)
+					mu_N = np.sum(ng_full[above_thresh]) / W_above_thresh
 					#get pixel area in units of steradians
 					Apix = hp.nside2pixarea(cf.nside_hi)
 
@@ -259,12 +280,16 @@ for fd in cf.get_global_fields():
 					N_ell_decoupled = w.decouple_cell(N_ell_coupled)
 
 				if cw is None:
+					print('Calculating coupling coefficients...')
 					#covariance matrix calculation: create covariance workspace
 					cw = nmt.NmtCovarianceWorkspace()
 					#compute coupling coefficients
 					cw.compute_coupling_coefficients(f_i, f_j)
+					print('Done!')
+
 
 				#extract (gaussian) covariance matrix
+				print('Calculating covariance matrix...')
 				n_ell = len(cl_decoupled[0])
 				covar = nmt.gaussian_covariance(cw, 
 												0, 0, 0, 0,			#spin of each field
@@ -275,7 +300,7 @@ for fd in cf.get_global_fields():
 												w)
 				#errorbars for each bandpower
 				err_cell = np.diag(covar) ** 0.5
-
+				print('Done!')
 
 				#populate the output file with the results
 				gp = psfile.require_group(p_str)

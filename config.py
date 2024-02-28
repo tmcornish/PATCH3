@@ -10,7 +10,7 @@
 class cf_global:
 
 	#whether to run on glamdring or locally
-	LOCAL = True
+	LOCAL = False
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
 	if LOCAL:
@@ -37,7 +37,7 @@ class cf_global:
 	fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	#fields = ['aegis', 'hectomap'] + equatora + equatorb
+	#fields = ['hectomap'] + equatora + equatorb
 
 	#file containing the metadata
 	metafile = f'{PATH_DATA}PDR3_WIDE_frames.fits'
