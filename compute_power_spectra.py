@@ -326,39 +326,45 @@ for fd in cf.get_global_fields():
 			# PLOTTING RESULTS #
 			####################
 
+			if cf.normalise:
+				ylabel = r'$C_{\ell}\frac{\ell(\ell+1)}{2\pi}$'
+				mfactor = ell_effs * (ell_effs + 1) / (2. * np.pi)
+			else:
+				ylabel = r'$C_{\ell}$'
+				mfactor = np.ones_like(ell_effs)
+
+
 			#add subplot to gridspec
 			ax = fig.add_subplot(gs[j,i])
 			#only label axes if on outer edge of figure
 			if j == (nbins-1):
 				ax.set_xlabel(r'$\ell$')
 			if i == 0:
-				ax.set_ylabel(r'$C_{\ell}$')
+				ax.set_ylabel(ylabel)
 			#set loglog scale
 			ax.set_xscale('log')
 			ax.set_yscale('log')
 
 			if cl_bias_decoupled.any():
 				#plot the deporojection bias
-				bias_plot, *_ = ax.plot(b.get_effective_ells(), cl_bias_decoupled[0], c=pu.magenta)
-				ax.plot(b.get_effective_ells(), -cl_bias_decoupled[0], ls='--', c=pu.magenta)
+				bias_plot, *_ = ax.plot(ell_effs, cl_bias_decoupled[0]*mfactor, c=pu.magenta)
+				ax.plot(ell_effs, -cl_bias_decoupled[0]*mfactor, ls='--', c=pu.magenta)
 				#at this point retrieve the x limits
 				#xmin, xmax = ax.get_xlim()
 
 			#plot the debiased power spectrum, using open symbols for abs(negative) values
 			mask_pve = cl_decoupled_debiased[0] > 0
 			mask_nve = cl_decoupled_debiased[0] <= 0
-			
-
 			#plot the shot noise if autocorrelation
 			if i == j:
-				Y_pve = cl_decoupled_debiased[0][mask_pve] - N_ell_decoupled[0][mask_pve]
-				Y_nve = cl_decoupled_debiased[0][mask_nve] - N_ell_decoupled[0][mask_nve]
-				noise_plot, *_ = ax.plot(b.get_effective_ells(), N_ell_decoupled[0], c=pu.teal)
+				Y_pve = (cl_decoupled_debiased[0][mask_pve] - N_ell_decoupled[0][mask_pve]) * mfactor[mask_pve]
+				Y_nve = (cl_decoupled_debiased[0][mask_nve] - N_ell_decoupled[0][mask_nve]) * mfactor[mask_nve]
+				noise_plot, *_ = ax.plot(ell_effs, N_ell_decoupled[0]*mfactor, c=pu.teal)
 			else:
-				Y_pve = cl_decoupled_debiased[0][mask_pve]
-				Y_nve = cl_decoupled_debiased[0][mask_nve]
-			cell_plot = ax.errorbar(b.get_effective_ells()[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
-			ax.errorbar(b.get_effective_ells()[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
+				Y_pve = cl_decoupled_debiased[0][mask_pve] * mfactor[mask_pve]
+				Y_nve = cl_decoupled_debiased[0][mask_nve] * mfactor[mask_nve]
+			cell_plot = ax.errorbar(ell_effs[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
+			ax.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
 
 			#reset the axis limits
 			ax.set_xlim(xmin, xmax)
