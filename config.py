@@ -10,7 +10,7 @@
 class cf_global:
 
 	#whether to run on glamdring or locally
-	LOCAL = False
+	LOCAL = True
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
 	if LOCAL:
@@ -34,8 +34,8 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	fields = ['hectomap']
-	#fields = equatora
+	#fields = ['hectomap']
+	fields = equatora
 	#fields = equatorb
 	#fields = ['hectomap'] + equatora + equatorb
 
@@ -251,6 +251,9 @@ class computePowerSpectra(cf_global):
 	ell_min = 100
 	#whether to use linear or log spacing for the bandpowers
 	log_spacing = True
+
+	#whether to multiply the C_ells by l(l+1)/(2*pi) for the figure
+	normalise = False
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
