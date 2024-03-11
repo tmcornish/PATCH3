@@ -238,10 +238,18 @@ class computePowerSpectra(cf_global):
 	systs = [
 		]
 	
-	#TODO: add option to incorporate all decasu output maps in systs
+	#TODO: add option to incorporate all systematics in the syst directory
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
 
 	
+############################
+#### make_txpipe_inputs ####
+############################
+
+class makeTXPipeInputs(cf_global):
+
+	name = 'makeTXPipeInputs'
+
 
