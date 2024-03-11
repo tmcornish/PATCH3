@@ -132,7 +132,7 @@ def gal_cut(t):
 
 
 
-def make_tomography_cat(z, zbins, fname):
+def make_tomography_cat(z, fname):
 	'''
 	Makes an HDF file containing the information required by TXPipe's TXLensMaps stage.
 	NOTE: This information includes data described as 'lens_weight', which is not relevant
@@ -143,9 +143,6 @@ def make_tomography_cat(z, zbins, fname):
 	z: array-like
 		Redshifts for each object.
 
-	zbins: array-like
-		Edges of each redshift bin. Bins are left-inclusive and right-exclusive.
-
 	fname: str
 		Filename to be given to the output file. If the file already exists, will try
 		to append to existing data in the file.
@@ -154,12 +151,12 @@ def make_tomography_cat(z, zbins, fname):
 	#create a column for labeling sources according to their tomographic bin (set -1 by default)
 	labels = np.full(len(z), -1, dtype='i1')
 	#create an array to contain the counts in each bin
-	counts = np.zeros(len(zbins)-1, dtype='i8')
+	counts = np.zeros(len(cf.zbins)-1, dtype='i8')
 
 
 	#cycle through the redshift bins
-	for i in range(len(zbins)-1):
-		zmask = (z >= zbins[i]) * (z < zbins[i+1])
+	for i in range(len(cf.zbins)-1):
+		zmask = (z >= cf.zbins[i]) * (z < cf.zbins[i+1])
 		labels[zmask] = i
 		counts[i] = zmask.sum()
 
@@ -293,7 +290,7 @@ for g in f_in_g:
 
 		#also produce a tomgraphy catalogue
 		hdf_tomo = f'{OUT}/{cf.cat_tomo}'
-		make_tomography_cat(data_gals[cf.zcol], cf.zbins, hdf_tomo)
+		make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
 
 
 
@@ -323,6 +320,9 @@ for g in f_in_g:
 							dset_main[-N:] = dset[:]
 						else:
 							dset = fmain.create_dataset(path, shape=(N,), data=dset[:], maxshape=(None,), dtype=dt)
+			#if the tomography catalogue, need to ensure that the nbin attribute is available for TXPipe
+			if cat == cf.cat_tomo:
+				fmain['tomography'].attrs['nbin'] = len(cf.zbins) - 1
 
 
 

@@ -358,3 +358,27 @@ def healsparseToHDF(hsp_map, fname, pix_scheme='ring', group='', metadata=None):
 		_ = hf.create_dataset(f'{group}/pixel', data=vpix, dtype=vpix.dtype)
 		_ = hf.create_dataset(f'{group}/value', data=values, dtype=values.dtype)
 
+
+
+def healsparseToFITS(hsp_map, fname, nest=False):
+	'''
+	Takes a HealSparse map and reformats it to healpy FITS map.
+
+	Parameters
+	----------
+	hsp_map: HealSparseMap
+		Map to be converted from HealSparseMap to FITS format.
+
+	fname: str
+		Filename for the output HDF5 file.
+
+	nest: bool
+		Whether the output map should be in 'nest' format. Input map is assumed
+		to be 'nest' as HealSparse maps have this scheme by definition.
+	'''
+
+	#convert the map to healpy format
+	hp_map = hsp_map.generate_healpix_map(nest=nest)
+	#write to file
+	hp.write_map(fname, hp_map, nest=nest, column_names=['VALUE'])
+
