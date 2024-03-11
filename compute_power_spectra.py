@@ -126,13 +126,8 @@ else:
 		bpw_edges = np.geomspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
 	else:
 		bpw_edges = np.linspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
-#lower and upper edges
-bpw_edges_lo = bpw_edges[:-1]
-bpw_edges_hi = bpw_edges[1:].copy()
-#add 1 to the lower edges so that each multipole is only included in one bandpower
-bpw_edges_lo += 1
 #create pymaster NmtBin object using these bandpower objects
-b = nmt.NmtBin.from_edges(bpw_edges_lo, bpw_edges_hi)
+b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 
 
 #get the effective ells
@@ -210,7 +205,7 @@ for fd in cf.get_global_fields():
 				#load the survey mask and convert to full-sky realisation
 				mask, = load_maps([PATH_MAPS+cf.survey_mask])
 				#identify pixels above the weight threshold
-				above_thresh = mask > cf.weight_thresh
+				above_thresh = mask >= cf.weight_thresh
 				#set all pixels below the weight threshold to 0
 				mask[~above_thresh] = 0
 				print('Done!')

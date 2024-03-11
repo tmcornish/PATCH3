@@ -34,8 +34,8 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	#fields = ['hectomap']
-	fields = equatora
+	fields = ['hectomap']
+	#fields = equatora
 	#fields = equatorb
 	#fields = ['hectomap'] + equatora + equatorb
 
@@ -68,7 +68,7 @@ class cf_global:
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 4096
+	nside_hi = 512
 	#low-resolution NSIDE parameter to use for splitting the data
 	nside_cover = 8
 	
@@ -236,7 +236,7 @@ class computePowerSpectra(cf_global):
 
 	#systematics maps to deproject
 	systs = [
-		cf_global.dustmaps
+		#cf_global.dustmaps
 		]
 	
 	#TODO: add option to incorporate all decasu output maps in systs
@@ -246,11 +246,11 @@ class computePowerSpectra(cf_global):
 	bpw_edges = [100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
 			 3800, 4600, 6200, 7800, 9400, 12600, 15800]
 	#Number of bandpowers to use if not using edges from Nicola+19
-	nbpws = 20
+	nbpws = 18
 	#minimum ell (i.e. largest scale) to use
-	ell_min = 100
+	ell_min = 1
 	#whether to use linear or log spacing for the bandpowers
-	log_spacing = True
+	log_spacing = False
 
 	#whether to multiply the C_ells by l(l+1)/(2*pi) for the figure
 	normalise = False
