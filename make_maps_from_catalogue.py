@@ -264,6 +264,11 @@ for fd in cf.get_global_fields():
 	print(colour_string(fd.upper(), 'orange'))
 	#output directory for this field
 	OUT = cf.PATH_OUT + fd
+	#path for systematics maps (create if it doesn't exist already)
+	PATH_SYST = OUT + '/systmaps'
+	if not os.path.exists(PATH_SYST):
+		os.system(f'mkdir -p {PATH_SYST}')
+
 	#load the basic and fully cleaned galaxy/star catalogues for this field
 	cat_basic = h5py.File(f'{OUT}/{cf.cat_basic}', 'r')
 	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
@@ -272,7 +277,7 @@ for fd in cf.get_global_fields():
 	#make the dust maps in each band and store in a single recarray
 	dust_maps = makeDustMap(cat_basic, group='photometry')
 	#write to a file
-	dust_maps.write(f'{OUT}/{cf.dustmaps}', clobber=True)
+	dust_maps.write(f'{PATH_SYST}/{cf.dustmaps}', clobber=True)
 
 	#make the bright object mask
 	bo_mask = makeBOMask(cat_basic, group='photometry')

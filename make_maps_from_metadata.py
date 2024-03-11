@@ -41,9 +41,10 @@ if cf.LOCAL:
 		print(colour_string(fd.upper(), 'orange'))
 		#directory containing outputs for this field
 		OUT = cf.PATH_OUT + fd + '/'
+		PATH_SYST = OUT + 'systmaps/'
 
 		#set up Decasu mapper
-		mapper = MultiHealpixMapper(CONF, OUT, ncores=ncores)
+		mapper = MultiHealpixMapper(CONF, PATH_SYST, ncores=ncores)
 
 		#check if metadata was split by filter
 		if cf.split_by_band:
@@ -67,9 +68,10 @@ else:
 		print(colour_string(fd.upper(), 'orange'))
 		#directory containing outputs for this field
 		OUT = cf.PATH_OUT + fd + '/'
+		PATH_SYST = OUT + 'systmaps/'
 
 		#set up Decasu mapper
-		mapper = MultiHealpixMapper(CONF, OUT, ncores=ncores)
+		mapper = MultiHealpixMapper(CONF, PATH_SYST, ncores=ncores)
 
 		infile = f'{OUT}{cf.metasplit[:-(lenext+1)]}_{b}.fits'
 		mapper(infile, bands=b, clear_intermediate_files=True)
