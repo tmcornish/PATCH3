@@ -47,16 +47,11 @@ def hspToFullSky(hsp_map, is_systmap=False):
 	fs_map: array
 		Full-sky realisation containing values at every pixel (hp.UNSEEN in unoccupied pixels).
 	'''
-
+	
 	#initialise an empty full-sky map (NOTE: can take a lot of memory for high nside_sparse)
-	npix = hp.nside2npix(hsp_map.nside_sparse)
-	fs_map = np.full(npix, 0, dtype=hsp_map.dtype)
-	#find the valid pixels in the map and convert from NEST to RING ordering
-	vpix = hsp_map.valid_pixels
-	vpix_ring = hp.nest2ring(cf.nside_hi, vpix)
-
-	#fill the relevant pixels in the full-sky map
-	fs_map[vpix_ring] = hsp_map[vpix]
+	fs_map = hsp_map.generate_healpix_map(nest=False)
+	vpix = fs_map != hp.UNSEEN
+	fs_map[~vpix] = 0.
 	#if told to normalise, divide by the mean and subtract 1
 	if is_systmap:
 		mu = np.mean(hsp_map[vpix])
@@ -205,7 +200,7 @@ for fd in cf.get_global_fields():
 				#load the survey mask and convert to full-sky realisation
 				mask, = load_maps([PATH_MAPS+cf.survey_mask])
 				#identify pixels above the weight threshold
-				above_thresh = mask >= cf.weight_thresh
+				above_thresh = mask > cf.weight_thresh
 				#set all pixels below the weight threshold to 0
 				mask[~above_thresh] = 0
 				print('Done!')
