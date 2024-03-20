@@ -106,6 +106,9 @@ def load_maps(map_paths):
 
 #maximum ell allowed by the resolution
 ell_max = 3 * cf.nside_hi - 1
+#get pixel area in units of steradians
+Apix = hp.nside2pixarea(cf.nside_hi)
+
 
 if cf.use_N19_bps:
 	#retrieve bandpower edges from config
@@ -155,10 +158,8 @@ for fd in cf.get_global_fields():
 
 	#path to the directory containing the maps
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
-	#load the N_g and delta_g maps
-	ngal_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.ngal_maps)
-	#deltag_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.deltag_maps)
-	#ngal_maps = load_maps(PATH_MAPS+cf.ngal_maps)
+
+	#load the delta_g maps
 	deltag_maps = load_maps([PATH_MAPS+cf.deltag_maps])
 
 	#load the survey mask and convert to full-sky realisation
@@ -171,6 +172,7 @@ for fd in cf.get_global_fields():
 	#calculate anything to do with the mask so that it can also be cleared from memory
 	W_above_thresh = np.sum(mask[above_thresh])
 	mu_w = np.mean(mask)
+	mu_w2 = np.mean(mask * mask)
 
 	#path to directory containing systematics maps
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
@@ -203,7 +205,10 @@ for fd in cf.get_global_fields():
 	#clear some memory
 	del deltag_maps
 	del systmaps
+	del mask
 
+	#load the N_g maps and calculate the mean weighted by the mask
+	mu_N_all = [nmap[above_thresh].sum() / W_above_thresh for nmap in load_maps([PATH_MAPS+cf.ngal_maps])]
 
 	#full path to the output file
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
@@ -229,13 +234,7 @@ for fd in cf.get_global_fields():
 				f_j = density_fields[j]
 				cl_coupled = nmt.workspaces.compute_coupled_cell(f_i, f_j)
 				#use these along with the mask to get a guess of the true C_ell
-				cl_guess = cl_coupled / np.mean(mask * mask)
-				print('cl_guess: ', cl_guess)
-
-				#del mask
-
-				print(f_i.get_templates().mean())
-				print(f_j.get_templates().mean())
+				cl_guess = cl_coupled / mu_w2
 
 				if ip == 0:
 					#compute the mode coupling matrix (only need to compute once since same mask used for everything)
@@ -269,17 +268,16 @@ for fd in cf.get_global_fields():
 
 				#Only calculate for autocorrelations
 				if i == j:
-					#retrieve the Ngal map for this redshift bin
-					ng_full = hspToFullSky(ngal_maps[f'ngal_{i}'])
-					#calculate the mean number of galaxies per pixel (above weight threshold)
-					mu_N = np.sum(ng_full[above_thresh]) / W_above_thresh
-					#get pixel area in units of steradians
-					Apix = hp.nside2pixarea(cf.nside_hi)
-
+					mu_N = mu_N_all[i]
 					#calculate the noise power spectrum
 					N_ell_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
 					#decouple
 					N_ell_decoupled = w.decouple_cell(N_ell_coupled)
+
+				
+				#######################
+				# GAUSSIAN COVARIANCE #
+				#######################
 
 				if cw is None:
 					print('Calculating coupling coefficients...')
@@ -303,6 +301,10 @@ for fd in cf.get_global_fields():
 				#errorbars for each bandpower
 				err_cell = np.diag(covar) ** 0.5
 				print('Done!')
+
+				##################
+				# SAVING RESULTS #
+				##################
 
 				#populate the output file with the results
 				gp = psfile.require_group(p_str)

@@ -236,7 +236,7 @@ class computePowerSpectra(cf_global):
 
 	#systematics maps to deproject
 	systs = [
-		cf_global.dustmaps
+		#cf_global.dustmaps
 		]
 	
 	#TODO: add option to incorporate all decasu output maps in systs
@@ -256,7 +256,7 @@ class computePowerSpectra(cf_global):
 	normalise = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_debiased.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
 
 	
 ############################
