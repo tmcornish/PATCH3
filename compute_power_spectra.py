@@ -130,8 +130,7 @@ ell_effs = b.get_effective_ells()
 xmin = ell_effs.min() / 1.5
 xmax = ell_effs.max() * 1.2
 
-#set up a pymaster Workspace object
-w = nmt.NmtWorkspace()
+
 
 #retrieve the number of redshift bins
 nbins = len(cf.zbins) - 1
@@ -144,13 +143,15 @@ ysize = nbins * 3.5
 l = list(range(nbins))
 pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
 
-#create a variable assignment that will later be occupied
-cw = None
-
 
 #cycle through the fields being analysed (TODO: later change to global fields)
 for fd in cf.get_global_fields():
 	print(colour_string(fd.upper(), 'orange'))
+
+	#set up a pymaster Workspace object
+	w = nmt.NmtWorkspace()
+	#create a variable assignment that will later be occupied by a CovarianceWorkspace
+	cw = None
 
 	#set up a figure for the power spectra from each redshift bin
 	fig = plt.figure(figsize=(xsize, ysize))
@@ -170,7 +171,7 @@ for fd in cf.get_global_fields():
 	mask[~above_thresh] = 0
 
 	#calculate anything to do with the mask so that it can also be cleared from memory
-	W_above_thresh = np.sum(mask[above_thresh])
+	sum_w_above_thresh = np.sum(mask[above_thresh])
 	mu_w = np.mean(mask)
 	mu_w2 = np.mean(mask * mask)
 
@@ -183,7 +184,7 @@ for fd in cf.get_global_fields():
 		systmaps = load_maps([PATH_SYST + s for s in cf.systs])
 		#calculate the weighted mean of each systematics map and subtract it
 		for sm in systmaps:
-			mu_s = np.sum(sm[above_thresh] * mask[above_thresh]) / W_above_thresh
+			mu_s = np.sum(sm[above_thresh] * mask[above_thresh]) / sum_w_above_thresh
 			sm[above_thresh] -= mu_s
 			print('Syst map mean: ', mu_s)
 		#reshape the resultant list to have dimensions (nsyst, 1, npix)
@@ -208,7 +209,7 @@ for fd in cf.get_global_fields():
 	del mask
 
 	#load the N_g maps and calculate the mean weighted by the mask
-	mu_N_all = [nmap[above_thresh].sum() / W_above_thresh for nmap in load_maps([PATH_MAPS+cf.ngal_maps])]
+	mu_N_all = [nmap[above_thresh].sum() / sum_w_above_thresh for nmap in load_maps([PATH_MAPS+cf.ngal_maps])]
 
 	#full path to the output file
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
@@ -232,7 +233,7 @@ for fd in cf.get_global_fields():
 			else:
 				f_i = density_fields[i]
 				f_j = density_fields[j]
-				cl_coupled = nmt.workspaces.compute_coupled_cell(f_i, f_j)
+				cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
 				#use these along with the mask to get a guess of the true C_ell
 				cl_guess = cl_coupled / mu_w2
 
