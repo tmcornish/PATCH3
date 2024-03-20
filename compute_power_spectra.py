@@ -30,7 +30,7 @@ plt.style.use(pu.styledict)
 ###################
 
 
-def hspToFullSky(hsp_map, is_systmap=False):
+def hspToFullSky(hsp_map):
 	'''
 	Converts a HealSparse map into a full-sky realisation that NaMaster can use.
 
@@ -52,17 +52,13 @@ def hspToFullSky(hsp_map, is_systmap=False):
 	fs_map = hsp_map.generate_healpix_map(nest=False)
 	vpix = fs_map != hp.UNSEEN
 	fs_map[~vpix] = 0.
-	#if told to normalise, divide by the mean and subtract 1
-	if is_systmap:
-		mu = np.mean(hsp_map[vpix])
-		fs_map -= mu
 
 	return fs_map
 
 	
 
 
-def load_maps(map_paths, is_systmap=False):
+def load_maps(map_paths):
 	'''
 	Loads any number of provided HealSparse maps and returns their pixel values in healPIX 
 	RING ordering.
@@ -93,10 +89,10 @@ def load_maps(map_paths, is_systmap=False):
 		nmaps = len(map_data.dtype)
 		if nmaps > 0:
 			#append the data from each map to the list
-			maps.extend([hspToFullSky(map_data[n], is_systmap) for n in map_data.dtype.names])
+			maps.extend([hspToFullSky(map_data[n]) for n in map_data.dtype.names])
 		else:
 			#append the data to the list
-			maps.append(hspToFullSky(map_data, is_systmap))
+			maps.append(hspToFullSky(map_data))
 
 	return maps
 
@@ -161,7 +157,52 @@ for fd in cf.get_global_fields():
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
 	#load the N_g and delta_g maps
 	ngal_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.ngal_maps)
-	deltag_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.deltag_maps)
+	#deltag_maps = hsp.HealSparseMap.read(PATH_MAPS+cf.deltag_maps)
+	#ngal_maps = load_maps(PATH_MAPS+cf.ngal_maps)
+	deltag_maps = load_maps([PATH_MAPS+cf.deltag_maps])
+
+	#load the survey mask and convert to full-sky realisation
+	mask, = load_maps([PATH_MAPS+cf.survey_mask])
+	#identify pixels above the weight threshold
+	above_thresh = mask > cf.weight_thresh
+	#set all pixels below the weight threshold to 0
+	mask[~above_thresh] = 0
+
+	#calculate anything to do with the mask so that it can also be cleared from memory
+	W_above_thresh = np.sum(mask[above_thresh])
+	mu_w = np.mean(mask)
+
+	#path to directory containing systematics maps
+	PATH_SYST = f'{PATH_MAPS}systmaps/'
+
+	print('Loading systematics maps...')
+	if len(cf.systs) > 0:
+		#load the systematics maps and convert to full-sky realisations
+		systmaps = load_maps([PATH_SYST + s for s in cf.systs])
+		#calculate the weighted mean of each systematics map and subtract it
+		for sm in systmaps:
+			mu_s = np.sum(sm[above_thresh] * mask[above_thresh]) / W_above_thresh
+			sm[above_thresh] -= mu_s
+			print('Syst map mean: ', mu_s)
+		#reshape the resultant list to have dimensions (nsyst, 1, npix)
+		nsyst = len(systmaps)
+		npix = len(systmaps[0])
+		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
+		deproj = True
+		print('templates: ', np.mean(systmaps))
+	else:
+		systmaps = None
+		deproj = False
+	print('Done!')
+
+
+	print('Creating NmtFields...')
+	density_fields = [nmt.NmtField(mask, [d], templates=systmaps, n_iter=0) for d in deltag_maps]
+	print('Done!')
+
+	#clear some memory
+	del deltag_maps
+	del systmaps
 
 
 	#full path to the output file
@@ -184,55 +225,22 @@ for fd in cf.get_global_fields():
 				N_ell_decoupled = psfile[f'{p_str}/N_ell_decoupled'][...]
 
 			else:
-				print('Loading maps...')
-				if len(cf.systs) > 0:
-					#load the systematics maps and convert to full-sky realisations
-					systmaps = load_maps([PATH_MAPS + s for s in cf.systs], is_systmap=True)
-					#reshape the resultant list to have dimensions (nsyst, 1, npix)
-					nsyst = len(systmaps)
-					npix = len(systmaps[0])
-					systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
-					deproj = True
-				else:
-					systmaps = None
-					deproj = False
-
-				#load the survey mask and convert to full-sky realisation
-				mask, = load_maps([PATH_MAPS+cf.survey_mask])
-				#identify pixels above the weight threshold
-				above_thresh = mask > cf.weight_thresh
-				#set all pixels below the weight threshold to 0
-				mask[~above_thresh] = 0
-				print('Done!')
-
-
-				print('Creating NmtFields...')
-				#load the density maps for the current pairing and create NmtFields
-				dg_i = hspToFullSky(deltag_maps[f'delta_{i}'])
-				f_i = nmt.NmtField(mask, [dg_i], templates=systmaps)
-				if j == i:
-					f_j = nmt.NmtField(mask, [dg_i], templates=systmaps)
-				else:
-					dg_j = hspToFullSky(deltag_maps[f'delta_{j}'])
-					f_j = nmt.NmtField(mask, [dg_j], templates=systmaps)
-					del dg_j
-				del dg_i
-				del systmaps
-				print('Done!')
-
+				f_i = density_fields[i]
+				f_j = density_fields[j]
 				cl_coupled = nmt.workspaces.compute_coupled_cell(f_i, f_j)
 				#use these along with the mask to get a guess of the true C_ell
 				cl_guess = cl_coupled / np.mean(mask * mask)
+				print('cl_guess: ', cl_guess)
 
-				#calculate anything to do with the mask so that it can also be cleared from memory
-				W_above_thresh = np.sum(mask[above_thresh])
-				mu_w = np.mean(mask)
-				del mask
+				#del mask
+
+				print(f_i.get_templates().mean())
+				print(f_j.get_templates().mean())
 
 				if ip == 0:
 					#compute the mode coupling matrix (only need to compute once since same mask used for everything)
 					print('Computing mode coupling matrix...')
-					w.compute_coupling_matrix(f_i, f_j, b)
+					w.compute_coupling_matrix(f_i, f_j, b, n_iter=1)
 					print('Done!')
 				
 				#compute the decoupled C_ell (w/o deprojection)

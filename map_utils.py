@@ -380,5 +380,5 @@ def healsparseToFITS(hsp_map, fname, nest=False):
 	#convert the map to healpy format
 	hp_map = hsp_map.generate_healpix_map(nest=nest)
 	#write to file
-	hp.write_map(fname, hp_map, nest=nest, column_names=['VALUE'])
+	hp.write_map(fname, hp_map, nest=nest, column_names=['VALUE'], overwrite=True)
 
