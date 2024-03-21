@@ -236,7 +236,7 @@ class computePowerSpectra(cf_global):
 
 	#systematics maps to deproject
 	systs = [
-		#cf_global.dustmaps
+		'all'
 		]
 	
 	#TODO: add option to incorporate all decasu output maps in systs
@@ -257,6 +257,12 @@ class computePowerSpectra(cf_global):
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
+
+	#output files for the NmtWorkspace and NmtCovarianveWorkspace
+	wsp_file = f'workspace_{cf_global.nside_hi}.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}.fits'
+	#cache file for keeping track of which systematics have been deprojected previously
+	deproj_file = f'deprojected_{cf_global.nside_hi}.txt'
 
 	
 ############################
