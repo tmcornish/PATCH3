@@ -234,12 +234,11 @@ class computePowerSpectra(cf_global):
 
 	name = 'computePowerSpectra'
 
-	#systematics maps to deproject
+	#systematics maps to deproject (add 'all' to the list of wanting to deproject all
+	#maps in the systematics directory)
 	systs = [
 		'all'
 		]
-	
-	#TODO: add option to incorporate all decasu output maps in systs
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
