@@ -165,6 +165,13 @@ for fd in cf.get_global_fields():
 	PATH_CACHE = PATH_MAPS + 'nmt_cache/'
 	if not os.path.exists(PATH_CACHE):
 		os.system(f'mkdir -p {PATH_CACHE}')
+	
+	#path to directory containing systematics maps
+	PATH_SYST = f'{PATH_MAPS}systmaps/'
+	#check for 'All' in systmaps and convert this to a list of all systematics maps
+	if 'all' in map(str.lower, cf.systs):
+		cf.systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
+
 
 	#file containing list of systematics maps deprojected in the previous run
 	deproj_file = PATH_CACHE + cf.deproj_file
@@ -221,11 +228,6 @@ for fd in cf.get_global_fields():
 	mu_w = np.mean(mask)
 	mu_w2 = np.mean(mask * mask)
 
-	#path to directory containing systematics maps
-	PATH_SYST = f'{PATH_MAPS}systmaps/'
-	#check for 'All' in systmaps and convert this to a list of all systematics maps
-	if 'all' in map(str.lower, cf.systs):
-		cf.systs = [os.path.basename(m) for m in glob.glob(PATH_SYST+'*.hsp')]
 
 	print('Loading systematics maps...')
 	if len(cf.systs) > 0:
@@ -256,6 +258,7 @@ for fd in cf.get_global_fields():
 	del deltag_maps
 	del systmaps
 	del mask
+
 
 	#load the N_g maps and calculate the mean weighted by the mask
 	mu_N_all = [nmap[above_thresh].sum() / sum_w_above_thresh for nmap in load_maps([PATH_MAPS+cf.ngal_maps])]
