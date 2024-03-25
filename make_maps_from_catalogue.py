@@ -293,7 +293,7 @@ for fd in cf.get_global_fields():
 	#make the star counts map
 	star_map = makeStarMap(cat_stars, group='photometry')
 	#write to a file
-	star_map.write(f'{PATH_SYST}/{cf.star_map}', clobber=True)
+	star_map.write(f'{OUT}/{cf.star_map}', clobber=True)
 
 	#make the depth map
 	depth_map = makeDepthMap(cat_basic, group='photometry', stars_only=True)
