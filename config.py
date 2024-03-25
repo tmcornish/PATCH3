@@ -23,6 +23,8 @@ class cf_global:
 		PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
 	#directory for figures
 	PATH_PLOTS = PATH_OUT + 'figures/'
+	#cache directory
+	PATH_CACHE = PATH_OUT + 'cache/'
 	
 
 	#data release

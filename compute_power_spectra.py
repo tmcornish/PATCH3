@@ -162,9 +162,8 @@ for fd in cf.get_global_fields():
 	cw = nmt.NmtCovarianceWorkspace()
 
 	#see if directory for cached workspaces exists; make it if not
-	PATH_CACHE = PATH_MAPS + 'nmt_cache/'
-	if not os.path.exists(PATH_CACHE):
-		os.system(f'mkdir -p {PATH_CACHE}')
+	if not os.path.exists(cf.PATH_CACHE):
+		os.system(f'mkdir -p {cf.PATH_CACHE}')
 	
 	#path to directory containing systematics maps
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
@@ -174,7 +173,7 @@ for fd in cf.get_global_fields():
 
 
 	#file containing list of systematics maps deprojected in the previous run
-	deproj_file = PATH_CACHE + cf.deproj_file
+	deproj_file = cf.PATH_CACHE + cf.deproj_file
 	if os.path.exists(deproj_file):
 		with open(deproj_file, 'r+') as df:
 			#see which (if any) systematics have been deprojected previously
@@ -201,8 +200,8 @@ for fd in cf.get_global_fields():
 		
 
 	#see if workspaces have already been created from a previous run
-	wsp_path = PATH_CACHE + cf.wsp_file
-	covwsp_path = PATH_CACHE + cf.covwsp_file
+	wsp_path = cf.PATH_CACHE + cf.wsp_file
+	covwsp_path = cf.PATH_CACHE + cf.covwsp_file
 	if os.path.exists(wsp_path) and not calc:
 		w.read_from(wsp_path)
 	else:
@@ -449,8 +448,8 @@ for fd in cf.get_global_fields():
 	######################
 
 	#write the workspaces to the cache directory
-	w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
-	cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
+	w.write_to(f'{cf.PATH_CACHE}{cf.wsp_file}')
+	cw.write_to(f'{cf.PATH_CACHE}{cf.covwsp_file}')
 		
 
 
