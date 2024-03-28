@@ -258,7 +258,6 @@ for fd in cf.get_global_fields():
 
 	#clear some memory
 	del systmaps
-	del mask
 
 	#apply multiplicative correction to delta_g maps due to stellar contamination
 	if cf.correct_for_stars:
@@ -266,6 +265,7 @@ for fd in cf.get_global_fields():
 		deltag_maps = [df.get_maps()[0] / (1 - cf.Fs_fiducial) for df in density_fields]
 		density_fields = [nmt.NmtField(mask, [d], templates=None, n_iter=0) for d in deltag_maps]
 	
+	del mask
 	del deltag_maps
 
 
