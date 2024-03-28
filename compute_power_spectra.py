@@ -161,9 +161,10 @@ for fd in cf.get_global_fields():
 	#create a variable assignment that will later be occupied by a CovarianceWorkspace
 	cw = nmt.NmtCovarianceWorkspace()
 
+	PATH_CACHE = PATH_MAPS + 'cache/'
 	#see if directory for cached workspaces exists; make it if not
-	if not os.path.exists(cf.PATH_CACHE):
-		os.system(f'mkdir -p {cf.PATH_CACHE}')
+	if not os.path.exists(PATH_CACHE):
+		os.system(f'mkdir -p {PATH_CACHE}')
 	
 	#path to directory containing systematics maps
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
@@ -171,9 +172,8 @@ for fd in cf.get_global_fields():
 	if 'all' in map(str.lower, cf.systs):
 		cf.systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
 
-
 	#file containing list of systematics maps deprojected in the previous run
-	deproj_file = cf.PATH_CACHE + cf.deproj_file
+	deproj_file = PATH_CACHE + cf.deproj_file
 	if os.path.exists(deproj_file):
 		with open(deproj_file, 'r+') as df:
 			#see which (if any) systematics have been deprojected previously
@@ -200,8 +200,8 @@ for fd in cf.get_global_fields():
 		
 
 	#see if workspaces have already been created from a previous run
-	wsp_path = cf.PATH_CACHE + cf.wsp_file
-	covwsp_path = cf.PATH_CACHE + cf.covwsp_file
+	wsp_path = PATH_CACHE + cf.wsp_file
+	covwsp_path = PATH_CACHE + cf.covwsp_file
 	if os.path.exists(wsp_path) and not calc:
 		w.read_from(wsp_path)
 	else:
@@ -254,9 +254,16 @@ for fd in cf.get_global_fields():
 	print('Done!')
 
 	#clear some memory
-	del deltag_maps
 	del systmaps
 	del mask
+
+	#apply multiplicative correction to delta_g maps due to stellar contamination
+	if cf.correct_for_stars:
+		#retrieve the delta_g maps post-deprojection
+		deltag_maps = [df.get_maps()[0] / (1 - cf.Fs_fiducial) for df in density_fields]
+		density_fields = [nmt.NmtField(mask, [d], templates=None, n_iter=0) for d in deltag_maps]
+	
+	del deltag_maps
 
 
 	#load the N_g maps and calculate the mean weighted by the mask
@@ -448,8 +455,8 @@ for fd in cf.get_global_fields():
 	######################
 
 	#write the workspaces to the cache directory
-	w.write_to(f'{cf.PATH_CACHE}{cf.wsp_file}')
-	cw.write_to(f'{cf.PATH_CACHE}{cf.covwsp_file}')
+	w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
+	cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
 		
 
 

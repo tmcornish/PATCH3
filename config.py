@@ -23,8 +23,6 @@ class cf_global:
 		PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
 	#directory for figures
 	PATH_PLOTS = PATH_OUT + 'figures/'
-	#cache directory
-	PATH_CACHE = PATH_OUT + 'cache/'
 	
 
 	#data release
@@ -264,6 +262,11 @@ class computePowerSpectra(cf_global):
 	covwsp_file = f'covworkspace_{cf_global.nside_hi}.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
 	deproj_file = f'deprojected_{cf_global.nside_hi}.txt'
+
+	#apply a multiplicative correction to delta_g due to star contamination
+	correct_for_stars = True
+	#fiducial estinate for the fraction of stars making it into the final sample (from Nicola+19)
+	Fs_fiducial = 0.02 
 
 	
 ############################
