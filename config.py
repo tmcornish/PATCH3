@@ -239,6 +239,8 @@ class computePowerSpectra(cf_global):
 	systs = [
 		'all'
 		]
+	#(optional) maximum number of systematics to deproject - uses all provided if set to None
+	Nsyst_max = 10
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
