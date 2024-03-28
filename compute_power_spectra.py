@@ -161,8 +161,8 @@ for fd in cf.get_global_fields():
 	#create a variable assignment that will later be occupied by a CovarianceWorkspace
 	cw = nmt.NmtCovarianceWorkspace()
 
+	PATH_CACHE = PATH_MAPS + 'cache/'
 	#see if directory for cached workspaces exists; make it if not
-	PATH_CACHE = PATH_MAPS + 'nmt_cache/'
 	if not os.path.exists(PATH_CACHE):
 		os.system(f'mkdir -p {PATH_CACHE}')
 	
@@ -257,9 +257,16 @@ for fd in cf.get_global_fields():
 	print('Done!')
 
 	#clear some memory
-	del deltag_maps
 	del systmaps
 	del mask
+
+	#apply multiplicative correction to delta_g maps due to stellar contamination
+	if cf.correct_for_stars:
+		#retrieve the delta_g maps post-deprojection
+		deltag_maps = [df.get_maps()[0] / (1 - cf.Fs_fiducial) for df in density_fields]
+		density_fields = [nmt.NmtField(mask, [d], templates=None, n_iter=0) for d in deltag_maps]
+	
+	del deltag_maps
 
 
 	#load the N_g maps and calculate the mean weighted by the mask
