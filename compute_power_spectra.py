@@ -257,14 +257,7 @@ for fd in cf.get_global_fields():
 	print('Done!')
 
 	#clear some memory
-	del systmaps
-
-	#apply multiplicative correction to delta_g maps due to stellar contamination
-	if cf.correct_for_stars:
-		#retrieve the delta_g maps post-deprojection
-		deltag_maps = [df.get_maps()[0] / (1 - cf.Fs_fiducial) for df in density_fields]
-		density_fields = [nmt.NmtField(mask, [d], templates=None, n_iter=0) for d in deltag_maps]
-	
+	del systmaps	
 	del mask
 	del deltag_maps
 
@@ -289,6 +282,7 @@ for fd in cf.get_global_fields():
 			f_i = density_fields[i]
 			f_j = density_fields[j]
 			cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
+
 			#use these along with the mask to get a guess of the true C_ell
 			cl_guess = cl_coupled / mu_w2
 
@@ -304,9 +298,6 @@ for fd in cf.get_global_fields():
 				print('Done!')
 			else:
 				print('Using coupling matrix and coefficients from cache.')
-			
-			#compute the decoupled C_ell (w/o deprojection)
-			cl_decoupled = w.decouple_cell(cl_coupled)
 
 			#only calculate bias-related quantities if templates have been provided
 			if deproj:
@@ -314,18 +305,25 @@ for fd in cf.get_global_fields():
 					print('Calculating deprojection bias...')
 					#compute the deprojection bias
 					cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-					#compute the decoupled C_ell (w/ deprojection)
-					cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-					#decouple the bias C_ells as well
-					cl_bias_decoupled = w.decouple_cell(cl_bias)
 					print('Done!')
 				else:
 					print('Combination of systematics matches previous run; using cached results.')
 			else:
 				print('No systematics maps provided; skipping deprojection bias calculation.')
 				cl_bias = np.zeros_like(cl_guess)
-				cl_bias_decoupled = np.zeros_like(cl_decoupled)
-				cl_decoupled_debiased = cl_decoupled[...]
+
+			#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
+			if cf.correct_for_stars:
+				mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
+				cl_coupled *= mult
+				cl_guess *= mult
+
+			#compute the decoupled C_ell (w/o deprojection)
+			cl_decoupled = w.decouple_cell(cl_coupled)
+			#compute the decoupled C_ell (w/ deprojection)
+			cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+			#decouple the bias C_ells as well
+			cl_bias_decoupled = w.decouple_cell(cl_bias)
 
 
 			########################

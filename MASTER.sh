@@ -109,5 +109,5 @@ function power_spectra_job () {
 ###     1: number of cores to use
 ###     2: memory per CPU
 ###     3: name of the python script to run
-power_spectra_job 24 5 compute_power_spectra.py
+power_spectra_job 24 7 compute_power_spectra.py
 
