@@ -232,30 +232,34 @@ for fd in cf.get_global_fields():
 	mu_w = np.mean(mask)
 	mu_w2 = np.mean(mask * mask)
 
-	#check how many systematics maps there are (accounting for files containing multiple maps, e.g. dust maps)
-	nsyst = 0
+	#create a list containing the number of maps per file (since some contain multiple, e.g. dust maps)
+	nsyst_per_file = []
 	for f in cf.systs:
 		nsyst_now = len(hsp.HealSparseMap.read(PATH_SYST + f).dtype)
 		if nsyst_now > 0:
-			nsyst += nsyst_now
+			nsyst_per_file.append(nsyst_now)
 		else:
-			nsyst += 1
+			nsyst_per_file.append(1)
+	nsyst = np.sum(nsyst_per_file)
 	#initialise an array with the correct dimensions for NaMaster, ultimately for containing all systematics maps
 	systmaps = np.zeros((nsyst, 1, npix))
 
 	print(f'Loading {nsyst} systematics maps...')
 	if len(cf.systs) > 0:
-		#load the systematics maps and convert to full-sky realisations
-		systmaps = load_maps([PATH_SYST + s for s in cf.systs])
-		#calculate the weighted mean of each systematics map and subtract it
-		for ism, sm in enumerate(systmaps):
-			mu_s = np.sum(sm[above_thresh] * mask[above_thresh]) / sum_w_above_thresh
-			sm[above_thresh] -= mu_s
-			print('Syst map mean: ', mu_s)
-			#occupy the systmaps array with the corrected map data
-			systmaps[ism] = sm
+		count = 0
+		#cycle through the maps
+		for s, n_s in zip(cf.systs, nsyst_per_file):
+			sm = load_maps([PATH_SYST + s])
+			for i_s in range(n_s):
+				#calculate the weighted mean of each systematics map and subtract it
+				mu_s = np.sum(sm[i_s][above_thresh] * mask[above_thresh]) / sum_w_above_thresh
+				sm[i_s][above_thresh] -= mu_s
+				print('Syst map mean: ', mu_s)
+				#fill the relevant row of the systmaps array with these data
+				systmaps[count+i_s] = sm[i_s]
+				count += 1
 		deproj = True
-		print('templates: ', np.mean(systmaps))
+		print('templates: ', systmaps)
 	else:
 		systmaps = None
 		deproj = False
