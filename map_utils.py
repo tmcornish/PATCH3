@@ -125,7 +125,7 @@ def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse, return_pix_and_val
 
 
 
-def pixelMeanStd(quant, pix=None, remove_zeros=True):
+def pixelMeanStd(quant, pix, remove_zeros=True):
 	'''
 	Calculate the mean and standard deviation of a given quantity at each pixel in a map.
 
@@ -158,17 +158,11 @@ def pixelMeanStd(quant, pix=None, remove_zeros=True):
 	if remove_zeros:
 		#identify pixels in which at least one value of the quantity exists
 		good = (N > 0)
-		'''
-		P = np.arange(pix.max()+1)
-		pix_good = P[good]
-		#delete P to conserve memory
-		del P
-		'''
 		#calculate the mean and standard deviation of the quantity at each 'good' pixel
 		qmean = qsum[good] / N[good]
 		qmeansq = qmean ** 2.
-		qvar = (qsqsum[good] / N[good]) - qmeansq
-		#identify pixels for which the variance is negative and whose absolute value is <1e-10
+		qvar = (qsqsum[good] - (2 * qmean * qsum[good])) / N + qmeansq
+		#identify pixels for which the variance is < a millionth of the squared mean (arises from rounding errors)
 		zero_var = np.isclose(np.zeros(len(qvar)), qvar, atol=1e-6*qmeansq)
 		qvar[zero_var] = 0.
 		qstd = np.sqrt(qvar)
@@ -177,7 +171,7 @@ def pixelMeanStd(quant, pix=None, remove_zeros=True):
 		with np.errstate(divide='ignore', invalid='ignore'):
 			#calculate the mean and standard deviation of the quantity at all pixels
 			qmean = qsum / N
-			qstd = np.sqrt((qsqsum / N) - qmean ** 2.)
+			qstd = np.sqrt((qsqsum - (2 * qmean * qsum)) / N + (qmean ** 2.))
 
 	return qmean, qstd
 
