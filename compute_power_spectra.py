@@ -109,6 +109,8 @@ def load_maps(map_paths):
 ell_max = 3 * cf.nside_hi - 1
 #get pixel area in units of steradians
 Apix = hp.nside2pixarea(cf.nside_hi)
+#number of pixels in each map
+npix = hp.nside2npix(cf.nside_hi)
 
 
 if cf.use_N19_bps:
@@ -230,20 +232,28 @@ for fd in cf.get_global_fields():
 	mu_w = np.mean(mask)
 	mu_w2 = np.mean(mask * mask)
 
+	#check how many systematics maps there are (accounting for files containing multiple maps, e.g. dust maps)
+	nsyst = 0
+	for f in cf.systs:
+		nsyst_now = len(hsp.HealSparseMap.read(PATH_SYST + f).dtype)
+		if nsyst_now > 0:
+			nsyst += nsyst_now
+		else:
+			nsyst += 1
+	#initialise an array with the correct dimensions for NaMaster, ultimately for containing all systematics maps
+	systmaps = np.zeros((nsyst, 1, npix))
 
-	print('Loading systematics maps...')
+	print(f'Loading {nsyst} systematics maps...')
 	if len(cf.systs) > 0:
 		#load the systematics maps and convert to full-sky realisations
 		systmaps = load_maps([PATH_SYST + s for s in cf.systs])
 		#calculate the weighted mean of each systematics map and subtract it
-		for sm in systmaps:
+		for ism, sm in enumerate(systmaps):
 			mu_s = np.sum(sm[above_thresh] * mask[above_thresh]) / sum_w_above_thresh
 			sm[above_thresh] -= mu_s
 			print('Syst map mean: ', mu_s)
-		#reshape the resultant list to have dimensions (nsyst, 1, npix)
-		nsyst = len(systmaps)
-		npix = len(systmaps[0])
-		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
+			#occupy the systmaps array with the corrected map data
+			systmaps[ism] = sm
 		deproj = True
 		print('templates: ', np.mean(systmaps))
 	else:
