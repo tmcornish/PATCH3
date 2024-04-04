@@ -28,7 +28,7 @@ cf = config.makeMapsFromCat
 ###################
 
 
-def makeDustMap(cat, group=''):
+def makeDustMap(cat, group='', band='i'):
 	'''
 	Creates dust maps for each of the specified bands.
 
@@ -47,16 +47,12 @@ def makeDustMap(cat, group=''):
 		recarray for which each entry is a dust attenuation map in each of the specified bands.
 	'''
 
-	print('Creating dust maps...')
-	#initialise a recarray to contain the maps for each band
-	dust_maps, px_data, px_data_u = initialiseRecMap(cf.nside_lo, cf.nside_hi, cat[f'{group}/ra'][:], cat[f'{group}/dec'][:], cf.bands, dtypes='f8', primary=cf.band)
+	print(f'Creating dust map (band {band})...')
 
 	#cycle through the bands and calculate the mean dust attenuation in each pixel
-	for b in cf.bands:
-		a_means, _ = pixelMeanStd(cat[f'{group}/a_{b}'][:], px_data)
-		dust_maps[b][px_data_u] = a_means
+	dust_map, _ = createMeanStdMap(cat[f'{group}/ra'][:], cat[f'{group}/dec'][:], cat[f'{group}/a_{band}'][:], cf.nside_lo, cf.nside_hi)
 
-	return dust_maps
+	return dust_map
 
 
 def makeBOMask(cat, group=''):
@@ -274,10 +270,11 @@ for fd in cf.get_global_fields():
 	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
 	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')
 
-	#make the dust maps in each band and store in a single recarray
-	dust_maps = makeDustMap(cat_basic, group='photometry')
-	#write to a file
-	dust_maps.write(f'{PATH_SYST}/{cf.dustmaps}', clobber=True)
+	for b,dm in zip(cf.bands, cf.dustmaps):
+		#make the dust maps in the current band
+		dust_map = makeDustMap(cat_basic, group='photometry', band=b)
+		#write to a file
+		dust_map.write(f'{PATH_SYST}/{dm}', clobber=True)
 
 	#make the bright object mask
 	bo_mask = makeBOMask(cat_basic, group='photometry')

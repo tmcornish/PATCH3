@@ -75,8 +75,11 @@ class cf_global:
 	#threshold below which pixels in the survey mask will be considered masked
 	weight_thresh = 0.5
 
+	#function for generating filenames for band-specific dust extinction maps
+	def dustmap_names(bands, nside_hi):
+		return [f'dustmaps_{b}_{nside_hi}.hsp' for b in bands]
 	#basenames for the various maps
-	dustmaps = f'dustmaps_{nside_hi}.hsp'
+	dustmaps = dustmap_names(bands, nside_hi)
 	bo_mask = f'bo_mask_{nside_hi}.hsp'
 	masked_frac = f'masked_fraction_{nside_hi}.hsp'
 	survey_mask = f'survey_mask_{nside_hi}.hsp'
