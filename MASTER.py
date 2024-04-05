@@ -18,10 +18,10 @@ import output_utils as opu
 get_data = False		#run data acquisition script
 split_meta = False		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
-catbased_maps = True	#make maps for various quantities using the catalogue
+catbased_maps = False	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
-power_spectra = False	#compute power spectra
+power_spectra = True	#compute power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
 

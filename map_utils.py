@@ -376,3 +376,24 @@ def healsparseToFITS(hsp_map, fname, nest=False):
 	#write to file
 	hp.write_map(fname, hp_map, nest=nest, column_names=['VALUE'], overwrite=True)
 
+
+
+class MaskData:
+	'''
+	Convenience class for containing important information about the survey mask. Upon
+	initialisation only requires the name of the HealSparse file.
+	'''
+
+	def __init__(self, hsp_file, mask_thresh=0.):
+		#load the HealSparse map and convert it to full sky
+		self.mask = hsp.HealSparseMap.read(hsp_file).generate_healpix_map(nest=False)
+		#apply the mask threshold
+		self.mask[self.mask <= mask_thresh] = 0.
+		#get the IDs of all pixels above the threshold
+		self.vpix = np.argwhere(self.mask > 0.).flatten()
+
+		#compute the sum, mean, and mean squared of the mask
+		self.sum = np.sum(self.mask)
+		self.mean = np.mean(self.mask)
+		self.meansq = self.mean ** 2.
+

@@ -31,71 +31,103 @@ plt.style.use(pu.styledict)
 ###################
 
 
-def hspToFullSky(hsp_map):
+def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
 	'''
-	Converts a HealSparse map into a full-sky realisation that NaMaster can use.
+	Loads an individual HealSparse map and returns their pixel values in healPIX 
+	RING ordering. If told to, will also multiply the map by the mask and/or 
+	calculate the mean of the map and subtract it from all pixels. Both of these
+	operations require the mask (in full HealPIX format) as input. 
+
 
 	Parameters
 	----------
-	hsp_map: HealSparseMap
-		The map being converted.
+	map_path: str
+		Path to the map being read.
+
+	apply_mask: bool
+		If True, will perform element-wise multiplication by the mask (given as separate input).
 
 	is_systmap: bool
-		If True, subtracts the mean form the value of all pixels (necessary for systematics maps).
+		If True, subtracts the mean from the value of all pixels (necessary for systematics maps).
+	
+	mask: MaskData
+		Object containing the mask and any potentially relevant pre-computed values.
 
 	Returns
 	-------
-	fs_map: array
-		Full-sky realisation containing values at every pixel (hp.UNSEEN in unoccupied pixels).
+	fs_map: np.array
+		Full-sky map data (RING ordering).
 	'''
-	
+
 	#initialise an empty full-sky map (NOTE: can take a lot of memory for high nside_sparse)
-	fs_map = hsp_map.generate_healpix_map(nest=False)
-	vpix = fs_map != hp.UNSEEN
-	fs_map[~vpix] = 0.
+	fs_map = hsp.HealSparseMap.read(map_path).generate_healpix_map(nest=False)
+	fs_map[fs_map == hp.UNSEEN] = 0.
+
+	if is_systmap:
+		if mask is not None:
+			mu = np.sum(fs_map[mask.vpix] * mask.mask[mask.vpix]) / mask.sum
+			fs_map[mask.vpix] -= mu
+		else:
+			print('Could not correct systematics map; no MaskData provided.')
+	
+	if apply_mask:
+		if mask is not None:
+			fs_map *= mask.mask
+		else:
+			print('Could not apply mask to map; no MaskData provided.')
+		
 
 	return fs_map
 
-	
 
-
-def load_maps(map_paths):
+def load_tomographic_maps(map_path, apply_mask=False, mask=None):
 	'''
-	Loads any number of provided HealSparse maps and returns their pixel values in healPIX 
-	RING ordering.
+	Loads files containing maps split into tomographic bins (e.g. delta_g) and
+	returns their pixel values in healPIX RING ordering. If told to, will also 
+	multiply the map by the mask, in which case a MaskData object is required
+	as input. 
 
-	TODO: add functionality for reading maps in hdf5 format?
 
 	Parameters
 	----------
-	map_paths: list
-		List of paths to the maps being read.
+	map_path: str
+		Path to the map being read.
 
-	is_systmap: bool
-		If True, subtracts the mean form the value of all pixels (necessary for systematics maps).
+	apply_mask: bool
+		If True, will perform element-wise multiplication by the mask (given as separate input).
+
+	mask: MaskData
+		Object containing the mask and any potentially relevant pre-computed values.
 
 	Returns
 	-------
-	maps: list
-		List containing data from each map.
+	fs_maps: list
+		List containing full-sky data (RING ordering) for each tomographic map.
 	'''
-	maps = []
+	#empty list in which the full-sky maps will be stored
+	fs_maps = []
 
-	#cycle through the list of paths
-	for mp in map_paths:
+	#load the HealSparse file
+	hsp_map = hsp.HealSparseMap.read(map_path)
 
-		#use healSparse to read the maps
-		map_data = hsp.HealSparseMap.read(mp)
-		#see if multiple maps are stored in this file
-		nmaps = len(map_data.dtype)
-		if nmaps > 0:
-			#append the data from each map to the list
-			maps.extend([hspToFullSky(map_data[n]) for n in map_data.dtype.names])
-		else:
-			#append the data to the list
-			maps.append(hspToFullSky(map_data))
+	#cycle through the maps
+	for d in hsp_map.dtype.names:
+		#create full-sky realisation of the map
+		fs_map = hsp_map[d].generate_healpix_map(nest=False)
+		fs_map[fs_map == hp.UNSEEN] = 0.
+		
+		#multiply by the mask if told to do so
+		if apply_mask:
+			if mask is not None:
+				fs_map *= mask.mask
+			else:
+				print('Could not apply mask to map; no MaskData provided.')
+		
+		#append the full-sky map to the list
+		fs_maps.append(fs_map)
+	
+	return fs_maps
 
-	return maps
 
 
 
@@ -109,6 +141,8 @@ def load_maps(map_paths):
 ell_max = 3 * cf.nside_hi - 1
 #get pixel area in units of steradians
 Apix = hp.nside2pixarea(cf.nside_hi)
+#get the number of pixels in a full-sky map at the required resolution
+npix = hp.nside2npix(cf.nside_hi)
 
 
 if cf.use_N19_bps:
@@ -171,6 +205,7 @@ for fd in cf.get_global_fields():
 	#check for 'All' in systmaps and convert this to a list of all systematics maps
 	if 'all' in map(str.lower, cf.systs):
 		cf.systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
+	
 	#if given a max number of systematics to deproject, slice the list accordingly
 	if cf.Nsyst_max is not None:
 		cf.systs = cf.systs[:cf.Nsyst_max]
@@ -216,33 +251,18 @@ for fd in cf.get_global_fields():
 		
 
 	#load the delta_g maps
-	deltag_maps = load_maps([PATH_MAPS+cf.deltag_maps])
+	deltag_maps = load_tomographic_maps(PATH_MAPS + cf.deltag_maps)
 
 	#load the survey mask and convert to full-sky realisation
-	mask, = load_maps([PATH_MAPS+cf.survey_mask])
-	#identify pixels above the weight threshold
-	above_thresh = mask > cf.weight_thresh
-	#set all pixels below the weight threshold to 0
-	mask[~above_thresh] = 0
-
-	#calculate anything to do with the mask so that it can also be cleared from memory
-	sum_w_above_thresh = np.sum(mask[above_thresh])
-	mu_w = np.mean(mask)
-	mu_w2 = np.mean(mask * mask)
+	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
 
 
 	print('Loading systematics maps...')
 	if len(cf.systs) > 0:
 		#load the systematics maps and convert to full-sky realisations
-		systmaps = load_maps([PATH_SYST + s for s in cf.systs])
-		#calculate the weighted mean of each systematics map and subtract it
-		for sm in systmaps:
-			mu_s = np.sum(sm[above_thresh] * mask[above_thresh]) / sum_w_above_thresh
-			sm[above_thresh] -= mu_s
-			print('Syst map mean: ', mu_s)
+		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in cf.systs]
 		#reshape the resultant list to have dimensions (nsyst, 1, npix)
 		nsyst = len(systmaps)
-		npix = len(systmaps[0])
 		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
 		deproj = True
 		print('templates: ', np.mean(systmaps))
@@ -253,17 +273,25 @@ for fd in cf.get_global_fields():
 
 
 	print('Creating NmtFields...')
-	density_fields = [nmt.NmtField(mask, [d], templates=systmaps, n_iter=0) for d in deltag_maps]
+	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, n_iter=0) for d in deltag_maps]
 	print('Done!')
 
-	#clear some memory
-	del systmaps	
-	del mask
+	#delete the systematics and delta_g maps to clear some memory
+	del systmaps
 	del deltag_maps
 
+	
 
+	#retrieve the IDs of pixels above the mask threshold, as this is all that is
+	#required from the mask henceforth
+	above_thresh = mask.vpix
+	sum_w_above_thresh = mask.sum
+	mu_w = mask.mean
+	mu_w2 = mask.meansq
+	del mask
+	
 	#load the N_g maps and calculate the mean weighted by the mask
-	mu_N_all = [nmap[above_thresh].sum() / sum_w_above_thresh for nmap in load_maps([PATH_MAPS+cf.ngal_maps])]
+	mu_N_all = [nmap[above_thresh].sum() / sum_w_above_thresh for nmap in load_tomographic_maps(PATH_MAPS + cf.ngal_maps)]
 
 
 	#full path to the output file
