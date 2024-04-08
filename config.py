@@ -10,7 +10,7 @@
 class cf_global:
 
 	#whether to run on glamdring or locally
-	LOCAL = True
+	LOCAL = False
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
 	if LOCAL:
@@ -240,7 +240,7 @@ class computePowerSpectra(cf_global):
 		'all'
 		]
 	#(optional) maximum number of systematics to deproject - uses all provided if set to None
-	Nsyst_max = None
+	Nsyst_max = 7
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
