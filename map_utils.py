@@ -161,7 +161,7 @@ def pixelMeanStd(quant, pix, remove_zeros=True):
 		#calculate the mean and standard deviation of the quantity at each 'good' pixel
 		qmean = qsum[good] / N[good]
 		qmeansq = qmean ** 2.
-		qvar = (qsqsum[good] - (2 * qmean * qsum[good])) / N + qmeansq
+		qvar = (qsqsum[good] - (2 * qmean * qsum[good])) / N[good] + qmeansq
 		#identify pixels for which the variance is < a millionth of the squared mean (arises from rounding errors)
 		zero_var = np.isclose(np.zeros(len(qvar)), qvar, atol=1e-6*qmeansq)
 		qvar[zero_var] = 0.
