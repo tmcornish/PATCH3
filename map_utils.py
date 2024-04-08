@@ -395,5 +395,5 @@ class MaskData:
 		#compute the sum, mean, and mean squared of the mask
 		self.sum = np.sum(self.mask)
 		self.mean = np.mean(self.mask)
-		self.meansq = self.mean ** 2.
+		self.meansq = np.mean(self.mask ** 2.)
 
