@@ -9,8 +9,8 @@
 
 class cf_global:
 
-	#whether to run on glamdring or locally
-	LOCAL = True
+	LOCAL = True	#whether to run on locally or remotely
+	NERSC = False	#if remotely: NERSC or glamdring
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
 	if LOCAL:
@@ -18,9 +18,14 @@ class cf_global:
 		PATH_DATA = '/home/cornisht/LSST_clustering/Data/HSC_DR3/'	#where the raw data are stored
 		PATH_OUT =  f'{PATH_PIPE}out/'								#main directory for outputs
 	else:
-		PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'					#path to pipeline scripts
-		PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'	#where the raw data are stored
-		PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
+		if NERSC:
+			PATH_PIPE = '/globals/homes/t/tcornish/pHSC3/'			#path to pipeline scripts
+			PATH_DATA = '/pscratch/sd/t/tcornish/HSC_DR3/'			#where the raw data are stored
+			PATH_OUT = '/pscratch/sd/t/tcornish/pHSC3_out/'			#main directory for outputs
+		else:
+			PATH_PIPE = '/mnt/zfsusers/tcornish/pHSC3/'					#path to pipeline scripts
+			PATH_DATA = '/mnt/extraspace/tmcornish/Datasets/HSC_DR3/'	#where the raw data are stored
+			PATH_OUT = '/mnt/extraspace/tmcornish/pHSC3_out/'			#main directory for outputs
 	#directory for figures
 	PATH_PLOTS = PATH_OUT + 'figures/'
 	
