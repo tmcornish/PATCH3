@@ -138,7 +138,7 @@ def load_tomographic_maps(map_path, apply_mask=False, mask=None):
 #######################################################
 
 #maximum ell allowed by the resolution
-ell_max = 3 * cf.nside_hi - 1
+ell_max = 3 * cf.nside_hi
 #get pixel area in units of steradians
 Apix = hp.nside2pixarea(cf.nside_hi)
 #get the number of pixels in a full-sky map at the required resolution
@@ -273,7 +273,7 @@ for fd in cf.get_global_fields():
 
 
 	print('Creating NmtFields...')
-	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, n_iter=0) for d in deltag_maps]
+	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps) for d in deltag_maps]
 	print('Done!')
 
 	#delete the systematics and delta_g maps to clear some memory
@@ -317,7 +317,7 @@ for fd in cf.get_global_fields():
 			if ip == 0 and calc:
 				#compute the mode coupling matrix (only need to compute once since same mask used for everything)
 				print('Computing mode coupling matrix...')
-				w.compute_coupling_matrix(f_i, f_j, b, n_iter=1)
+				w.compute_coupling_matrix(f_i, f_j, b)
 				print('Done!')
 
 				print('Calculating coupling coefficients...')
