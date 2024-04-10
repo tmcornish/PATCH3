@@ -7,6 +7,6 @@
 
 PYEX=$(which python)
 
-cd data_query
+cd ../data_query
 srun python -u get_data.py
-cd ..
+cd ../slurm_scripts
