@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --time=24:00:00
 #SBATCH --constraint=cpu
-#SBATCH --qos=normal
+#SBATCH --qos=regular
 #SBATCH --account=m1727
 
 cd ../data_query

@@ -4,10 +4,6 @@
 # Configure and run this file when running the pipeline on NERSC. #
 ###################################################################
 
-module load conda
-conda activate phsc3
-
-cd slurm_scripts
 
 #uncomment any stages you want to run
 jobs=(
@@ -20,6 +16,13 @@ jobs=(
     #'compute_power_spectra'
     #'make_txpipe_inputs'
 )
+
+
+
+module load conda
+conda activate phsc3
+
+cd slurm_scripts
 
 #run first job and get job ID
 jid=$(sbatch ${jobs[0]}.sh | cut -d ' ' -f4)

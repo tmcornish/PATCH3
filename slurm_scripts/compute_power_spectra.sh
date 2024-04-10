@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=256
 #SBATCH --time=96:00:00
 #SBATCH --constraint=cpu
-#SBATCH --qos=normal
+#SBATCH --qos=regular
 #SBATCH --account=m1727
 
 cd ..
