@@ -5,8 +5,6 @@
 #SBATCH --qos=normal
 #SBATCH --account=m1727
 
-PYEX=$(which python)
-
 cd ../data_query
 srun python -u get_data.py
 cd ../slurm_scripts
