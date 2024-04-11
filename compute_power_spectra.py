@@ -273,7 +273,7 @@ for fd in cf.get_global_fields():
 
 
 	print('Creating NmtFields...')
-	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=True) for d in deltag_maps]
+	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
 	print('Done!')
 
 	#delete the systematics and delta_g maps to clear some memory
@@ -328,7 +328,7 @@ for fd in cf.get_global_fields():
 				print('Using coupling matrix and coefficients from cache.')
 
 			#only calculate bias-related quantities if templates have been provided
-			if deproj:
+			if deproj and not cf.lite:
 				if calc:
 					print('Calculating deprojection bias...')
 					#compute the deprojection bias

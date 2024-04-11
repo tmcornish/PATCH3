@@ -273,6 +273,9 @@ class computePowerSpectra(cf_global):
 	#fiducial estinate for the fraction of stars making it into the final sample (from Nicola+19)
 	Fs_fiducial = 0.02 
 
+	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
+	lite = True
+
 	
 ############################
 #### make_txpipe_inputs ####
