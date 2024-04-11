@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH --constraint=cpu
-#SBATCH --qos=regular
+#SBATCH --qos=debug
 #SBATCH --account=m1727
 
 cd ..
