@@ -37,7 +37,7 @@ for fd in cf.get_global_fields():
         os.system(f'mkdir -p {PATH_TX}')
 
     #systematics maps
-    maps = sorted(glob.glob(f'{PATH_SYST}*.hsp'))
+    maps = sorted(glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))
     
     #cycle through the maps
     for m in maps:
