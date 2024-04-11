@@ -273,7 +273,7 @@ for fd in cf.get_global_fields():
 
 
 	print('Creating NmtFields...')
-	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps) for d in deltag_maps]
+	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=True) for d in deltag_maps]
 	print('Done!')
 
 	#delete the systematics and delta_g maps to clear some memory
