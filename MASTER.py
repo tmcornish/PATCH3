@@ -21,7 +21,8 @@ clean_cats = False		#apply various cuts to clean the catalogues
 catbased_maps = False	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
-power_spectra = True	#compute power spectra
+power_spectra = False	#compute power spectra
+plot_cells = True		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
 
@@ -35,6 +36,7 @@ settings = [
 	metadata_maps,
 	galaxy_maps,
 	power_spectra,
+	plot_cells,
 	txpipe_inputs
 	]
 
@@ -46,6 +48,7 @@ proc = [
 	'Making maps from frame metadata',
 	'Making galaxy count and density maps in z bins',
 	'Computing power spectra',
+	'Plotting power spectra',
 	'Making TXPipe-compatible inputs'
 	]
 
@@ -57,6 +60,7 @@ run_str = [
 	'python -u make_maps_from_metadata.py',
 	'python -u make_galaxy_maps.py',
 	'python -u compute_power_spectra.py',
+	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
 	]
 
