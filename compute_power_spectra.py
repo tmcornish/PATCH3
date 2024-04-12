@@ -293,6 +293,7 @@ for fd in cf.get_global_fields():
 			p_str = str(p)
 			print(colour_string(p_str, 'green'))
 
+			#see if group already exists for this pairing
 			gp = psfile.require_group(p_str)
 
 			f_i = density_fields[i]
@@ -328,6 +329,9 @@ for fd in cf.get_global_fields():
 			else:
 				print('No systematics maps provided; skipping deprojection bias calculation.')
 				cl_bias = np.zeros_like(cl_guess)
+			
+			#delete the group if it exists
+			del psfile[p_str]
 
 			#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
 			if cf.correct_for_stars:
@@ -379,17 +383,18 @@ for fd in cf.get_global_fields():
 			##################
 
 			#populate the output file with the results
-			_ = gp.require_dataset('ell_effs', shape=ell_effs.shape, dtype=ell_effs.dtype, data=ell_effs)
-			_ = gp.require_dataset('cl_coupled', shape=cl_coupled.shape, dtype=cl_coupled.dtype, data=cl_coupled)
-			_ = gp.require_dataset('cl_decoupled', shape=cl_decoupled.shape, dtype=cl_decoupled.dtype, data=cl_decoupled)
-			_ = gp.require_dataset('cl_guess', shape=cl_guess.shape, dtype=cl_guess.dtype, data=cl_guess)
-			_ = gp.require_dataset('N_ell_coupled', shape=N_ell_coupled.shape, dtype=N_ell_coupled.dtype, data=N_ell_coupled)
-			_ = gp.require_dataset('N_ell_decoupled', shape=N_ell_decoupled.shape, dtype=N_ell_decoupled.dtype, data=N_ell_decoupled)
-			_ = gp.require_dataset('covar', shape=covar.shape, dtype=covar.dtype, data=covar)
-			_ = gp.require_dataset('err_cell', shape=err_cell.shape, dtype=err_cell.dtype, data=err_cell)
-			_ = gp.require_dataset('cl_bias', shape=cl_bias.shape, dtype=cl_bias.dtype, data=cl_bias)
-			_ = gp.require_dataset('cl_bias_decoupled', shape=cl_bias_decoupled.shape, dtype=cl_bias_decoupled.dtype, data=cl_bias_decoupled)
-			_ = gp.require_dataset('cl_decoupled_debiased', shape=cl_decoupled_debiased.shape, dtype=cl_decoupled_debiased.dtype, data=cl_decoupled_debiased)
+			gp = psfile.create_group(p_str)
+			_ = gp.create_dataset('ell_effs', data=ell_effs)
+			_ = gp.create_dataset('cl_coupled', data=cl_coupled)
+			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
+			_ = gp.create_dataset('cl_guess', data=cl_guess)
+			_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
+			_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
+			_ = gp.create_dataset('covar', data=covar)
+			_ = gp.create_dataset('err_cell', data=err_cell)
+			_ = gp.create_dataset('cl_bias', data=cl_bias)
+			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
+			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
 
 
 	######################
