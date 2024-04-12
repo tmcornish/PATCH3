@@ -161,19 +161,9 @@ b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 
 #get the effective ells
 ell_effs = b.get_effective_ells()
-#use this to define the x-limits of the figures
-xmin = ell_effs.min() / 1.5
-xmax = ell_effs.max() * 1.2
-
-
 
 #retrieve the number of redshift bins
 nbins = len(cf.zbins) - 1
-#use this to define the size of the power spectra figures
-xsize = nbins * 4
-ysize = nbins * 3.5
-
-
 #also get all possible pairings of bins
 l = list(range(nbins))
 pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
@@ -182,10 +172,6 @@ pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
 #cycle through the fields being analysed (TODO: later change to global fields)
 for fd in cf.get_global_fields():
 	print(colour_string(fd.upper(), 'orange'))
-
-	#set up a figure for the power spectra from each redshift bin
-	fig = plt.figure(figsize=(xsize, ysize))
-	gs = fig.add_gridspec(ncols=nbins, nrows=nbins)
 
 	#path to the directory containing the maps
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
@@ -297,7 +283,7 @@ for fd in cf.get_global_fields():
 	#full path to the output file
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
 	#open the file, creating it if it doesn't exist
-	with h5py.File(outfile, mode='w') as psfile:
+	with h5py.File(outfile, mode='r+') as psfile:
 		
 		#cycle through all possible pairings of redshift bins
 		for ip,p in enumerate(pairings):
@@ -306,6 +292,8 @@ for fd in cf.get_global_fields():
 			#see if a group for the current pairing already exists
 			p_str = str(p)
 			print(colour_string(p_str, 'green'))
+
+			gp = psfile.require_group(p_str)
 
 			f_i = density_fields[i]
 			f_j = density_fields[j]
@@ -336,6 +324,7 @@ for fd in cf.get_global_fields():
 					print('Done!')
 				else:
 					print('Combination of systematics matches previous run; using cached results.')
+					cl_bias = gp['cl_bias'][:]
 			else:
 				print('No systematics maps provided; skipping deprojection bias calculation.')
 				cl_bias = np.zeros_like(cl_guess)
@@ -390,93 +379,17 @@ for fd in cf.get_global_fields():
 			##################
 
 			#populate the output file with the results
-			gp = psfile.require_group(p_str)
-			_ = gp.create_dataset('ell_effs', data=ell_effs)
-			_ = gp.create_dataset('cl_coupled', data=cl_coupled)
-			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
-			_ = gp.create_dataset('cl_guess', data=cl_guess)
-			_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
-			_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
-			_ = gp.create_dataset('covar', data=covar)
-			_ = gp.create_dataset('err_cell', data=err_cell)
-			_ = gp.create_dataset('cl_bias', data=cl_bias)
-			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
-			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
-
-
-
-			####################
-			# PLOTTING RESULTS #
-			####################
-
-			if cf.normalise:
-				ylabel = r'$C_{\ell}\frac{\ell(\ell+1)}{2\pi}$'
-				mfactor = ell_effs * (ell_effs + 1) / (2. * np.pi)
-			else:
-				ylabel = r'$C_{\ell}$'
-				mfactor = np.ones_like(ell_effs)
-
-
-			#add subplot to gridspec
-			ax = fig.add_subplot(gs[j,i])
-			#only label axes if on outer edge of figure
-			if j == (nbins-1):
-				ax.set_xlabel(r'$\ell$')
-			if i == 0:
-				ax.set_ylabel(ylabel)
-			#set loglog scale
-			ax.set_xscale('log')
-			ax.set_yscale('log')
-
-			if cl_bias_decoupled.any():
-				#plot the deporojection bias
-				bias_plot, *_ = ax.plot(ell_effs, cl_bias_decoupled[0]*mfactor, c=pu.magenta)
-				ax.plot(ell_effs, -cl_bias_decoupled[0]*mfactor, ls='--', c=pu.magenta)
-				#at this point retrieve the x limits
-				#xmin, xmax = ax.get_xlim()
-
-			#plot the debiased power spectrum, using open symbols for abs(negative) values
-			mask_pve = cl_decoupled_debiased[0] > 0
-			mask_nve = cl_decoupled_debiased[0] <= 0
-			#plot the shot noise if autocorrelation
-			if i == j:
-				Y_pve = (cl_decoupled_debiased[0][mask_pve] - N_ell_decoupled[0][mask_pve]) * mfactor[mask_pve]
-				Y_nve = (cl_decoupled_debiased[0][mask_nve] - N_ell_decoupled[0][mask_nve]) * mfactor[mask_nve]
-				noise_plot, *_ = ax.plot(ell_effs, N_ell_decoupled[0]*mfactor, c=pu.teal)
-			else:
-				Y_pve = cl_decoupled_debiased[0][mask_pve] * mfactor[mask_pve]
-				Y_nve = cl_decoupled_debiased[0][mask_nve] * mfactor[mask_nve]
-			cell_plot = ax.errorbar(ell_effs[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
-			ax.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
-
-			#reset the axis limits
-			ax.set_xlim(xmin, xmax)
-
-			#add text to the top-right corner to indicate which bins have been compared
-			ax.text(0.95, 0.95, f'({i},{j})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
-
-	#create a legend		
-	handles = [
-		cell_plot,
-		noise_plot
-		]
-	labels = [
-		'Signal',
-		'Noise'
-		]
-	if cl_bias_decoupled.any():
-		handles.insert(1, bias_plot)
-		labels.insert(1, 'Deprojection bias')
-		#figure name also depends on whether deprojection has occurred
-		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_{cf.nside_hi}.png'
-	else:
-		figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_raw_{cf.nside_hi}.png'
-	
-
-	fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
-
-	plt.tight_layout()
-	plt.savefig(figname, dpi=300)
+			_ = gp.require_dataset('ell_effs', shape=ell_effs.shape, dtype=ell_effs.dtype, data=ell_effs)
+			_ = gp.require_dataset('cl_coupled', shape=cl_coupled.shape, dtype=cl_coupled.dtype, data=cl_coupled)
+			_ = gp.require_dataset('cl_decoupled', shape=cl_decoupled.shape, dtype=cl_decoupled.dtype, data=cl_decoupled)
+			_ = gp.require_dataset('cl_guess', shape=cl_guess.shape, dtype=cl_guess.dtype, data=cl_guess)
+			_ = gp.require_dataset('N_ell_coupled', shape=N_ell_coupled.shape, dtype=N_ell_coupled.dtype, data=N_ell_coupled)
+			_ = gp.require_dataset('N_ell_decoupled', shape=N_ell_decoupled.shape, dtype=N_ell_decoupled.dtype, data=N_ell_decoupled)
+			_ = gp.require_dataset('covar', shape=covar.shape, dtype=covar.dtype, data=covar)
+			_ = gp.require_dataset('err_cell', shape=err_cell.shape, dtype=err_cell.dtype, data=err_cell)
+			_ = gp.require_dataset('cl_bias', shape=cl_bias.shape, dtype=cl_bias.dtype, data=cl_bias)
+			_ = gp.require_dataset('cl_bias_decoupled', shape=cl_bias_decoupled.shape, dtype=cl_bias_decoupled.dtype, data=cl_bias_decoupled)
+			_ = gp.require_dataset('cl_decoupled_debiased', shape=cl_decoupled_debiased.shape, dtype=cl_decoupled_debiased.dtype, data=cl_decoupled_debiased)
 
 
 	######################
