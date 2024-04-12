@@ -9,8 +9,8 @@
 
 class cf_global:
 
-	LOCAL = False	#whether to run on locally or remotely
-	NERSC = True	#if remotely: NERSC or glamdring
+	LOCAL = True	#whether to run on locally or remotely
+	NERSC = False	#if remotely: NERSC or glamdring
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
 	if LOCAL:
@@ -73,7 +73,7 @@ class cf_global:
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 4096
+	nside_hi = 512
 	#low-resolution NSIDE parameter to use for splitting the data
 	nside_cover = 8
 	
@@ -280,6 +280,17 @@ class computePowerSpectra(cf_global):
 
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = True
+
+
+
+###############################
+#### plot_power_spectra ####
+###############################
+
+class plotPowerSpectra(cf_global):
+
+	name = 'plotPowerSpectra'
+
 
 	
 ############################
