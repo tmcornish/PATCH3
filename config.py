@@ -248,7 +248,7 @@ class computePowerSpectra(cf_global):
 		'all'
 		]
 	#(optional) maximum number of systematics to deproject - uses all provided if set to None
-	Nsyst_max = 10
+	Nsyst_max = 50
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
@@ -277,6 +277,9 @@ class computePowerSpectra(cf_global):
 	correct_for_stars = True
 	#fiducial estinate for the fraction of stars making it into the final sample (from Nicola+19)
 	Fs_fiducial = 0.02 
+
+	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
+	lite = True
 
 	
 ############################
