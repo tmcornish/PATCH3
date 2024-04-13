@@ -194,6 +194,9 @@ for fd in cf.get_global_fields():
 	#if given a max number of systematics to deproject, slice the list accordingly
 	if cf.Nsyst_max is not None:
 		cf.systs = cf.systs[:cf.Nsyst_max]
+	
+	#add the boolean 'lite' to the end of the list of systematics
+	cf.systs.append(str(cf.lite))
 
 	#file containing list of systematics maps deprojected in the previous run
 	deproj_file = PATH_CACHE + cf.deproj_file
@@ -212,7 +215,7 @@ for fd in cf.get_global_fields():
 				df.truncate()
 				df.write('\n'.join(cf.systs))
 	else:
-		if len(cf.systs) == 0:
+		if len(cf.systs) == 1:
 			print('No systematics provided')
 		else:
 			with open(deproj_file, 'w') as df:
@@ -241,9 +244,9 @@ for fd in cf.get_global_fields():
 
 
 	print('Loading systematics maps...')
-	if len(cf.systs) > 0:
+	if len(cf.systs) > 1:
 		#load the systematics maps and convert to full-sky realisations
-		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in cf.systs]
+		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in cf.systs[:-1]]
 		#reshape the resultant list to have dimensions (nsyst, 1, npix)
 		nsyst = len(systmaps)
 		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
