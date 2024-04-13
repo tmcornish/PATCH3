@@ -1,8 +1,7 @@
 #####################################################################################################
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
-# - TODO: ensure that script doesn't use previous output if deprojection is to occur and didn't on previous
-#	run.
+# - TODO: skip all calculations if systematics identical to previous run.
 #####################################################################################################
 
 import config
@@ -205,7 +204,8 @@ for fd in cf.get_global_fields():
 			#see if this is the same as the list specified in the config file (accounting for different ordering)
 			if sorted(deproj_done) == sorted(cf.systs):
 				calc = False
-				print('Same systematics maps provided')
+				print(f'Same systematics maps provided; skipping all calculations for field {fd}')
+				continue
 			else:
 				calc = True
 				print('Different systematics maps provided')
