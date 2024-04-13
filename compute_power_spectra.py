@@ -203,11 +203,9 @@ for fd in cf.get_global_fields():
 			deproj_done = df.read().split('\n')
 			#see if this is the same as the list specified in the config file (accounting for different ordering)
 			if sorted(deproj_done) == sorted(cf.systs):
-				calc = False
 				print(f'Same systematics maps provided; skipping all calculations for field {fd}')
 				continue
 			else:
-				calc = True
 				print('Different systematics maps provided')
 				#write the list of provided systematics to the file
 				df.seek(0)
@@ -215,25 +213,24 @@ for fd in cf.get_global_fields():
 				df.write('\n'.join(cf.systs))
 	else:
 		if len(cf.systs) == 0:
-			calc = False
 			print('No systematics provided')
 		else:
-			calc = True
 			with open(deproj_file, 'w') as df:
 				df.write('\n'.join(cf.systs))
 		
-
 	#see if workspaces have already been created from a previous run
 	wsp_path = PATH_CACHE + cf.wsp_file
 	covwsp_path = PATH_CACHE + cf.covwsp_file
-	if os.path.exists(wsp_path) and not calc:
+	if os.path.exists(wsp_path):
 		w.read_from(wsp_path)
+		calc = False
 	else:
 		calc = True
-	if os.path.exists(covwsp_path) and not calc:
+	if os.path.exists(covwsp_path):
 		cw.read_from(covwsp_path)
+		calc |= False
 	else:
-		calc = True
+		calc |= True
 		
 
 	#load the delta_g maps
@@ -318,14 +315,10 @@ for fd in cf.get_global_fields():
 
 			#only calculate bias-related quantities if templates have been provided
 			if deproj and not cf.lite:
-				if calc:
-					print('Calculating deprojection bias...')
-					#compute the deprojection bias
-					cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-					print('Done!')
-				else:
-					print('Combination of systematics matches previous run; using cached results.')
-					cl_bias = gp['cl_bias'][:]
+				print('Calculating deprojection bias...')
+				#compute the deprojection bias
+				cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+				print('Done!')
 			else:
 				print('No systematics maps provided; skipping deprojection bias calculation.')
 				cl_bias = np.zeros_like(cl_guess)
