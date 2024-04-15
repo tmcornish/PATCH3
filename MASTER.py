@@ -20,7 +20,7 @@ split_meta = False		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
 catbased_maps = False	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
-pca = True				#perform PCA to potentially reduce the number of maps being deprojected
+pca_systs = True				#perform PCA to potentially reduce the number of maps being deprojected
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 power_spectra = True	#compute power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
@@ -34,7 +34,7 @@ settings = [
 	clean_cats,
 	catbased_maps,
 	metadata_maps,
-	pca,
+	pca_systs,
 	galaxy_maps,
 	power_spectra,
 	txpipe_inputs

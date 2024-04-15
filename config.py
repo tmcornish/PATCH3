@@ -224,6 +224,14 @@ class makeMapsFromMetadata(splitMetadata):
 	ncores = 18
 	
 
+#########################
+#### pca_systematics ####
+#########################
+
+class pcaSystematics(cf_global):
+
+	name = 'pcaSystematics'
+
 
 ##########################
 #### make_galaxy_maps ####
