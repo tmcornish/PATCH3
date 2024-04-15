@@ -485,10 +485,13 @@ class MaskData:
 	def __init__(self, hsp_file, mask_thresh=0.):
 		#load the HealSparse map and convert it to full sky
 		self.mask = hsp.HealSparseMap.read(hsp_file).generate_healpix_map(nest=False)
+		self.nside = int((len(self.mask) / 12) ** 0.5)
 		#apply the mask threshold
 		self.mask[self.mask <= mask_thresh] = 0.
 		#get the IDs of all pixels above the threshold
 		self.vpix = np.argwhere(self.mask > 0.).flatten()
+		#convert these to NEST ordering
+		self.vpix_nest = hp.ring2nest(self.nside, self.vpix)
 
 		#compute the sum, mean, and mean squared of the mask
 		self.sum = np.sum(self.mask)
