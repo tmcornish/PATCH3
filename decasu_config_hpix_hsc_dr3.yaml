@@ -1,12 +1,12 @@
-outbase: 'decasu_8192'
-nside: 8192
+outbase: 'decasu_512'
+nside: 512
 map_types:
   nexp: ['sum']
   exptime: ['sum']
   ccdtemp: ['mean']
   airmass: ['mean', 'min', 'max']
   seeing: ['mean']
-  maglim: ['mean']
+  maglim: ['wmean']
   dcr_dra: ['mean']
   dcr_ddec: ['mean']
   dcr_e1: ['mean']
