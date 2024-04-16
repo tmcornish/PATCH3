@@ -55,17 +55,17 @@ function submit_pyjob () {
 # Function for specifying the conditions of running make_maps_from_metadata.py.
 function metamaps_job () {
     #see if pipeline configured to split metadata
-    if $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True"
+    if [ $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True" ]
     then
         #get the band and run the script for each one
         for b in $($PYEX -c "import config as cf; print(' '.join(cf.cf_global.bands))")
         do
-            submit_job $1 $2 $b
+            submit_job "$1" "$2" $b
         done
     else
         #get the list of all bands and run them simultaneously
         b=$($PYEX -c "import config as cf; print(','.join(cf.cf_global.bands))")
-        submit_job $1 $2 $b
+        submit_job "$1" "$2" $b
     fi
 }
 
@@ -100,7 +100,7 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
 
 ### making maps from the frame metadata
-# metamaps_job "-q cmb -n 1x20 -m 7 -s" make_maps_from_metadata.py
+#metamaps_job "-q cmb -n 1x24 -m 7 -s" make_maps_from_metadata.py
 
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py
