@@ -12,8 +12,10 @@ jobs=(
     #'clean_catalogues'
     #'make_maps_from_catalogue'
     #'make_maps_from_metadata'
+    #'pca_systematics'
     #'make_galaxy_maps'
     #'compute_power_spectra'
+    #'plot_power_spectra'
     #'make_txpipe_inputs'
 )
 
