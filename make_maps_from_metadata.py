@@ -61,8 +61,11 @@ if cf.LOCAL:
 else:
 	#retrieve the band for which the script is being run from the system arguments
 	b = sys.argv[1]
-	#get the number of cores assigned from SLURM configuration
-	ncores = int(os.getenv('SLURM_NTASKS_PER_NODE'))
+	#environment variable specifying number of CPUs will differ on NERSC and glamdring
+	if cf.NERSC:
+		ncores = int(os.getenv('SLURM_CPUS_PER_TASK'))
+	else:
+		ncores = int(os.getenv('SLURM_NTASKS_PER_NODE'))
 	#cycle through the fields being analysed
 	for fd in cf.get_global_fields():
 		print(colour_string(fd.upper(), 'orange'))
