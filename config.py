@@ -224,6 +224,18 @@ class makeMapsFromMetadata(splitMetadata):
 	ncores = 18
 	
 
+#########################
+#### pca_systematics ####
+#########################
+
+class pcaSystematics(cf_global):
+
+	name = 'pcaSystematics'
+
+	#plot eigenvalues of the principal components
+	plot_eigen = True
+	#fraction of total variance to keep with principal components
+	var_thresh = 0.98
 
 ##########################
 #### make_galaxy_maps ####

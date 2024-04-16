@@ -20,6 +20,7 @@ split_meta = False		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
 catbased_maps = False	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
+pca_systs = True				#perform PCA to potentially reduce the number of maps being deprojected
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 power_spectra = True	#compute power spectra
 plot_cells = True		#plot the power spectra
@@ -34,6 +35,7 @@ settings = [
 	clean_cats,
 	catbased_maps,
 	metadata_maps,
+	pca_systs,
 	galaxy_maps,
 	power_spectra,
 	plot_cells,
@@ -46,6 +48,7 @@ proc = [
 	'Cleaning catalogues',
 	'Making maps from catalogue data',
 	'Making maps from frame metadata',
+	'Performing PCA',
 	'Making galaxy count and density maps in z bins',
 	'Computing power spectra',
 	'Plotting power spectra',
@@ -58,6 +61,7 @@ run_str = [
 	'python -u clean_catalogues.py',
 	'python -u make_maps_from_catalogue.py',
 	'python -u make_maps_from_metadata.py',
+	'python -u pca_systematics.py',
 	'python -u make_galaxy_maps.py',
 	'python -u compute_power_spectra.py',
 	'python -u plot_power_spectra.py',
