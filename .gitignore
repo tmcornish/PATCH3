@@ -1,5 +1,5 @@
 #directories to ignore
-jp_notebooks
+tests
 out/
 __pycache__
 decasu_files
