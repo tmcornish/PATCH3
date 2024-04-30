@@ -178,7 +178,7 @@ for fd in cf.get_global_fields():
 	#full path to the output file
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
 	#open the file, creating it if it doesn't exist
-	with h5py.File(outfile, mode='r+') as psfile:
+	with h5py.File(outfile, mode='w') as psfile:
 		
 		#cycle through all possible pairings of redshift bins
 		for ip,p in enumerate(pairings):
