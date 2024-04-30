@@ -63,7 +63,8 @@ else:
 	b = sys.argv[1]
 	#environment variable specifying number of CPUs will differ on NERSC and glamdring
 	if cf.NERSC:
-		ncores = int(os.getenv('SLURM_CPUS_PER_TASK'))
+		import multiprocessing as mp
+		ncores = mp.cpu_count() - 1
 	else:
 		ncores = int(os.getenv('SLURM_NTASKS_PER_NODE'))
 	#cycle through the fields being analysed
