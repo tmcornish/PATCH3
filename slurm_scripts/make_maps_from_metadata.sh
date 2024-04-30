@@ -9,7 +9,7 @@
 cd ..
 
 #see if pipeline configured to split metadata
-if $(python -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True"
+if [ $(python -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True" ]
 then
     #get the band and run the script for each one
     for b in $(python -c "import config as cf; print(' '.join(cf.cf_global.bands))")
