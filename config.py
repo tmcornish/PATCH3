@@ -224,6 +224,15 @@ class makeMapsFromMetadata(splitMetadata):
 	ncores = 18
 	
 
+##########################
+#### make_galaxy_maps ####
+##########################
+
+class makeGalaxyMaps(cf_global):
+
+	name = 'makeGalaxyMaps'
+
+
 #########################
 #### pca_systematics ####
 #########################
@@ -236,15 +245,7 @@ class pcaSystematics(cf_global):
 	plot_eigen = True
 	#fraction of total variance to keep with principal components
 	var_thresh = 0.98
-
-##########################
-#### make_galaxy_maps ####
-##########################
-
-class makeGalaxyMaps(cf_global):
-
-	name = 'makeGalaxyMaps'
-
+	
 
 ###############################
 #### compute_power_spectra ####
