@@ -54,18 +54,27 @@ function submit_pyjob () {
 
 # Function for specifying the conditions of running make_maps_from_metadata.py.
 function metamaps_job () {
+    #see if previous job is running
+    if [ -f $jobfile ]
+    then
+        jobID=$(getID)
+        runafter="--runafter $jobID"
+    else
+        runafter=""
+    fi
+
     #see if pipeline configured to split metadata
     if [ $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True" ]
     then
         #get the band and run the script for each one
         for b in $($PYEX -c "import config as cf; print(' '.join(cf.cf_global.bands))")
         do
-            submit_job "$1" "$2" $b
+            addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
         done
     else
         #get the list of all bands and run them simultaneously
         b=$($PYEX -c "import config as cf; print(','.join(cf.cf_global.bands))")
-        submit_job "$1" "$2" $b
+        addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
     fi
 }
 
