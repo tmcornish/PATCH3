@@ -237,6 +237,15 @@ class makeGalaxyMaps(cf_global):
 #### pca_systematics ####
 #########################
 
+class combineFields(cf_global):
+
+	name = 'combineFields'
+
+
+#########################
+#### pca_systematics ####
+#########################
+
 class pcaSystematics(cf_global):
 
 	name = 'pcaSystematics'
