@@ -198,15 +198,20 @@ for fd in cf.get_global_fields():
 				print('Computing mode coupling matrix...')
 				w.compute_coupling_matrix(f_i, f_j, b)
 				print('Done!')
+				#write the workspace to the cache directory
+				w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
 
 				print('Calculating coupling coefficients...')
 				#compute coupling coefficients
 				cw.compute_coupling_coefficients(f_i, f_j)
+				#write the workspace to the cache directory
+				cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
 				print('Done!')
+
+				#set calc to False for future iterations
+				calc = False
 			else:
 				print('Using coupling matrix and coefficients from cache.')
-			#set calc to False for future iterations
-			calc = False
 
 			#only calculate bias-related quantities if templates have been provided
 			if deproj and not cf.lite:
@@ -281,14 +286,6 @@ for fd in cf.get_global_fields():
 			_ = gp.create_dataset('cl_bias', data=cl_bias)
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
-
-	######################
-	# CACHING WORKSPACES #
-	######################
-
-	#write the workspaces to the cache directory
-	w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
-	cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
 		
 
 
