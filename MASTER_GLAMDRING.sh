@@ -81,16 +81,28 @@ function metamaps_job () {
 
 # Function for submitting compute_power_spectra.py to the queue.
 function power_spectra_job () {
-    #create an executable file which will be used to run the script properly
-    runfile=run_power_spectra.sh
-    echo \#\!/bin/bash > $runfile
-    #set the number of threads in that file
-    echo export OMP_NUM_THREADS=$1 >> $runfile
-    echo /usr/local/shared/slurm/bin/srun -n 1 --cpus-per-task $1 --mem-per-cpu $2G --mpi=pmi2 $PYEX -u $3 >> $runfile
-    #make the file executable
-    chmod u+x $runfile
-    #submit the job to the queue
-    submit_job "-q cmb -n 1x$1 -m $2 -s" $runfile
+    #see if previous job is running
+    if [ -f $jobfile ]
+    then
+        jobID=$(getID)
+        runafter="--runafter $jobID"
+    else
+        runafter=""
+    fi
+
+    for p in $($PYEX -c "import config as cf; print(' '.join(cf.computePowerSpectra.get_bin_pairings()[1]))")
+    do
+        #create an executable file which will be used to run the script properly
+        runfile=run_power_spectra.sh
+        echo \#\!/bin/bash > $runfile
+        #set the number of threads in that file
+        echo export OMP_NUM_THREADS=$1 >> $runfile
+        echo /usr/local/shared/slurm/bin/srun -n 1 --cpus-per-task $1 --mem-per-cpu $2G --mpi=pmi2 $PYEX -u $3 >> $runfile
+        #make the file executable
+        chmod u+x $runfile
+        #submit the job to the queue
+        addqueue -q cmb -n 1x$1 -m $2 "$runafter" -s $3 $p > $jobfile
+    done
 }
 
 ##### Uncomment all steps below that you wish to run. #####

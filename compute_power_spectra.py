@@ -16,6 +16,7 @@ import plot_utils as pu
 import itertools
 from output_utils import colour_string
 import os
+import sys
 import glob
 
 import faulthandler
@@ -24,8 +25,13 @@ faulthandler.enable()
 cf = config.computePowerSpectra
 plt.style.use(pu.styledict)
 
-
-
+#retrieve the pairing being analysed from the arguments if provided
+try:
+	pairings = [sys.argv[1]]
+	per_tomo = True
+except IndexError:
+	_, pairings = cf.get_bin_pairings()
+	per_tomo = False
 
 #######################################################
 ###############    START OF SCRIPT    #################
@@ -55,12 +61,6 @@ b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 
 #get the effective ells
 ell_effs = b.get_effective_ells()
-
-#retrieve the number of redshift bins
-nbins = len(cf.zbins) - 1
-#also get all possible pairings of bins
-l = list(range(nbins))
-pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
 
 
 #cycle through the fields being analysed (TODO: later change to global fields)
@@ -177,19 +177,14 @@ for fd in cf.get_global_fields():
 
 	#full path to the output file
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
+	if per_tomo:
+		outfile = f'{outfile[:-5]}_{i}_{j}.hdf5'
 	#open the file, creating it if it doesn't exist
 	with h5py.File(outfile, mode='w') as psfile:
-		
-		#cycle through all possible pairings of redshift bins
-		for ip,p in enumerate(pairings):
-			i,j = p
+		for p in pairings:
+			i,j = [int(x) for x in p.strip('()').split(',')]
 
-			#see if a group for the current pairing already exists
-			p_str = str(p)
-			print(colour_string(p_str, 'green'))
-
-			#see if group already exists for this pairing
-			gp = psfile.require_group(p_str)
+			print(colour_string(p, 'green'))
 
 			f_i = density_fields[i]
 			f_j = density_fields[j]
@@ -198,7 +193,7 @@ for fd in cf.get_global_fields():
 			#use these along with the mask to get a guess of the true C_ell
 			cl_guess = cl_coupled / mu_w2
 
-			if ip == 0 and calc:
+			if calc:
 				#compute the mode coupling matrix (only need to compute once since same mask used for everything)
 				print('Computing mode coupling matrix...')
 				w.compute_coupling_matrix(f_i, f_j, b)
@@ -210,6 +205,8 @@ for fd in cf.get_global_fields():
 				print('Done!')
 			else:
 				print('Using coupling matrix and coefficients from cache.')
+			#set calc to False for future iterations
+			calc = False
 
 			#only calculate bias-related quantities if templates have been provided
 			if deproj and not cf.lite:
@@ -221,8 +218,6 @@ for fd in cf.get_global_fields():
 				print('No systematics maps provided; skipping deprojection bias calculation.')
 				cl_bias = np.zeros_like(cl_guess)
 			
-			#delete the group if it exists
-			del psfile[p_str]
 
 			#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
 			if cf.correct_for_stars:
@@ -274,7 +269,7 @@ for fd in cf.get_global_fields():
 			##################
 
 			#populate the output file with the results
-			gp = psfile.create_group(p_str)
+			gp = psfile.create_group(p)
 			_ = gp.create_dataset('ell_effs', data=ell_effs)
 			_ = gp.create_dataset('cl_coupled', data=cl_coupled)
 			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
@@ -286,7 +281,6 @@ for fd in cf.get_global_fields():
 			_ = gp.create_dataset('cl_bias', data=cl_bias)
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
-
 
 	######################
 	# CACHING WORKSPACES #
