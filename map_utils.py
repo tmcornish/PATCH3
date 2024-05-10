@@ -5,6 +5,7 @@
 import numpy as np
 import healpy as hp
 import healsparse as hsp
+import gen_utils as gu
 
 def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', primary=None, return_pix=True, return_unique=True):
 	'''
@@ -427,7 +428,7 @@ def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
 	return fs_map
 
 
-def load_tomographic_maps(map_path, apply_mask=False, mask=None):
+def load_tomographic_maps(map_path, apply_mask=False, mask=None, idx=None):
 	'''
 	Loads files containing maps split into tomographic bins (e.g. delta_g) and
 	returns their pixel values in healPIX RING ordering. If told to, will also 
@@ -445,6 +446,12 @@ def load_tomographic_maps(map_path, apply_mask=False, mask=None):
 
 	mask: MaskData
 		Object containing the mask and any potentially relevant pre-computed values.
+	
+	idx: int or str or list or None
+		The index of the map to be read. If an int, will load the one map corresponding
+		to that index. If a string, will load the one map whose name is that string.
+		If a list is provided it must contain either all ints or strings; this function
+		will load and return all maps with IDs/names matching the list entries.
 
 	Returns
 	-------
@@ -457,8 +464,33 @@ def load_tomographic_maps(map_path, apply_mask=False, mask=None):
 	#load the HealSparse file
 	hsp_map = hsp.HealSparseMap.read(map_path)
 
+	#check the format of the idx argument, if provided
+	if idx is not None:
+		nd_idx = gu.get_ndim(idx)
+		if nd_idx == 0:
+			if type(idx) == str:
+				to_read = [idx]
+			elif type(idx) == int:
+				to_read = [hsp_map.dtype.names[idx]]
+			else:
+				gu.error_message('load_tomographic_maps', 'Single values for idx must be either int or str')
+				return
+		elif nd_idx == 1:
+			if all([type(x) == str for x in idx]):
+				to_read = idx
+			elif all([type(x) == int for x in idx]):
+				to_read = [hsp_map.dtype.names[x] for x in idx]
+			else:
+				gu.error_message('load_tomographic_maps', 'Lists provided for idx must contain either all int or all str')
+				return
+		else:
+			gu.error_message('load_tomographic_maps', 'idx must be an int, str, or list of either')
+			return
+	else:
+		to_read = hsp_map.dtype.names
+
 	#cycle through the maps
-	for d in hsp_map.dtype.names:
+	for d in to_read:
 		#create full-sky realisation of the map
 		fs_map = hsp_map[d].generate_healpix_map(nest=False)
 		fs_map[fs_map == hp.UNSEEN] = 0.
