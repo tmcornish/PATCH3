@@ -73,6 +73,14 @@ for fd in cf.get_global_fields():
 	#path to the directory containing the maps
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
 
+	#load the survey mask and convert to full-sky realisation
+	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
+	#retrieve relevant quantities from the mask data
+	above_thresh = mask.vpix
+	sum_w_above_thresh = mask.sum
+	mu_w = mask.mean
+	mu_w2 = mask.meansq
+
 	#set up a pymaster Workspace object
 	w = nmt.NmtWorkspace()
 	#create a variable assignment that will later be occupied by a CovarianceWorkspace
@@ -139,9 +147,6 @@ for fd in cf.get_global_fields():
 	#load the delta_g maps
 	deltag_maps = load_tomographic_maps(PATH_MAPS + cf.deltag_maps)
 
-	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
-
 
 	print('Loading systematics maps...')
 	if len(cf.systs) > 1:
@@ -166,15 +171,6 @@ for fd in cf.get_global_fields():
 	del systmaps
 	del deltag_maps
 
-	
-
-	#retrieve the IDs of pixels above the mask threshold, as this is all that is
-	#required from the mask henceforth
-	above_thresh = mask.vpix
-	sum_w_above_thresh = mask.sum
-	mu_w = mask.mean
-	mu_w2 = mask.meansq
-	del mask
 	
 	#load the N_g maps and calculate the mean weighted by the mask
 	mu_N_all = [nmap[above_thresh].sum() / sum_w_above_thresh for nmap in load_tomographic_maps(PATH_MAPS + cf.ngal_maps)]
