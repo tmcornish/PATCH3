@@ -93,7 +93,7 @@ function power_spectra_job () {
     for p in $($PYEX -c "import config as cf; print(' '.join(cf.computePowerSpectra.get_bin_pairings()[1]))")
     do
         #submit the job to the queue
-        addqueue -q cmb -n 1x$1 -m $2 "$runafter" -s $PYEX $3 $p > $jobfile
+        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX $3 $p > $jobfile
     done
 }
 
