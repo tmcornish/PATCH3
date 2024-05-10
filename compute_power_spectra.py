@@ -83,6 +83,20 @@ for fd in cf.get_global_fields():
 	if not os.path.exists(PATH_CACHE):
 		os.system(f'mkdir -p {PATH_CACHE}')
 	
+	#see if workspaces have already been created from a previous run
+	wsp_path = PATH_CACHE + cf.wsp_file
+	covwsp_path = PATH_CACHE + cf.covwsp_file
+	if os.path.exists(wsp_path):
+		w.read_from(wsp_path)
+		calc = False
+	else:
+		calc = True
+	if os.path.exists(covwsp_path):
+		cw.read_from(covwsp_path)
+		calc |= False
+	else:
+		calc |= True
+	
 	#path to directory containing systematics maps
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
 	#check for 'All' in systmaps and convert this to a list of all systematics maps
@@ -98,6 +112,8 @@ for fd in cf.get_global_fields():
 
 	#file containing list of systematics maps deprojected in the previous run
 	deproj_file = PATH_CACHE + cf.deproj_file
+	if per_tomo:
+		deproj_file = f'{deproj_file[:-4]}_{i}_{j}.txt'
 	if os.path.exists(deproj_file):
 		with open(deproj_file, 'r+') as df:
 			#see which (if any) systematics have been deprojected previously
@@ -118,20 +134,6 @@ for fd in cf.get_global_fields():
 		else:
 			with open(deproj_file, 'w') as df:
 				df.write('\n'.join(cf.systs))
-		
-	#see if workspaces have already been created from a previous run
-	wsp_path = PATH_CACHE + cf.wsp_file
-	covwsp_path = PATH_CACHE + cf.covwsp_file
-	if os.path.exists(wsp_path):
-		w.read_from(wsp_path)
-		calc = False
-	else:
-		calc = True
-	if os.path.exists(covwsp_path):
-		cw.read_from(covwsp_path)
-		calc |= False
-	else:
-		calc |= True
 		
 
 	#load the delta_g maps
