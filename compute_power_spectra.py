@@ -1,7 +1,10 @@
 #####################################################################################################
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
-# - TODO: skip all calculations if systematics identical to previous run.
+# - TODO: figure out best way to determine which systematics have been deprojected
+#   previously for a given bin pairing.
+#   - need separate files for each pairing
+# - TODO: save the deprojected maps
 #####################################################################################################
 
 import config
