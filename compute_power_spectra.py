@@ -166,19 +166,19 @@ for fd in cf.get_global_fields():
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
 	#check for 'All' in systmaps and convert this to a list of all systematics maps
 	if 'all' in map(str.lower, cf.systs):
-		cf.systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
+		systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
 	
 	#if given a max number of systematics to deproject, slice the list accordingly
 	if cf.Nsyst_max is not None:
-		cf.systs = cf.systs[:cf.Nsyst_max]
+		systs = systs[:cf.Nsyst_max]
 	
 	#add the boolean 'lite' to the end of the list of systematics
-	cf.systs.append(str(cf.lite))
+	systs.append(str(cf.lite))
 
 	#file containing list of systematics maps deprojected in the previous run
 	deproj_file = PATH_CACHE + cf.deproj_file
 	if not per_tomo:
-		density_fields, nsyst = make_density_fields(deproj_file, cf.systs)
+		density_fields, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
 
@@ -192,7 +192,7 @@ for fd in cf.get_global_fields():
 
 		if per_tomo:
 			deproj_file = f'{deproj_file[:-4]}_{i}_{j}.txt'
-			density_fields, nsyst = make_density_fields(deproj_file, cf.systs, idx=[i,j])
+			density_fields, nsyst = make_density_fields(deproj_file, systs, idx=[i,j])
 			if density_fields is None:
 				continue
 			f_i, f_j = density_fields
