@@ -54,7 +54,8 @@ for fd in cf.get_global_fields():
             #retrieve the relevant information
             gp = psfile[p_str]
             ell_effs = gp['ell_effs'][:]
-            Cell = gp['cl_decoupled_debiased'][:]
+            Cell_pre = gp['cl_decoupled'][:]
+            Cell_post = gp['cl_decoupled_debiased'][:]
             bias = gp['cl_bias_decoupled'][:]
             err_cell = gp['err_cell'][:]
             Nell = gp['N_ell_decoupled'][:]
@@ -88,18 +89,33 @@ for fd in cf.get_global_fields():
                 ax.plot(ell_effs, -bias[0]*mfactor, ls='--', c=pu.magenta)
             
             #plot the debiased power spectrum, using open symbols for abs(negative) values
-            mask_pve = Cell[0] > 0
-            mask_nve = Cell[0] <= 0
+            mask_pve = Cell_post[0] > 0
+            mask_nve = Cell_post[0] <= 0
             #plot the shot noise if autocorrelation
             if i == j:
-                Y_pve = (Cell[0][mask_pve] - Nell[0][mask_pve]) * mfactor[mask_pve]
-                Y_nve = (Cell[0][mask_nve] - Nell[0][mask_nve]) * mfactor[mask_nve]
+                Y_pve = (Cell_post[0][mask_pve] - Nell[0][mask_pve]) * mfactor[mask_pve]
+                Y_nve = (Cell_post[0][mask_nve] - Nell[0][mask_nve]) * mfactor[mask_nve]
                 noise_plot, *_ = ax.plot(ell_effs, Nell[0]*mfactor, c=pu.teal)
             else:
-                Y_pve = Cell[0][mask_pve] * mfactor[mask_pve]
-                Y_nve = Cell[0][mask_nve] * mfactor[mask_nve]
+                Y_pve = Cell_post[0][mask_pve] * mfactor[mask_pve]
+                Y_nve = Cell_post[0][mask_nve] * mfactor[mask_nve]
             cell_plot = ax.errorbar(ell_effs[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
             ax.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
+
+            if cf.show_pre_deproj:
+                #plot the power spectrum pre-deprojection, using open symbols for abs(negative) values
+                mask_pve = Cell_pre[0] > 0
+                mask_nve = Cell_pre[0] <= 0
+                #subtract the shot noise if autocorrelation
+                if i == j:
+                    Y_pve = (Cell_pre[0][mask_pve] - Nell[0][mask_pve]) * mfactor[mask_pve]
+                    Y_nve = (Cell_pre[0][mask_nve] - Nell[0][mask_nve]) * mfactor[mask_nve]
+                else:
+                    Y_pve = Cell_pre[0][mask_pve] * mfactor[mask_pve]
+                    Y_nve = Cell_pre[0][mask_nve] * mfactor[mask_nve]
+                cell_plot_pre = ax.errorbar(ell_effs[mask_pve]*1.05, Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none', alpha=0.4)
+                ax.errorbar(ell_effs[mask_nve]*1.05, -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none', alpha=0.4)
+
 
             #reset the axis limits
             ax.set_xlim(xmin, xmax)
@@ -116,6 +132,7 @@ for fd in cf.get_global_fields():
         'Signal',
         'Noise'
         ]
+    
     if bias.any():
         handles.insert(1, bias_plot)
         labels.insert(1, 'Deprojection bias')
@@ -124,6 +141,9 @@ for fd in cf.get_global_fields():
     else:
         figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_raw_{cf.nside_hi}.png'
 
+    if cf.show_pre_deproj:
+        handles.insert(1, cell_plot_pre)
+        labels.insert(1, 'Biased signal')
 
     fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
 
