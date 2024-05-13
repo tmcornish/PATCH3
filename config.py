@@ -39,10 +39,10 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	fields = ['hectomap']
+	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	#fiends = ['combined']
+	fields = ['combined']
 	#fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
