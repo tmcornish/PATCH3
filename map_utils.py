@@ -428,13 +428,12 @@ def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
 	return fs_map
 
 
-def load_tomographic_maps(map_path, apply_mask=False, mask=None, idx=None):
+def load_tomographic_maps(map_path, fullsky=True, apply_mask=False, mask=None, idx=None):
 	'''
 	Loads files containing maps split into tomographic bins (e.g. delta_g) and
-	returns their pixel values in healPIX RING ordering. If told to, will also 
-	multiply the map by the mask, in which case a MaskData object is required
-	as input. 
-
+	(by default) returns their pixel values in healPIX RING ordering, or simply returns
+	a list of each of the maps in HealSparseMap format . If told to, will also multiply 
+	the map by the mask, in which case a MaskData object is required as input.  
 
 	Parameters
 	----------
@@ -455,11 +454,11 @@ def load_tomographic_maps(map_path, apply_mask=False, mask=None, idx=None):
 
 	Returns
 	-------
-	fs_maps: list
+	out_maps: list
 		List containing full-sky data (RING ordering) for each tomographic map.
 	'''
 	#empty list in which the full-sky maps will be stored
-	fs_maps = []
+	out_maps = []
 
 	#load the HealSparse file
 	hsp_map = hsp.HealSparseMap.read(map_path)
@@ -491,21 +490,33 @@ def load_tomographic_maps(map_path, apply_mask=False, mask=None, idx=None):
 
 	#cycle through the maps
 	for d in to_read:
-		#create full-sky realisation of the map
-		fs_map = hsp_map[d].generate_healpix_map(nest=False)
-		fs_map[fs_map == hp.UNSEEN] = 0.
-		
+
+		if fullsky:
+			#create full-sky realisation of the map
+			map_now = hsp_map[d].generate_healpix_map(nest=False)
+			map_now[map_now == hp.UNSEEN] = 0.
+		else:
+			#otherwise, just retrieve the relevant HealSparseMap
+			map_now = hsp_map[d]
+			
 		#multiply by the mask if told to do so
 		if apply_mask:
 			if mask is not None:
-				fs_map *= mask.mask
+				if fullsky:
+					map_now *= mask.mask
+				else:
+					vpix_map = map_now.valid_pixels
+					vpix_mask = mask.vpix_nest
+					vpix_diff = np.array(list(set(vpix_mask) - set(vpix_map)))
+					map_now[vpix_diff] = 0
+					map_now[vpix_mask] *= mask.mask[mask.vpix]
 			else:
 				print('Could not apply mask to map; no MaskData provided.')
 		
 		#append the full-sky map to the list
-		fs_maps.append(fs_map)
+		out_maps.append(map_now)
 	
-	return fs_maps
+	return out_maps
 
 
 class MaskData:
