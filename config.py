@@ -42,7 +42,10 @@ class cf_global:
 	fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
+	#fiends = ['combined']
 	#fields = ['hectomap'] + equatora + equatorb
+	#fields = ['combined', 'hectomap'] + equatora + equatorb
+
 
 	#file containing the metadata
 	metafile = f'{PATH_DATA}PDR3_WIDE_frames.fits'
@@ -102,7 +105,7 @@ class cf_global:
 
 
 	@classmethod
-	def get_global_fields(cls):
+	def get_global_fields(cls):		
 		fields_global = []
 		if 'hectomap' in cls.fields:
 			fields_global.append('hectomap')
@@ -112,6 +115,8 @@ class cf_global:
 			fields_global.append('equatora')
 		if any(x in cls.equatorb for x in cls.fields):
 			fields_global.append('equatorb')
+		if 'combined' in cls.fields:
+			fields_global.append('combined')
 
 		return fields_global
 
