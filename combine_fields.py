@@ -5,8 +5,59 @@
 
 import os
 import config
-import healsparse
+import healsparse as hsp
 import glob
+import map_utils as mu
+
+#############################
+######### FUNCTIONS #########
+#############################
+
+def combine_maps(map_name, fields):
+    '''
+    Given the base name for a map, will load that map for each of the
+    specified fields (if it exists) and return the combination of those
+    maps.
+
+    Parameters
+    ----------
+    map_name: str
+        The base name of the maps to be loaded.
+    
+    fields: list
+        A list of the fields for which the maps are to be loaded.
+    
+    Returns
+    -------
+    union: HealSparseMap
+        Combination of the loaded HealSparse maps.
+    '''
+
+    #load the maps
+    maps = [hsp.HealSparseMap.read(f'{cf.PATH_OUT}{fd}/{map_name}') for fd in fields]
+
+    #check if these maps are single maps or recarrays of multiple maps
+    ndtype = len(maps[0].dtype)
+    if ndtype > 0:
+        #cycle through the individual maps and combine from each field
+        unions_indiv = [hsp.operations.sum_union([m[m.dtype.names[i]] for m in maps]) for i in range(ndtype)]
+        #initialise a recarray for the output
+        union, _, px_data_u = mu.initialiseRecMap(
+            unions_indiv[0].nside_coverage,
+            unions_indiv[0].nside_sparse,
+            *unions_indiv[0].valid_pixels_pos(lonlat=True),
+            maps[0].dtype.names,
+            dtypes=str(maps[0].dtype[0])
+            )
+        #populate the maps
+        for i in range(ndtype):
+            union[union.dtype.names[i]].update_values_pix(
+                px_data_u,
+                unions_indiv[i][px_data_u]
+                )
+    else:
+        union = hsp.operations.sum_union(maps)
+    return union
 
 
 #######################################################
@@ -32,9 +83,17 @@ quants = sorted(
     [os.path.basename(m) for m in glob.glob(f'{PATH_MAPS}*_{cf.nside_hi}.hsp') 
                                    + glob.glob(f'{PATH_MAPS}*_{cf.nside_hi}_*.hsp')]
 )
-systs = sorted(
-    [os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp')]
+quants.extend(
+    sorted(
+        [
+            'systmaps/'+os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') 
+                                   + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp')
+        ]
+    )
 )
 
-
+for q in quants:
+    #load the HealSparse maps from each field for this quantity and combine them
+    union = combine_maps(q, fields)
+    #save the map
+    union.write(f'{OUT_MAIN}{q}', clobber=True)
