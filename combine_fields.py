@@ -8,6 +8,8 @@ import config
 import healsparse as hsp
 import glob
 import map_utils as mu
+from functools import reduce
+import numpy as np
 
 #############################
 ######### FUNCTIONS #########
@@ -34,8 +36,17 @@ def combine_maps(map_name, fields):
     '''
 
     #load the maps
-    maps = [hsp.HealSparseMap.read(f'{cf.PATH_OUT}{fd}/{map_name}') for fd in fields]
-
+    maps = [hsp.HealSparseMap.read(f'{cf.PATH_OUT}{fd}/{map_name}') 
+            for fd in fields
+            if os.path.exists(f'{cf.PATH_OUT}{fd}/{map_name}')
+            ]
+    #if map only exists for one field, return that as is
+    if len(maps) == 1:
+        return maps[0]
+    #if no maps are found, return None
+    elif len(maps) == 0:
+        return None
+    
     #check if these maps are single maps or recarrays of multiple maps
     ndtype = len(maps[0].dtype)
     if ndtype > 0:
@@ -79,21 +90,29 @@ fields = cf.get_global_fields()
 PATH_MAPS = cf.PATH_OUT + fields[0] + '/'
 PATH_SYST = PATH_MAPS + 'systmaps/'
 #lists of quantities and systematics that have been mapped at the desired resolution
-quants = sorted(
+'''quants = sorted(
     [os.path.basename(m) for m in glob.glob(f'{PATH_MAPS}*_{cf.nside_hi}.hsp') 
                                    + glob.glob(f'{PATH_MAPS}*_{cf.nside_hi}_*.hsp')]
 )
 quants.extend(
     sorted(
-        [
-            'systmaps/'+os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp')
-        ]
+        ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') 
+                                   + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp')]
     )
-)
+)'''
+
+add = lambda x,y : x + y
+quants = [[os.path.basename(m) for m in glob.glob(f'{cf.PATH_OUT}{fd}/*_{cf.nside_hi}.hsp') 
+                                   + glob.glob(f'{cf.PATH_OUT}{fd}/*_{cf.nside_hi}_*.hsp')]
+            + ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{cf.PATH_OUT}{fd}/systmaps/*_{cf.nside_hi}.hsp') 
+                                   + glob.glob(f'{cf.PATH_OUT}{fd}/systmaps/*_{cf.nside_hi}_*.hsp')]
+            for fd in fields
+            ]
+quants = sorted(np.unique(reduce(add, quants)))
 
 for q in quants:
     #load the HealSparse maps from each field for this quantity and combine them
     union = combine_maps(q, fields)
     #save the map
-    union.write(f'{OUT_MAIN}{q}', clobber=True)
+    if union is not None:
+        union.write(f'{OUT_MAIN}{q}', clobber=True)
