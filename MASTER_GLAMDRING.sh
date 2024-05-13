@@ -54,34 +54,47 @@ function submit_pyjob () {
 
 # Function for specifying the conditions of running make_maps_from_metadata.py.
 function metamaps_job () {
+    #see if previous job is running
+    if [ -f $jobfile ]
+    then
+        jobID=$(getID)
+        runafter="--runafter $jobID"
+    else
+        runafter=""
+    fi
+
     #see if pipeline configured to split metadata
     if [ $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True" ]
     then
         #get the band and run the script for each one
         for b in $($PYEX -c "import config as cf; print(' '.join(cf.cf_global.bands))")
         do
-            submit_job "$1" "$2" $b
+            addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
         done
     else
         #get the list of all bands and run them simultaneously
         b=$($PYEX -c "import config as cf; print(','.join(cf.cf_global.bands))")
-        submit_job "$1" "$2" $b
+        addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
     fi
 }
 
 
 # Function for submitting compute_power_spectra.py to the queue.
 function power_spectra_job () {
-    #create an executable file which will be used to run the script properly
-    runfile=run_power_spectra.sh
-    echo \#\!/bin/bash > $runfile
-    #set the number of threads in that file
-    echo export OMP_NUM_THREADS=$1 >> $runfile
-    echo /usr/local/shared/slurm/bin/srun -n 1 --cpus-per-task $1 --mem-per-cpu $2G --mpi=pmi2 $PYEX -u $3 >> $runfile
-    #make the file executable
-    chmod u+x $runfile
-    #submit the job to the queue
-    submit_job "-q cmb -n 1x$1 -m $2 -s" $runfile
+    #see if previous job is running
+    if [ -f $jobfile ]
+    then
+        jobID=$(getID)
+        runafter="--runafter $jobID"
+    else
+        runafter=""
+    fi
+
+    for p in $($PYEX -c "import config as cf; print(' '.join(cf.computePowerSpectra.get_bin_pairings()[1]))")
+    do
+        #submit the job to the queue
+        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX $3 $p > $jobfile
+    done
 }
 
 ##### Uncomment all steps below that you wish to run. #####

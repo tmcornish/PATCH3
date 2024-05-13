@@ -10,3 +10,4 @@ txpipe_logs
 #files to ignore
 .repo_PAT.txt
 slurm_scripts/*.out
+._wordcount_selection.tex
