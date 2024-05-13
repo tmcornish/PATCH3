@@ -128,7 +128,7 @@ for fd in cf.get_global_fields():
         #ax.set_ylim(0., Y.max()*1.02)
 
         f.tight_layout()
-        f.savefig(cf.PATH_PLOTS + 'systematics_pca_variance.png', dpi=300)
+        f.savefig(cf.PATH_PLOTS + f'systematics_pca_variance_{fd}.png', dpi=300)
     
     
     
