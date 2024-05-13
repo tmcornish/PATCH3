@@ -303,6 +303,7 @@ class plotPowerSpectra(computePowerSpectra):
 
 	name = 'plotPowerSpectra'
 
+	show_pre_deproj = True
 
 	
 ############################
