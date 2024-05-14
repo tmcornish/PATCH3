@@ -178,7 +178,7 @@ for idx, fd in enumerate(cf.get_global_fields()):
                 #plot deprojection bias
                 if bias.any():
                     handles_all.append(ax_comb.plot(ell_effs, bias[0]*mfactor, c=colours_bias[idx])[0])
-                    ax.plot(ell_effs, -bias[0]*mfactor, ls='--', c=colours_bias[idx])
+                    ax_comb.plot(ell_effs, -bias[0]*mfactor, ls='--', c=colours_bias[idx])
                     labels_all.append(f'Deproj. bias ({fd})')
     #create a legend		
     handles = [
