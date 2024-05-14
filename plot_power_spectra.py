@@ -30,9 +30,38 @@ ysize = nbins * 3.5
 l = list(range(nbins))
 pairings, pairings_s = cf.get_bin_pairings()
 
+#ylabel for figure(s) depends on normalisation of the C_ells
+if cf.normalise:
+    ylabel = r'$C_{\ell}\frac{\ell(\ell+1)}{2\pi}$'
+else:
+    ylabel = r'$C_{\ell}$'
+
+#if told to make a figure showing all results, set it up
+if cf.make_combined:
+    fig_comb = plt.figure(figsize=(xsize, ysize))
+    gs_comb = fig_comb.add_gridspec(ncols=nbins, nrows=nbins)
+    axes_comb = [fig_comb.add_subplot(gs_comb[j,i]) for i,j in pairings]
+
+    #set up lists to which data, handles and labels will be appended
+    ell_effs_all = []
+    Cell_pre_all = []
+    Cell_post_all = []
+    Nell_all = []
+    err_cell_all = []
+    bias_all = []
+    handles_all = []
+    labels_all = []
+
+    #colours and markers to cycle through
+    colours_cell = [pu.dark_blue, pu.dark_red, pu.orange, pu.green]
+    markers_cell = ['o', 's', '^', 'v']
+    colours_nell = [pu.teal, pu.cyan, pu.pink, pu.ruby]
+    colours_bias = [pu.magenta, pu.blue, pu.fuchsia, pu.coral]
+
+    
 
 #cycle through the fields being analysed 
-for fd in cf.get_global_fields():
+for idx, fd in enumerate(cf.get_global_fields()):
     print(colour_string(fd.upper(), 'orange'))
 
     #set up a figure for the power spectra from each redshift bin
@@ -44,7 +73,7 @@ for fd in cf.get_global_fields():
     outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
 
     #cycle through all possible pairings of redshift bins
-    for p, p_str in zip(pairings, pairings_s):
+    for ip, (p, p_str) in enumerate(zip(pairings, pairings_s)):
         i,j = p
         outfile = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
         #open the file, creating it if it doesn't exist
@@ -65,10 +94,8 @@ for fd in cf.get_global_fields():
             xmax = ell_effs.max() * 1.2
 
             if cf.normalise:
-                ylabel = r'$C_{\ell}\frac{\ell(\ell+1)}{2\pi}$'
                 mfactor = ell_effs * (ell_effs + 1) / (2. * np.pi)
             else:
-                ylabel = r'$C_{\ell}$'
                 mfactor = np.ones_like(ell_effs)
 
             #add subplot to gridspec
@@ -104,17 +131,17 @@ for fd in cf.get_global_fields():
 
             if cf.show_pre_deproj:
                 #plot the power spectrum pre-deprojection, using open symbols for abs(negative) values
-                mask_pve = Cell_pre[0] > 0
-                mask_nve = Cell_pre[0] <= 0
+                mask_pve_pre = Cell_pre[0] > 0
+                mask_nve_pre = Cell_pre[0] <= 0
                 #subtract the shot noise if autocorrelation
                 if i == j:
-                    Y_pve = (Cell_pre[0][mask_pve] - Nell[0][mask_pve]) * mfactor[mask_pve]
-                    Y_nve = (Cell_pre[0][mask_nve] - Nell[0][mask_nve]) * mfactor[mask_nve]
+                    Y_pve_pre = (Cell_pre[0][mask_pve_pre] - Nell[0][mask_pve_pre]) * mfactor[mask_pve_pre]
+                    Y_nve_pre = (Cell_pre[0][mask_nve_pre] - Nell[0][mask_nve_pre]) * mfactor[mask_nve_pre]
                 else:
-                    Y_pve = Cell_pre[0][mask_pve] * mfactor[mask_pve]
-                    Y_nve = Cell_pre[0][mask_nve] * mfactor[mask_nve]
-                cell_plot_pre = ax.errorbar(ell_effs[mask_pve]*1.05, Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, ecolor=pu.dark_blue, linestyle='none', alpha=0.4)
-                ax.errorbar(ell_effs[mask_nve]*1.05, -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, ecolor=pu.dark_blue, markerfacecolor='none', linestyle='none', alpha=0.4)
+                    Y_pve_pre = Cell_pre[0][mask_pve_pre] * mfactor[mask_pve_pre]
+                    Y_nve_pre = Cell_pre[0][mask_nve_pre] * mfactor[mask_nve_pre]
+                cell_plot_pre = ax.errorbar(ell_effs[mask_pve_pre]*1.05, Y_pve_pre, yerr=err_cell[mask_pve_pre], marker='o', c=pu.dark_blue, ecolor=pu.dark_blue, linestyle='none', alpha=0.4)
+                ax.errorbar(ell_effs[mask_nve_pre]*1.05, -Y_nve_pre, yerr=err_cell[mask_nve_pre], marker='o', markeredgecolor=pu.dark_blue, ecolor=pu.dark_blue, markerfacecolor='none', linestyle='none', alpha=0.4)
 
 
             #reset the axis limits
@@ -123,6 +150,36 @@ for fd in cf.get_global_fields():
             #add text to the top-right corner to indicate which bins have been compared
             ax.text(0.95, 0.95, f'({i},{j})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
 
+            if cf.make_combined:
+                #get subplot axes
+                ax_comb = axes_comb[ip]
+                if idx == 0:
+                    #only label axes if on outer edge of figure
+                    if j == (nbins-1):
+                        ax_comb.set_xlabel(r'$\ell$')
+                    if i == 0:
+                        ax_comb.set_ylabel(ylabel)
+                    #set loglog scale
+                    ax_comb.set_xscale('log')
+                    ax_comb.set_yscale('log')
+
+                    ax_comb.set_xlim(xmin, xmax)
+                
+                #plot c_ells
+                handles_all.append(ax_comb.errorbar(ell_effs[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker=markers_cell[idx], c=colours_cell[idx], linestyle='none')[0])
+                ax.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker=markers_cell[idx], markeredgecolor=colours_cell[idx], markerfacecolor='none', linestyle='none')
+                labels_all.append(f'Signal ({fd})')
+
+                #plot n_ells
+                if i == j:
+                    handles_all.append(ax_comb.plot(ell_effs, Nell[0]*mfactor, c=colours_nell[idx])[0])
+                    labels_all.append(f'Noise ({fd})')
+                
+                #plot deprojection bias
+                if bias.any():
+                    handles_all.append(ax_comb.plot(ell_effs, bias[0]*mfactor, c=colours_bias[idx])[0])
+                    ax.plot(ell_effs, -bias[0]*mfactor, ls='--', c=colours_bias[idx])
+                    labels_all.append(f'Deproj. bias ({fd})')
     #create a legend		
     handles = [
         cell_plot,
@@ -147,5 +204,14 @@ for fd in cf.get_global_fields():
 
     fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
 
-    plt.tight_layout()
-    plt.savefig(figname, dpi=300)
+    fig.tight_layout()
+    fig.savefig(figname, dpi=300)
+
+
+if cf.make_combined:
+    by_label = dict(zip(labels_all, handles_all))
+    fig_comb.legend(by_label.values(), by_label.keys(), loc='upper right', ncols=idx+1, fontsize=19)
+
+    figname = f'{cf.PATH_PLOTS}all_power_spectra_{cf.nside_hi}.png'
+    fig_comb.tight_layout()
+    fig_comb.savefig(figname, dpi=300)
