@@ -167,7 +167,7 @@ for idx, fd in enumerate(cf.get_global_fields()):
                 
                 #plot c_ells
                 handles_all.append(ax_comb.errorbar(ell_effs[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker=markers_cell[idx], c=colours_cell[idx], linestyle='none')[0])
-                ax.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker=markers_cell[idx], markeredgecolor=colours_cell[idx], markerfacecolor='none', linestyle='none')
+                ax_comb.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker=markers_cell[idx], markeredgecolor=colours_cell[idx], markerfacecolor='none', linestyle='none')
                 labels_all.append(f'Signal ({fd})')
 
                 #plot n_ells
