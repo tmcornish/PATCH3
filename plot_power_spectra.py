@@ -194,9 +194,9 @@ for idx, fd in enumerate(cf.get_global_fields()):
         handles.insert(1, bias_plot)
         labels.insert(1, 'Deprojection bias')
         #figure name also depends on whether deprojection has occurred
-        figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_{cf.nside_hi}.png'
+        figname = f'{cf.PATH_PLOTS}power_spectra_{fd}_{cf.nside_hi}.png'
     else:
-        figname = f'{cf.PATH_PLOTS}{fd}_power_spectra_raw_{cf.nside_hi}.png'
+        figname = f'{cf.PATH_PLOTS}power_spectra_raw_{fd}_{cf.nside_hi}.png'
 
     if cf.show_pre_deproj:
         handles.insert(1, cell_plot_pre)
@@ -212,6 +212,6 @@ if cf.make_combined:
     by_label = dict(zip(labels_all, handles_all))
     fig_comb.legend(by_label.values(), by_label.keys(), loc='upper right', ncols=idx+1, fontsize=19)
 
-    figname = f'{cf.PATH_PLOTS}all_power_spectra_{cf.nside_hi}.png'
+    figname = f'{cf.PATH_PLOTS}power_spectra_all_{cf.nside_hi}.png'
     fig_comb.tight_layout()
     fig_comb.savefig(figname, dpi=300)
