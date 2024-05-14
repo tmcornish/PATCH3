@@ -53,10 +53,10 @@ if cf.make_combined:
     labels_all = []
 
     #colours and markers to cycle through
-    colours_cell = [pu.dark_blue, pu.dark_red, pu.orange, pu.green]
+    colours_cell = ['#0000c9', '#94000d', '#048101', pu.green]
     markers_cell = ['o', 's', '^', 'v']
-    colours_nell = [pu.teal, pu.cyan, pu.pink, pu.ruby]
-    colours_bias = [pu.magenta, pu.blue, pu.fuchsia, pu.coral]
+    colours_nell = ['#0e78d1', '#cd2b70', '#39b523', pu.ruby]
+    colours_bias = ['#34dff0', '#ec52af', '#61f33e', pu.coral]
 
     
 
