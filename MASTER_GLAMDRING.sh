@@ -118,9 +118,12 @@ function power_spectra_job () {
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py
 
+### combining maps from all fields
+submit_pyjob "-q cmb -m 40" combine_fields.py
+
 ### computing power spectra; function takes as arguments...
 ###     1: number of cores to use
 ###     2: memory per CPU
 ###     3: name of the python script to run
-power_spectra_job 24 7 compute_power_spectra.py
+#power_spectra_job 24 7 compute_power_spectra.py
 
