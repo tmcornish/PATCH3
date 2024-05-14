@@ -28,7 +28,7 @@ ysize = nbins * 3.5
 
 #also get all possible pairings of bins
 l = list(range(nbins))
-pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+pairings, pairings_s = cf.get_bin_pairings()
 
 
 #cycle through the fields being analysed 
@@ -44,12 +44,11 @@ for fd in cf.get_global_fields():
     outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
 
     #cycle through all possible pairings of redshift bins
-    for ip,p in enumerate(pairings):
+    for p, p_str in zip(pairings, pairings_s):
+        i,j = p
         outfile = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
         #open the file, creating it if it doesn't exist
         with h5py.File(outfile, mode='r') as psfile:
-            i,j = p
-            p_str = str(p)
             print(colour_string(p_str, 'green'))
             
             #retrieve the relevant information
@@ -114,8 +113,8 @@ for fd in cf.get_global_fields():
                 else:
                     Y_pve = Cell_pre[0][mask_pve] * mfactor[mask_pve]
                     Y_nve = Cell_pre[0][mask_nve] * mfactor[mask_nve]
-                cell_plot_pre = ax.errorbar(ell_effs[mask_pve]*1.05, Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none', alpha=0.4)
-                ax.errorbar(ell_effs[mask_nve]*1.05, -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none', alpha=0.4)
+                cell_plot_pre = ax.errorbar(ell_effs[mask_pve]*1.05, Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, ecolor=pu.dark_blue, linestyle='none', alpha=0.4)
+                ax.errorbar(ell_effs[mask_nve]*1.05, -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, ecolor=pu.dark_blue, markerfacecolor='none', linestyle='none', alpha=0.4)
 
 
             #reset the axis limits
