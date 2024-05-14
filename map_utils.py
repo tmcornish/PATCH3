@@ -5,6 +5,7 @@
 import numpy as np
 import healpy as hp
 import healsparse as hsp
+import gen_utils as gu
 
 def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', primary=None, return_pix=True, return_unique=True):
 	'''
@@ -427,13 +428,12 @@ def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
 	return fs_map
 
 
-def load_tomographic_maps(map_path, apply_mask=False, mask=None):
+def load_tomographic_maps(map_path, fullsky=True, apply_mask=False, mask=None, idx=None):
 	'''
 	Loads files containing maps split into tomographic bins (e.g. delta_g) and
-	returns their pixel values in healPIX RING ordering. If told to, will also 
-	multiply the map by the mask, in which case a MaskData object is required
-	as input. 
-
+	(by default) returns their pixel values in healPIX RING ordering, or simply returns
+	a list of each of the maps in HealSparseMap format . If told to, will also multiply 
+	the map by the mask, in which case a MaskData object is required as input.  
 
 	Parameters
 	----------
@@ -445,35 +445,78 @@ def load_tomographic_maps(map_path, apply_mask=False, mask=None):
 
 	mask: MaskData
 		Object containing the mask and any potentially relevant pre-computed values.
+	
+	idx: int or str or list or None
+		The index of the map to be read. If an int, will load the one map corresponding
+		to that index. If a string, will load the one map whose name is that string.
+		If a list is provided it must contain either all ints or strings; this function
+		will load and return all maps with IDs/names matching the list entries.
 
 	Returns
 	-------
-	fs_maps: list
+	out_maps: list
 		List containing full-sky data (RING ordering) for each tomographic map.
 	'''
 	#empty list in which the full-sky maps will be stored
-	fs_maps = []
+	out_maps = []
 
 	#load the HealSparse file
 	hsp_map = hsp.HealSparseMap.read(map_path)
 
+	#check the format of the idx argument, if provided
+	if idx is not None:
+		nd_idx = gu.get_ndim(idx)
+		if nd_idx == 0:
+			if type(idx) == str:
+				to_read = [idx]
+			elif type(idx) == int:
+				to_read = [hsp_map.dtype.names[idx]]
+			else:
+				gu.error_message('load_tomographic_maps', 'Single values for idx must be either int or str')
+				return
+		elif nd_idx == 1:
+			if all([type(x) == str for x in idx]):
+				to_read = idx
+			elif all([type(x) == int for x in idx]):
+				to_read = [hsp_map.dtype.names[x] for x in idx]
+			else:
+				gu.error_message('load_tomographic_maps', 'Lists provided for idx must contain either all int or all str')
+				return
+		else:
+			gu.error_message('load_tomographic_maps', 'idx must be an int, str, or list of either')
+			return
+	else:
+		to_read = hsp_map.dtype.names
+
 	#cycle through the maps
-	for d in hsp_map.dtype.names:
-		#create full-sky realisation of the map
-		fs_map = hsp_map[d].generate_healpix_map(nest=False)
-		fs_map[fs_map == hp.UNSEEN] = 0.
-		
+	for d in to_read:
+
+		if fullsky:
+			#create full-sky realisation of the map
+			map_now = hsp_map[d].generate_healpix_map(nest=False)
+			map_now[map_now == hp.UNSEEN] = 0.
+		else:
+			#otherwise, just retrieve the relevant HealSparseMap
+			map_now = hsp_map[d]
+			
 		#multiply by the mask if told to do so
 		if apply_mask:
 			if mask is not None:
-				fs_map *= mask.mask
+				if fullsky:
+					map_now *= mask.mask
+				else:
+					vpix_map = map_now.valid_pixels
+					vpix_mask = mask.vpix_nest
+					vpix_diff = np.array(list(set(vpix_mask) - set(vpix_map)))
+					map_now[vpix_diff] = 0
+					map_now[vpix_mask] *= mask.mask[mask.vpix]
 			else:
 				print('Could not apply mask to map; no MaskData provided.')
 		
 		#append the full-sky map to the list
-		fs_maps.append(fs_map)
+		out_maps.append(map_now)
 	
-	return fs_maps
+	return out_maps
 
 
 class MaskData:

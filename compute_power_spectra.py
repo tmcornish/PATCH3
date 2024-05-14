@@ -1,7 +1,10 @@
 #####################################################################################################
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
-# - TODO: skip all calculations if systematics identical to previous run.
+# - TODO: figure out best way to determine which systematics have been deprojected
+#   previously for a given bin pairing.
+#   - need separate files for each pairing
+# - TODO: save the deprojected maps
 #####################################################################################################
 
 import config
@@ -16,6 +19,7 @@ import plot_utils as pu
 import itertools
 from output_utils import colour_string
 import os
+import sys
 import glob
 
 import faulthandler
@@ -26,10 +30,72 @@ plt.style.use(pu.styledict)
 
 
 
+#############################
+######### FUNCTIONS #########
+#############################
+
+def make_density_fields(deproj_file, systs, idx=None):
+	if os.path.exists(deproj_file):
+		with open(deproj_file, 'r+') as df:
+			#see which (if any) systematics have been deprojected previously
+			deproj_done = df.read().split('\n')
+			#see if this is the same as the list specified in the config file (accounting for different ordering)
+			if sorted(deproj_done) == sorted(systs):
+				print(f'Same systematics maps provided; skipping all calculations for field {fd}')
+				return None, None
+			else:
+				print('Different systematics maps provided')
+				#write the list of provided systematics to the file
+				df.seek(0)
+				df.truncate()
+				df.write('\n'.join(systs))
+	else:
+		if len(systs) == 1:
+			print('No systematics provided')
+		else:
+			with open(deproj_file, 'w') as df:
+				df.write('\n'.join(systs))
+		
+
+	#load the delta_g maps
+	deltag_maps = load_tomographic_maps(PATH_MAPS + cf.deltag_maps, idx=idx)
+
+
+	print('Loading systematics maps...')
+	if len(systs) > 1:
+		#load the systematics maps and convert to full-sky realisations
+		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in systs[:-1]]
+		#reshape the resultant list to have dimensions (nsyst, 1, npix)
+		nsyst = len(systmaps)
+		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
+		print('templates: ', np.mean(systmaps))
+	else:
+		systmaps = None
+	print('Done!')
+
+
+	print('Creating NmtFields...')
+	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
+	print('Done!')
+
+	#delete the systematics and delta_g maps to clear some memory
+	del systmaps
+	del deltag_maps
+
+	return density_fields, nsyst
+
 
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
+
+#retrieve the pairing being analysed from the arguments if provided
+try:
+	pairings = [sys.argv[1]]
+	per_tomo = True
+except IndexError:
+	_, pairings = cf.get_bin_pairings()
+	per_tomo = False
 
 #maximum ell allowed by the resolution
 ell_max = 3 * cf.nside_hi
@@ -56,12 +122,6 @@ b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 #get the effective ells
 ell_effs = b.get_effective_ells()
 
-#retrieve the number of redshift bins
-nbins = len(cf.zbins) - 1
-#also get all possible pairings of bins
-l = list(range(nbins))
-pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-
 
 #cycle through the fields being analysed (TODO: later change to global fields)
 for fd in cf.get_global_fields():
@@ -69,6 +129,14 @@ for fd in cf.get_global_fields():
 
 	#path to the directory containing the maps
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
+
+	#load the survey mask and convert to full-sky realisation
+	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
+	#retrieve relevant quantities from the mask data
+	above_thresh = mask.vpix
+	sum_w_above_thresh = mask.sum
+	mu_w = mask.mean
+	mu_w2 = mask.meansq
 
 	#set up a pymaster Workspace object
 	w = nmt.NmtWorkspace()
@@ -80,42 +148,6 @@ for fd in cf.get_global_fields():
 	if not os.path.exists(PATH_CACHE):
 		os.system(f'mkdir -p {PATH_CACHE}')
 	
-	#path to directory containing systematics maps
-	PATH_SYST = f'{PATH_MAPS}systmaps/'
-	#check for 'All' in systmaps and convert this to a list of all systematics maps
-	if 'all' in map(str.lower, cf.systs):
-		cf.systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
-	
-	#if given a max number of systematics to deproject, slice the list accordingly
-	if cf.Nsyst_max is not None:
-		cf.systs = cf.systs[:cf.Nsyst_max]
-	
-	#add the boolean 'lite' to the end of the list of systematics
-	cf.systs.append(str(cf.lite))
-
-	#file containing list of systematics maps deprojected in the previous run
-	deproj_file = PATH_CACHE + cf.deproj_file
-	if os.path.exists(deproj_file):
-		with open(deproj_file, 'r+') as df:
-			#see which (if any) systematics have been deprojected previously
-			deproj_done = df.read().split('\n')
-			#see if this is the same as the list specified in the config file (accounting for different ordering)
-			if sorted(deproj_done) == sorted(cf.systs):
-				print(f'Same systematics maps provided; skipping all calculations for field {fd}')
-				continue
-			else:
-				print('Different systematics maps provided')
-				#write the list of provided systematics to the file
-				df.seek(0)
-				df.truncate()
-				df.write('\n'.join(cf.systs))
-	else:
-		if len(cf.systs) == 1:
-			print('No systematics provided')
-		else:
-			with open(deproj_file, 'w') as df:
-				df.write('\n'.join(cf.systs))
-		
 	#see if workspaces have already been created from a previous run
 	wsp_path = PATH_CACHE + cf.wsp_file
 	covwsp_path = PATH_CACHE + cf.covwsp_file
@@ -129,152 +161,137 @@ for fd in cf.get_global_fields():
 		calc |= False
 	else:
 		calc |= True
-		
-
-	#load the delta_g maps
-	deltag_maps = load_tomographic_maps(PATH_MAPS + cf.deltag_maps)
-
-	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
-
-
-	print('Loading systematics maps...')
-	if len(cf.systs) > 1:
-		#load the systematics maps and convert to full-sky realisations
-		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in cf.systs[:-1]]
-		#reshape the resultant list to have dimensions (nsyst, 1, npix)
-		nsyst = len(systmaps)
-		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
-		deproj = True
-		print('templates: ', np.mean(systmaps))
-	else:
-		systmaps = None
-		deproj = False
-	print('Done!')
-
-
-	print('Creating NmtFields...')
-	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
-	print('Done!')
-
-	#delete the systematics and delta_g maps to clear some memory
-	del systmaps
-	del deltag_maps
-
 	
-
-	#retrieve the IDs of pixels above the mask threshold, as this is all that is
-	#required from the mask henceforth
-	above_thresh = mask.vpix
-	sum_w_above_thresh = mask.sum
-	mu_w = mask.mean
-	mu_w2 = mask.meansq
-	del mask
+	#path to directory containing systematics maps
+	PATH_SYST = f'{PATH_MAPS}systmaps/'
+	#check for 'All' in systmaps and convert this to a list of all systematics maps
+	if 'all' in map(str.lower, cf.systs):
+		systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
 	
-	#load the N_g maps and calculate the mean weighted by the mask
-	mu_N_all = [nmap[above_thresh].sum() / sum_w_above_thresh for nmap in load_tomographic_maps(PATH_MAPS + cf.ngal_maps)]
+	#if given a max number of systematics to deproject, slice the list accordingly
+	if cf.Nsyst_max is not None:
+		systs = systs[:cf.Nsyst_max]
+	
+	#add the boolean 'lite' to the end of the list of systematics
+	systs.append(str(cf.lite))
 
+	#file containing list of systematics maps deprojected in the previous run
+	deproj_file = PATH_CACHE + cf.deproj_file
+	if not per_tomo:
+		density_fields, nsyst = make_density_fields(deproj_file, systs)
+		if density_fields is None:
+			continue
 
 	#full path to the output file
-	outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
-	#open the file, creating it if it doesn't exist
-	with h5py.File(outfile, mode='w') as psfile:
-		
-		#cycle through all possible pairings of redshift bins
-		for ip,p in enumerate(pairings):
-			i,j = p
+	outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'	
+	for p in pairings:
+		i,j = [int(x) for x in p.strip('()').split(',')]
+		outfile_now = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
 
-			#see if a group for the current pairing already exists
-			p_str = str(p)
-			print(colour_string(p_str, 'green'))
+		print(colour_string(p, 'green'))
 
-			#see if group already exists for this pairing
-			gp = psfile.require_group(p_str)
-
+		if per_tomo:
+			deproj_file = f'{deproj_file[:-4]}_{i}_{j}.txt'
+			density_fields, nsyst = make_density_fields(deproj_file, systs, idx=[i,j])
+			if density_fields is None:
+				continue
+			f_i, f_j = density_fields
+		else:
 			f_i = density_fields[i]
 			f_j = density_fields[j]
-			cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
 
-			#use these along with the mask to get a guess of the true C_ell
-			cl_guess = cl_coupled / mu_w2
+		cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
 
-			if ip == 0 and calc:
-				#compute the mode coupling matrix (only need to compute once since same mask used for everything)
-				print('Computing mode coupling matrix...')
-				w.compute_coupling_matrix(f_i, f_j, b)
-				print('Done!')
+		#use these along with the mask to get a guess of the true C_ell
+		cl_guess = cl_coupled / mu_w2
 
-				print('Calculating coupling coefficients...')
-				#compute coupling coefficients
-				cw.compute_coupling_coefficients(f_i, f_j)
-				print('Done!')
-			else:
-				print('Using coupling matrix and coefficients from cache.')
+		if calc:
+			#compute the mode coupling matrix (only need to compute once since same mask used for everything)
+			print('Computing mode coupling matrix...')
+			w.compute_coupling_matrix(f_i, f_j, b)
+			print('Done!')
+			#write the workspace to the cache directory
+			w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
 
-			#only calculate bias-related quantities if templates have been provided
-			if deproj and not cf.lite:
-				print('Calculating deprojection bias...')
-				#compute the deprojection bias
-				cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-				print('Done!')
-			else:
-				print('No systematics maps provided; skipping deprojection bias calculation.')
-				cl_bias = np.zeros_like(cl_guess)
-			
-			#delete the group if it exists
-			del psfile[p_str]
-
-			#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
-			if cf.correct_for_stars:
-				mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
-				cl_coupled *= mult
-				cl_guess *= mult
-
-			#compute the decoupled C_ell (w/o deprojection)
-			cl_decoupled = w.decouple_cell(cl_coupled)
-			#compute the decoupled C_ell (w/ deprojection)
-			cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-			#decouple the bias C_ells as well
-			cl_bias_decoupled = w.decouple_cell(cl_bias)
-
-
-			########################
-			# NOISE POWER SPECTRUM #
-			########################
-
-			#Only calculate for autocorrelations
-			if i == j:
-				mu_N = mu_N_all[i]
-				#calculate the noise power spectrum
-				N_ell_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
-				#decouple
-				N_ell_decoupled = w.decouple_cell(N_ell_coupled)
-
-			
-			#######################
-			# GAUSSIAN COVARIANCE #
-			#######################
-
-			#extract (gaussian) covariance matrix
-			print('Calculating covariance matrix...')
-			n_ell = len(cl_decoupled[0])
-			covar = nmt.gaussian_covariance(cw, 
-											0, 0, 0, 0,			#spin of each field
-											[cl_guess[0]],	
-											[cl_guess[0]],
-											[cl_guess[0]],
-											[cl_guess[0]],
-											w)
-			#errorbars for each bandpower
-			err_cell = np.diag(covar) ** 0.5
+			print('Calculating coupling coefficients...')
+			#compute coupling coefficients
+			cw.compute_coupling_coefficients(f_i, f_j)
+			#write the workspace to the cache directory
+			cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
 			print('Done!')
 
-			##################
-			# SAVING RESULTS #
-			##################
+			#set calc to False for future iterations
+			calc = False
+		else:
+			print('Using coupling matrix and coefficients from cache.')
 
+		#only calculate bias-related quantities if templates have been provided
+		if (nsyst > 0) and not cf.lite:
+			print('Calculating deprojection bias...')
+			#compute the deprojection bias
+			cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+			print('Done!')
+		else:
+			print('No systematics maps provided; skipping deprojection bias calculation.')
+			cl_bias = np.zeros_like(cl_guess)
+		
+
+		#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
+		if cf.correct_for_stars:
+			mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
+			cl_coupled *= mult
+			cl_guess *= mult
+
+		#compute the decoupled C_ell (w/o deprojection)
+		cl_decoupled = w.decouple_cell(cl_coupled)
+		#compute the decoupled C_ell (w/ deprojection)
+		cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+		#decouple the bias C_ells as well
+		cl_bias_decoupled = w.decouple_cell(cl_bias)
+
+
+		########################
+		# NOISE POWER SPECTRUM #
+		########################
+
+		#Only calculate for autocorrelations
+		if i == j:
+			#load the N_g map and calculate the mean weighted by the mask
+			mu_N = load_tomographic_maps(PATH_MAPS + cf.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
+			#calculate the noise power spectrum
+			N_ell_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
+			#decouple
+			N_ell_decoupled = w.decouple_cell(N_ell_coupled)
+		else:
+			N_ell_coupled = np.zeros((1, ell_max))
+			N_ell_decoupled = w.decouple_cell(N_ell_coupled)
+
+		
+		#######################
+		# GAUSSIAN COVARIANCE #
+		#######################
+
+		#extract (gaussian) covariance matrix
+		print('Calculating covariance matrix...')
+		n_ell = len(cl_decoupled[0])
+		covar = nmt.gaussian_covariance(cw, 
+										0, 0, 0, 0,			#spin of each field
+										[cl_guess[0]],	
+										[cl_guess[0]],
+										[cl_guess[0]],
+										[cl_guess[0]],
+										w)
+		#errorbars for each bandpower
+		err_cell = np.diag(covar) ** 0.5
+		print('Done!')
+
+		##################
+		# SAVING RESULTS #
+		##################
+		
+		with h5py.File(outfile_now, 'w') as psfile: 
 			#populate the output file with the results
-			gp = psfile.create_group(p_str)
+			gp = psfile.create_group(p)
 			_ = gp.create_dataset('ell_effs', data=ell_effs)
 			_ = gp.create_dataset('cl_coupled', data=cl_coupled)
 			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
@@ -286,15 +303,6 @@ for fd in cf.get_global_fields():
 			_ = gp.create_dataset('cl_bias', data=cl_bias)
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
-
-
-	######################
-	# CACHING WORKSPACES #
-	######################
-
-	#write the workspaces to the cache directory
-	w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
-	cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
 		
 
 

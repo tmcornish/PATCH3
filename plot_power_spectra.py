@@ -41,12 +41,13 @@ for fd in cf.get_global_fields():
 
 
     #full path to the output file
-    outfile = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
+    outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
 
-    #open the file, creating it if it doesn't exist
-    with h5py.File(outfile, mode='r') as psfile:
-        #cycle through all possible pairings of redshift bins
-        for ip,p in enumerate(pairings):
+    #cycle through all possible pairings of redshift bins
+    for ip,p in enumerate(pairings):
+        outfile = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
+        #open the file, creating it if it doesn't exist
+        with h5py.File(outfile, mode='r') as psfile:
             i,j = p
             p_str = str(p)
             print(colour_string(p_str, 'green'))

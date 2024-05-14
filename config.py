@@ -39,10 +39,13 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	fields = ['hectomap']
+	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
+	fields = ['combined']
 	#fields = ['hectomap'] + equatora + equatorb
+	#fields = ['combined', 'hectomap'] + equatora + equatorb
+
 
 	#file containing the metadata
 	metafile = f'{PATH_DATA}PDR3_WIDE_frames.fits'
@@ -102,7 +105,7 @@ class cf_global:
 
 
 	@classmethod
-	def get_global_fields(cls):
+	def get_global_fields(cls):		
 		fields_global = []
 		if 'hectomap' in cls.fields:
 			fields_global.append('hectomap')
@@ -112,6 +115,8 @@ class cf_global:
 			fields_global.append('equatora')
 		if any(x in cls.equatorb for x in cls.fields):
 			fields_global.append('equatorb')
+		if 'combined' in cls.fields:
+			fields_global.append('combined')
 
 		return fields_global
 
@@ -224,6 +229,24 @@ class makeMapsFromMetadata(splitMetadata):
 	ncores = 18
 	
 
+##########################
+#### make_galaxy_maps ####
+##########################
+
+class makeGalaxyMaps(cf_global):
+
+	name = 'makeGalaxyMaps'
+
+
+#########################
+#### pca_systematics ####
+#########################
+
+class combineFields(cf_global):
+
+	name = 'combineFields'
+
+
 #########################
 #### pca_systematics ####
 #########################
@@ -236,15 +259,7 @@ class pcaSystematics(cf_global):
 	plot_eigen = True
 	#fraction of total variance to keep with principal components
 	var_thresh = 0.98
-
-##########################
-#### make_galaxy_maps ####
-##########################
-
-class makeGalaxyMaps(cf_global):
-
-	name = 'makeGalaxyMaps'
-
+	
 
 ###############################
 #### compute_power_spectra ####
@@ -293,6 +308,19 @@ class computePowerSpectra(cf_global):
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
 
+	@classmethod
+	def get_bin_pairings(cls):
+		'''
+		Returns pairs of IDs for each tomographic bin being analysed. Also
+		returns comma-separated string versions of the ID pairs.
+		'''
+		import itertools
+
+		nbins = len(cls.zbins) - 1
+		l = list(range(nbins))
+		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+		return pairings, pairings_s
 
 
 ###############################
