@@ -341,7 +341,7 @@ class plotPowerSpectra(computePowerSpectra):
 #### amend_power_spectra ####
 ###############################
 
-class plotPowerSpectra(computePowerSpectra):
+class amendPowerSpectra(computePowerSpectra):
 
 	name = 'amendPowerSpectra'
 
