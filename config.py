@@ -336,6 +336,15 @@ class plotPowerSpectra(computePowerSpectra):
 	#make a figure showing all C_ells simultaneously
 	make_combined = True
 
+
+###############################
+#### amend_power_spectra ####
+###############################
+
+class plotPowerSpectra(computePowerSpectra):
+
+	name = 'amendPowerSpectra'
+
 	
 ############################
 #### make_txpipe_inputs ####
