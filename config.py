@@ -42,8 +42,8 @@ class cf_global:
 	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	fields = ['combined']
-	#fields = ['hectomap'] + equatora + equatorb
+	#fields = ['combined']
+	fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
 
@@ -76,7 +76,7 @@ class cf_global:
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
-	nside_hi = 512
+	nside_hi = 1024
 	#low-resolution NSIDE parameter to use for splitting the data
 	nside_cover = 8
 	
@@ -331,7 +331,10 @@ class plotPowerSpectra(computePowerSpectra):
 
 	name = 'plotPowerSpectra'
 
-	show_pre_deproj = True
+	#show the C_ells pre-debiasing
+	show_pre_debias = True
+	#make a figure showing all C_ells simultaneously
+	make_combined = True
 
 	
 ############################

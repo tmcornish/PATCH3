@@ -129,7 +129,7 @@ for idx, fd in enumerate(cf.get_global_fields()):
             cell_plot = ax.errorbar(ell_effs[mask_pve], Y_pve, yerr=err_cell[mask_pve], marker='o', c=pu.dark_blue, linestyle='none')
             ax.errorbar(ell_effs[mask_nve], -Y_nve, yerr=err_cell[mask_nve], marker='o', markeredgecolor=pu.dark_blue, markerfacecolor='none', linestyle='none')
 
-            if cf.show_pre_deproj:
+            if cf.show_pre_debias:
                 #plot the power spectrum pre-deprojection, using open symbols for abs(negative) values
                 mask_pve_pre = Cell_pre[0] > 0
                 mask_nve_pre = Cell_pre[0] <= 0
@@ -198,7 +198,7 @@ for idx, fd in enumerate(cf.get_global_fields()):
     else:
         figname = f'{cf.PATH_PLOTS}power_spectra_raw_{fd}_{cf.nside_hi}.png'
 
-    if cf.show_pre_deproj:
+    if cf.show_pre_debias:
         handles.insert(1, cell_plot_pre)
         labels.insert(1, 'Biased signal')
 
