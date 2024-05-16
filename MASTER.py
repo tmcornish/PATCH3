@@ -71,7 +71,7 @@ run_str = [
 	'python -u combine_fields.py',
 	'python -u pca_systematics.py',
 	'python -u compute_power_spectra.py',
-	'python -u amend_power_spectra.py'
+	'python -u amend_power_spectra.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
 	]
