@@ -42,8 +42,8 @@ class cf_global:
 	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	#fields = ['combined']
-	fields = ['hectomap'] + equatora + equatorb
+	fields = ['combined']
+	#fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
 
@@ -324,6 +324,15 @@ class computePowerSpectra(cf_global):
 
 
 ###############################
+#### amend_power_spectra ####
+###############################
+
+class amendPowerSpectra(computePowerSpectra):
+
+	name = 'amendPowerSpectra'
+
+
+###############################
 #### plot_power_spectra ####
 ###############################
 
@@ -332,18 +341,12 @@ class plotPowerSpectra(computePowerSpectra):
 	name = 'plotPowerSpectra'
 
 	#show the C_ells pre-debiasing
-	show_pre_debias = True
+	show_pre_debias = False
+	#show the C_ells without deprojection
+	show_no_deproj = True
 	#make a figure showing all C_ells simultaneously
-	make_combined = True
+	make_combined = False
 
-
-###############################
-#### amend_power_spectra ####
-###############################
-
-class amendPowerSpectra(computePowerSpectra):
-
-	name = 'amendPowerSpectra'
 
 	
 ############################
