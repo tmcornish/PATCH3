@@ -21,9 +21,10 @@ clean_cats = False		#apply various cuts to clean the catalogues
 catbased_maps = False	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
-combine_fields = True	#combine maps from all fields
+combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
 power_spectra = False	#compute power spectra
+amend_cells = True		#amend some of the erroneous calculations in compute_power_spectra.py without rewriting everything
 plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
@@ -40,6 +41,7 @@ settings = [
 	combine_fields,
 	pca_systs,
 	power_spectra,
+	amend_cells,
 	plot_cells,
 	txpipe_inputs
 	]
@@ -54,6 +56,7 @@ proc = [
 	'Combining maps from all fields',
 	'Performing PCA',
 	'Computing power spectra',
+	'Amending power specta',
 	'Plotting power spectra',
 	'Making TXPipe-compatible inputs'
 	]
@@ -68,6 +71,7 @@ run_str = [
 	'python -u combine_fields.py',
 	'python -u pca_systematics.py',
 	'python -u compute_power_spectra.py',
+	'python -u amend_power_spectra.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
 	]
