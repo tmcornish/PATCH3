@@ -82,6 +82,38 @@ def make_density_fields(deproj_file, systs, idx=None):
 	return density_fields, density_fields_nd, nsyst
 
 
+def compute_covariance(f_i, f_j, w, cw, return_cl_coupled=False, return_cl_guess=False):
+	#compute coupled c_ells for each possible combination of i and j
+	cl_coupled_ii = nmt.compute_coupled_cell(f_i, f_i)
+	cl_coupled_ij = nmt.compute_coupled_cell(f_i, f_j)
+	cl_coupled_jj = nmt.compute_coupled_cell(f_j, f_j)
+
+	#use these along with the mask to get a guess of the true C_ell
+	cl_guess_ii = cl_coupled_ii / mu_w2
+	cl_guess_ij = cl_coupled_ij / mu_w2
+	cl_guess_jj = cl_coupled_jj / mu_w2
+
+	covar = nmt.gaussian_covariance(cw, 
+									0, 0, 0, 0,			#spin of each field
+									[cl_guess_ii[0]],	
+									[cl_guess_ij[0]],
+									[cl_guess_ij[0]],
+									[cl_guess_jj[0]],
+									w)
+	#errorbars for each bandpower
+	err_cell = np.diag(covar) ** 0.5
+
+	to_return = [covar, err_cell]
+	if return_cl_coupled:
+		to_return.append([cl_coupled_ii, cl_coupled_ij, cl_coupled_jj])
+	if return_cl_guess:
+		to_return.append([cl_guess_ii, cl_guess_ij, cl_guess_jj])
+
+
+	return (*to_return,)
+
+
+
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
@@ -193,19 +225,13 @@ for fd in cf.get_global_fields():
 			if density_fields is None:
 				continue
 			f_i, f_j = density_fields
+			f_i_nd, f_j_nd = density_fields_nd
 		else:
 			f_i = density_fields[i]
 			f_j = density_fields[j]
+			f_i_nd = density_fields_nd[i]
+			f_j_nd = density_fields_nd[j]
 
-		#compute coupled c_ells for each possible combination of i and j
-		cl_coupled_ii = nmt.compute_coupled_cell(f_i, f_i)
-		cl_coupled_ij = nmt.compute_coupled_cell(f_i, f_j)
-		cl_coupled_jj = nmt.compute_coupled_cell(f_j, f_j)
-
-		#use these along with the mask to get a guess of the true C_ell
-		cl_guess_ii = cl_coupled_ii / mu_w2
-		cl_guess_ij = cl_coupled_ij / mu_w2
-		cl_guess_jj = cl_coupled_jj / mu_w2
 
 		if calc:
 			#compute the mode coupling matrix (only need to compute once since same mask used for everything)
@@ -226,6 +252,27 @@ for fd in cf.get_global_fields():
 			calc = False
 		else:
 			print('Using coupling matrix and coefficients from cache.')
+		
+		print('Calculating covariance matrix (without deprojection)...')
+		covar_nd, err_cell_nd, (_, cl_coupled_ij_nd, _), (_, cl_guess_ij_nd, _) = compute_covariance(f_i_nd, f_j_nd, w, cw, 
+																					return_cl_coupled=True,
+																					return_cl_guess=True)
+		print('Done!')
+
+		print('Calculating covariance matrix...')
+		if nsyst > 0:
+			covar, err_cell, (_, cl_coupled_ij, _), (_, cl_guess_ij, _) = compute_covariance(f_i, f_j, w, cw, 
+																					return_cl_coupled=True,
+																					return_cl_guess=True)
+		else:
+			covar = covar_nd
+			err_cell = err_cell_nd
+		print('Done!')
+
+
+		#####################
+		# DEPROJECTION BIAS #
+		#####################
 
 		#only calculate bias-related quantities if templates have been provided
 		if (nsyst > 0) and not cf.lite:
@@ -269,22 +316,6 @@ for fd in cf.get_global_fields():
 			N_ell_decoupled = w.decouple_cell(N_ell_coupled)
 
 		
-		#######################
-		# GAUSSIAN COVARIANCE #
-		#######################
-
-		#extract (gaussian) covariance matrix
-		print('Calculating covariance matrix...')
-		covar = nmt.gaussian_covariance(cw, 
-										0, 0, 0, 0,			#spin of each field
-										[cl_guess_ii[0]],	
-										[cl_guess_ij[0]],
-										[cl_guess_ij[0]],
-										[cl_guess_jj[0]],
-										w)
-		#errorbars for each bandpower
-		err_cell = np.diag(covar) ** 0.5
-		print('Done!')
 
 		##################
 		# SAVING RESULTS #
