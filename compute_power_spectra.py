@@ -275,7 +275,6 @@ for fd in cf.get_global_fields():
 
 		#extract (gaussian) covariance matrix
 		print('Calculating covariance matrix...')
-		n_ell = len(cl_decoupled[0])
 		covar = nmt.gaussian_covariance(cw, 
 										0, 0, 0, 0,			#spin of each field
 										[cl_guess_ii[0]],	
