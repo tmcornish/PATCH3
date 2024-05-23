@@ -34,7 +34,7 @@ def make_density_fields(deproj_file, systs, idx=None):
 			#see if this is the same as the list specified in the config file (accounting for different ordering)
 			if sorted(deproj_done) == sorted(systs):
 				print(f'Same systematics maps provided; skipping all calculations for field {fd}')
-				return None, None
+				return None, None, None
 			else:
 				print('Different systematics maps provided')
 				#write the list of provided systematics to the file
@@ -65,6 +65,11 @@ def make_density_fields(deproj_file, systs, idx=None):
 		systmaps = None
 	print('Done!')
 
+	print('Creating NmtFields (without deprojection)...')
+	density_fields_nd = [nmt.NmtField(mask.mask, [d], templates=None, lite=cf.lite) for d in deltag_maps]
+	print('Done!')
+	if systmaps is None:
+		return density_fields_nd, density_fields_nd, 0
 
 	print('Creating NmtFields...')
 	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
@@ -74,7 +79,7 @@ def make_density_fields(deproj_file, systs, idx=None):
 	del systmaps
 	del deltag_maps
 
-	return density_fields, nsyst
+	return density_fields, density_fields_nd, nsyst
 
 
 #######################################################
