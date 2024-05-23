@@ -175,7 +175,7 @@ for fd in cf.get_global_fields():
 	#file containing list of systematics maps deprojected in the previous run
 	deproj_file = PATH_CACHE + cf.deproj_file
 	if not per_tomo:
-		density_fields, nsyst = make_density_fields(deproj_file, systs)
+		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
 
@@ -189,7 +189,7 @@ for fd in cf.get_global_fields():
 
 		if per_tomo:
 			deproj_file = f'{deproj_file[:-4]}_{i}_{j}.txt'
-			density_fields, nsyst = make_density_fields(deproj_file, systs, idx=[i,j])
+			density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs, idx=[i,j])
 			if density_fields is None:
 				continue
 			f_i, f_j = density_fields
