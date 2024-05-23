@@ -291,13 +291,15 @@ for fd in cf.get_global_fields():
 			cl_coupled_ij *= mult
 			cl_guess_ij *= mult
 
-		#compute the decoupled C_ell (w/o deprojection)
+		#compute the decoupled C_ell (w/o debiasing)
 		cl_decoupled = w.decouple_cell(cl_coupled_ij)
 		#compute the decoupled C_ell (w/ deprojection)
 		cl_decoupled_debiased = w.decouple_cell(cl_coupled_ij, cl_bias=cl_bias)
 		#decouple the bias C_ells as well
 		cl_bias_decoupled = w.decouple_cell(cl_bias)
 
+		#compute the decoupled C_ell (w/o deprojection)
+		cl_decoupled_nd = w.decouple_cell(cl_coupled_ij_nd)
 
 		########################
 		# NOISE POWER SPECTRUM #
@@ -328,10 +330,15 @@ for fd in cf.get_global_fields():
 			_ = gp.create_dataset('cl_coupled', data=cl_coupled_ij)
 			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
 			_ = gp.create_dataset('cl_guess', data=cl_guess_ij)
+			_ = gp.create_dataset('cl_coupled_no_deproj', data=cl_coupled_ij_nd)
+			_ = gp.create_dataset('cl_decoupled_no_deproj', data=cl_decoupled_nd)
+			_ = gp.create_dataset('cl_guess_no_deproj', data=cl_guess_ij_nd)
 			_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
 			_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
 			_ = gp.create_dataset('covar', data=covar)
 			_ = gp.create_dataset('err_cell', data=err_cell)
+			_ = gp.create_dataset('covar_no_deproj', data=covar_nd)
+			_ = gp.create_dataset('err_cell_no_deproj', data=err_cell_nd)
 			_ = gp.create_dataset('cl_bias', data=cl_bias)
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
