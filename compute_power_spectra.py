@@ -192,10 +192,15 @@ for fd in cf.get_global_fields():
 			f_i = density_fields[i]
 			f_j = density_fields[j]
 
-		cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
+		#compute coupled c_ells for each possible combination of i and j
+		cl_coupled_ii = nmt.compute_coupled_cell(f_i, f_i)
+		cl_coupled_ij = nmt.compute_coupled_cell(f_i, f_j)
+		cl_coupled_jj = nmt.compute_coupled_cell(f_j, f_j)
 
 		#use these along with the mask to get a guess of the true C_ell
-		cl_guess = cl_coupled / mu_w2
+		cl_guess_ii = cl_coupled_ii / mu_w2
+		cl_guess_ij = cl_coupled_ij / mu_w2
+		cl_guess_jj = cl_coupled_jj / mu_w2
 
 		if calc:
 			#compute the mode coupling matrix (only need to compute once since same mask used for everything)
@@ -221,23 +226,23 @@ for fd in cf.get_global_fields():
 		if (nsyst > 0) and not cf.lite:
 			print('Calculating deprojection bias...')
 			#compute the deprojection bias
-			cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+			cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess_ij)
 			print('Done!')
 		else:
 			print('No systematics maps provided; skipping deprojection bias calculation.')
-			cl_bias = np.zeros_like(cl_guess)
+			cl_bias = np.zeros_like(cl_guess_ij)
 		
 
 		#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
 		if cf.correct_for_stars:
 			mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
-			cl_coupled *= mult
-			cl_guess *= mult
+			cl_coupled_ij *= mult
+			cl_guess_ij *= mult
 
 		#compute the decoupled C_ell (w/o deprojection)
-		cl_decoupled = w.decouple_cell(cl_coupled)
+		cl_decoupled = w.decouple_cell(cl_coupled_ij)
 		#compute the decoupled C_ell (w/ deprojection)
-		cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+		cl_decoupled_debiased = w.decouple_cell(cl_coupled_ij, cl_bias=cl_bias)
 		#decouple the bias C_ells as well
 		cl_bias_decoupled = w.decouple_cell(cl_bias)
 
@@ -268,10 +273,10 @@ for fd in cf.get_global_fields():
 		n_ell = len(cl_decoupled[0])
 		covar = nmt.gaussian_covariance(cw, 
 										0, 0, 0, 0,			#spin of each field
-										[cl_guess[0]],	
-										[cl_guess[0]],
-										[cl_guess[0]],
-										[cl_guess[0]],
+										[cl_guess_ii[0]],	
+										[cl_guess_ij[0]],
+										[cl_guess_ij[0]],
+										[cl_guess_jj[0]],
 										w)
 		#errorbars for each bandpower
 		err_cell = np.diag(covar) ** 0.5
@@ -285,9 +290,9 @@ for fd in cf.get_global_fields():
 			#populate the output file with the results
 			gp = psfile.create_group(p)
 			_ = gp.create_dataset('ell_effs', data=ell_effs)
-			_ = gp.create_dataset('cl_coupled', data=cl_coupled)
+			_ = gp.create_dataset('cl_coupled', data=cl_coupled_ij)
 			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
-			_ = gp.create_dataset('cl_guess', data=cl_guess)
+			_ = gp.create_dataset('cl_guess', data=cl_guess_ij)
 			_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
 			_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
 			_ = gp.create_dataset('covar', data=covar)
