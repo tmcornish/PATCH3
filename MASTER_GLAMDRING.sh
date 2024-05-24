@@ -4,6 +4,9 @@
 # Configure and run this file when running the pipeline on glamdring. #
 #######################################################################
 
+#first activate the virtual environment
+source /mnt/zfsusers/tcornish/venvs/phsc3_new/bin/activate
+
 PIPEDIR=$(pwd)
 PYEX=$(which python)    #get the Python executable path
 jobfile="$PIPEDIR/prevjob.txt"   #file to which job ID will be output
