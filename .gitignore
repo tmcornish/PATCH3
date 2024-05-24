@@ -11,3 +11,7 @@ txpipe_logs
 .repo_PAT.txt
 slurm_scripts/*.out
 ._wordcount_selection.tex
+prevjob.txt
+*.out
+*.sh.sh
+python.sh
