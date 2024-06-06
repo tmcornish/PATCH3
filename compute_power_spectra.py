@@ -63,6 +63,7 @@ def make_density_fields(deproj_file, systs, idx=None):
 		print('templates: ', np.mean(systmaps))
 	else:
 		systmaps = None
+		nsyst = 0
 	print('Done!')
 
 	print('Creating NmtFields (without deprojection)...')
@@ -193,6 +194,7 @@ for fd in cf.get_global_fields():
 	
 	#path to directory containing systematics maps
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
+	systs = []
 	#check for 'All' in systmaps and convert this to a list of all systematics maps
 	if 'all' in map(str.lower, cf.systs):
 		systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
@@ -267,6 +269,8 @@ for fd in cf.get_global_fields():
 		else:
 			covar = covar_nd
 			err_cell = err_cell_nd
+			cl_coupled_ij = cl_coupled_ij_nd
+			cl_guess_ij = cl_guess_ij_nd
 		print('Done!')
 
 
