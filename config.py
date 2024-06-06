@@ -42,8 +42,8 @@ class cf_global:
 	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	fields = ['combined']
-	#fields = ['hectomap'] + equatora + equatorb
+	#fields = ['combined']
+	fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
 
@@ -90,13 +90,13 @@ class cf_global:
 	dustmaps = dustmap_names(bands, nside_hi)
 	bo_mask = f'bo_mask_{nside_hi}.hsp'
 	masked_frac = f'masked_fraction_{nside_hi}.hsp'
-	survey_mask = f'survey_mask_{nside_hi}.hsp'
+	survey_mask = f'survey_mask_{nside_hi}_nodegrade.hsp'
 	star_map = f'star_counts_{nside_hi}.hsp'
 	depth_map = f'depth_map_{nside_hi}.hsp'
 
 	#basenames for the count and density maps
-	ngal_maps = f'ngal_maps_{nside_hi}.hsp'
-	deltag_maps = f'deltag_maps_{nside_hi}.hsp'
+	ngal_maps = f'ngal_maps_{nside_hi}_nodegrade.hsp'
+	deltag_maps = f'deltag_maps_{nside_hi}_nodegrade.hsp'
 
 	#redshift column to use for tomography
 	zcol = 'pz_best_dnnz'
@@ -289,13 +289,13 @@ class computePowerSpectra(cf_global):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}_nodegrade.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
-	wsp_file = f'workspace_{cf_global.nside_hi}.fits'
-	covwsp_file = f'covworkspace_{cf_global.nside_hi}.fits'
+	wsp_file = f'workspace_{cf_global.nside_hi}_nodegrade.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}_nodegrade.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
-	deproj_file = f'deprojected_{cf_global.nside_hi}.txt'
+	deproj_file = f'deprojected_{cf_global.nside_hi}_nodegrade.txt'
 
 	#apply a multiplicative correction to delta_g due to star contamination
 	correct_for_stars = True
