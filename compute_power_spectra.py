@@ -34,7 +34,7 @@ def make_density_fields(deproj_file, systs, idx=None):
 			#see if this is the same as the list specified in the config file (accounting for different ordering)
 			if sorted(deproj_done) == sorted(systs):
 				print(f'Same systematics maps provided; skipping all calculations for field {fd}')
-				return None, None
+				return None, None, None
 			else:
 				print('Different systematics maps provided')
 				#write the list of provided systematics to the file
@@ -63,8 +63,14 @@ def make_density_fields(deproj_file, systs, idx=None):
 		print('templates: ', np.mean(systmaps))
 	else:
 		systmaps = None
+		nsyst = 0
 	print('Done!')
 
+	print('Creating NmtFields (without deprojection)...')
+	density_fields_nd = [nmt.NmtField(mask.mask, [d], templates=None, lite=cf.lite) for d in deltag_maps]
+	print('Done!')
+	if systmaps is None:
+		return density_fields_nd, density_fields_nd, 0
 
 	print('Creating NmtFields...')
 	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
@@ -74,7 +80,39 @@ def make_density_fields(deproj_file, systs, idx=None):
 	del systmaps
 	del deltag_maps
 
-	return density_fields, nsyst
+	return density_fields, density_fields_nd, nsyst
+
+
+def compute_covariance(f_i, f_j, w, cw, return_cl_coupled=False, return_cl_guess=False):
+	#compute coupled c_ells for each possible combination of i and j
+	cl_coupled_ii = nmt.compute_coupled_cell(f_i, f_i)
+	cl_coupled_ij = nmt.compute_coupled_cell(f_i, f_j)
+	cl_coupled_jj = nmt.compute_coupled_cell(f_j, f_j)
+
+	#use these along with the mask to get a guess of the true C_ell
+	cl_guess_ii = cl_coupled_ii / mu_w2
+	cl_guess_ij = cl_coupled_ij / mu_w2
+	cl_guess_jj = cl_coupled_jj / mu_w2
+
+	covar = nmt.gaussian_covariance(cw, 
+									0, 0, 0, 0,			#spin of each field
+									[cl_guess_ii[0]],	
+									[cl_guess_ij[0]],
+									[cl_guess_ij[0]],
+									[cl_guess_jj[0]],
+									w)
+	#errorbars for each bandpower
+	err_cell = np.diag(covar) ** 0.5
+
+	to_return = [covar, err_cell]
+	if return_cl_coupled:
+		to_return.append([cl_coupled_ii, cl_coupled_ij, cl_coupled_jj])
+	if return_cl_guess:
+		to_return.append([cl_guess_ii, cl_guess_ij, cl_guess_jj])
+
+
+	return (*to_return,)
+
 
 
 #######################################################
@@ -156,6 +194,7 @@ for fd in cf.get_global_fields():
 	
 	#path to directory containing systematics maps
 	PATH_SYST = f'{PATH_MAPS}systmaps/'
+	systs = []
 	#check for 'All' in systmaps and convert this to a list of all systematics maps
 	if 'all' in map(str.lower, cf.systs):
 		systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
@@ -170,7 +209,7 @@ for fd in cf.get_global_fields():
 	#file containing list of systematics maps deprojected in the previous run
 	deproj_file = PATH_CACHE + cf.deproj_file
 	if not per_tomo:
-		density_fields, nsyst = make_density_fields(deproj_file, systs)
+		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
 
@@ -184,18 +223,17 @@ for fd in cf.get_global_fields():
 
 		if per_tomo:
 			deproj_file = f'{deproj_file[:-4]}_{i}_{j}.txt'
-			density_fields, nsyst = make_density_fields(deproj_file, systs, idx=[i,j])
+			density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs, idx=[i,j])
 			if density_fields is None:
 				continue
 			f_i, f_j = density_fields
+			f_i_nd, f_j_nd = density_fields_nd
 		else:
 			f_i = density_fields[i]
 			f_j = density_fields[j]
+			f_i_nd = density_fields_nd[i]
+			f_j_nd = density_fields_nd[j]
 
-		cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
-
-		#use these along with the mask to get a guess of the true C_ell
-		cl_guess = cl_coupled / mu_w2
 
 		if calc:
 			#compute the mode coupling matrix (only need to compute once since same mask used for everything)
@@ -216,31 +254,56 @@ for fd in cf.get_global_fields():
 			calc = False
 		else:
 			print('Using coupling matrix and coefficients from cache.')
+		
+		print('Calculating covariance matrix (without deprojection)...')
+		covar_nd, err_cell_nd, (_, cl_coupled_ij_nd, _), (_, cl_guess_ij_nd, _) = compute_covariance(f_i_nd, f_j_nd, w, cw, 
+																					return_cl_coupled=True,
+																					return_cl_guess=True)
+		print('Done!')
+
+		print('Calculating covariance matrix...')
+		if nsyst > 0:
+			covar, err_cell, (_, cl_coupled_ij, _), (_, cl_guess_ij, _) = compute_covariance(f_i, f_j, w, cw, 
+																					return_cl_coupled=True,
+																					return_cl_guess=True)
+		else:
+			covar = covar_nd
+			err_cell = err_cell_nd
+			cl_coupled_ij = cl_coupled_ij_nd
+			cl_guess_ij = cl_guess_ij_nd
+		print('Done!')
+
+
+		#####################
+		# DEPROJECTION BIAS #
+		#####################
 
 		#only calculate bias-related quantities if templates have been provided
 		if (nsyst > 0) and not cf.lite:
 			print('Calculating deprojection bias...')
 			#compute the deprojection bias
-			cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+			cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess_ij)
 			print('Done!')
 		else:
 			print('No systematics maps provided; skipping deprojection bias calculation.')
-			cl_bias = np.zeros_like(cl_guess)
+			cl_bias = np.zeros_like(cl_guess_ij)
 		
 
 		#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
 		if cf.correct_for_stars:
 			mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
-			cl_coupled *= mult
-			cl_guess *= mult
+			cl_coupled_ij *= mult
+			cl_guess_ij *= mult
 
-		#compute the decoupled C_ell (w/o deprojection)
-		cl_decoupled = w.decouple_cell(cl_coupled)
+		#compute the decoupled C_ell (w/o debiasing)
+		cl_decoupled = w.decouple_cell(cl_coupled_ij)
 		#compute the decoupled C_ell (w/ deprojection)
-		cl_decoupled_debiased = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+		cl_decoupled_debiased = w.decouple_cell(cl_coupled_ij, cl_bias=cl_bias)
 		#decouple the bias C_ells as well
 		cl_bias_decoupled = w.decouple_cell(cl_bias)
 
+		#compute the decoupled C_ell (w/o deprojection)
+		cl_decoupled_nd = w.decouple_cell(cl_coupled_ij_nd)
 
 		########################
 		# NOISE POWER SPECTRUM #
@@ -259,23 +322,6 @@ for fd in cf.get_global_fields():
 			N_ell_decoupled = w.decouple_cell(N_ell_coupled)
 
 		
-		#######################
-		# GAUSSIAN COVARIANCE #
-		#######################
-
-		#extract (gaussian) covariance matrix
-		print('Calculating covariance matrix...')
-		n_ell = len(cl_decoupled[0])
-		covar = nmt.gaussian_covariance(cw, 
-										0, 0, 0, 0,			#spin of each field
-										[cl_guess[0]],	
-										[cl_guess[0]],
-										[cl_guess[0]],
-										[cl_guess[0]],
-										w)
-		#errorbars for each bandpower
-		err_cell = np.diag(covar) ** 0.5
-		print('Done!')
 
 		##################
 		# SAVING RESULTS #
@@ -285,13 +331,18 @@ for fd in cf.get_global_fields():
 			#populate the output file with the results
 			gp = psfile.create_group(p)
 			_ = gp.create_dataset('ell_effs', data=ell_effs)
-			_ = gp.create_dataset('cl_coupled', data=cl_coupled)
+			_ = gp.create_dataset('cl_coupled', data=cl_coupled_ij)
 			_ = gp.create_dataset('cl_decoupled', data=cl_decoupled)
-			_ = gp.create_dataset('cl_guess', data=cl_guess)
+			_ = gp.create_dataset('cl_guess', data=cl_guess_ij)
+			_ = gp.create_dataset('cl_coupled_no_deproj', data=cl_coupled_ij_nd)
+			_ = gp.create_dataset('cl_decoupled_no_deproj', data=cl_decoupled_nd)
+			_ = gp.create_dataset('cl_guess_no_deproj', data=cl_guess_ij_nd)
 			_ = gp.create_dataset('N_ell_coupled', data=N_ell_coupled)
 			_ = gp.create_dataset('N_ell_decoupled', data=N_ell_decoupled)
 			_ = gp.create_dataset('covar', data=covar)
 			_ = gp.create_dataset('err_cell', data=err_cell)
+			_ = gp.create_dataset('covar_no_deproj', data=covar_nd)
+			_ = gp.create_dataset('err_cell_no_deproj', data=err_cell_nd)
 			_ = gp.create_dataset('cl_bias', data=cl_bias)
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
