@@ -535,6 +535,10 @@ class MaskData:
 		self.vpix = np.argwhere(self.mask > 0.).flatten()
 		#convert these to NEST ordering
 		self.vpix_nest = hp.ring2nest(self.nside, self.vpix)
+		#get the RA and Dec. of each unmasked pixel
+		theta, phi = hp.pix2ang(self.nside, self.vpix)
+		self.ra_vpix = phi * 180. / np.pi
+		self.dec_vpix = -(theta - np.pi / 2.) * (180. / np.pi)
 
 		#compute the sum, mean, and mean squared of the mask
 		self.sum = np.sum(self.mask)
