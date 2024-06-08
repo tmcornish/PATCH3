@@ -125,6 +125,51 @@ def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse, return_pix_and_val
 		return counts_map
 
 
+def countsInPixels(ra, dec, nside_cover, nside_sparse, pix_ids, return_vals=False):
+	'''
+	Given sets of coordinates (RA and Dec.), counts the number of objects in pixels
+	with the provided IDs in a HealPIX map.
+
+	Parameters
+	----------
+	ra: array-like
+		RA coordinates of each object.
+
+	dec: array-like
+		Dec. coordinates of each object.
+
+	nside_cover: int
+		Resolution of the wider HealSparse map where no data exist.
+
+	nside_sparse: int
+		Resolution of the regions of the HealSparse map in which data exist.
+
+	return_pix_and_vals: bool
+		If True, also returns the IDs and corresponding values for occupied pixels.
+
+	Returns
+	-------
+	counts_map: HealSparseMap
+		HealSparse map containing the number of sources in each pixel.
+	'''
+	#initialise a HealSparse integer map
+	counts_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.int32)
+	#convert the provided coordinates into pixel IDs
+	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	#make an array of weights for counting galaxies in each pixel
+	weights = np.zeros_like(px_data)
+	#give specified pixels a weight of 1
+	weights[np.in1d(px_data, pix_ids)] = 1
+
+	#count the number of sources in each pixel (going from 0 to max(px_data))
+	N = np.bincount(px_data, weights=weights).astype(np.int32)
+	#fill the map at these positions with the number of sources in the pixel
+	counts_map[pix_ids] = N[pix_ids]
+
+	if return_vals:
+		return counts_map, N[pix_ids]
+	return counts_map
+
 
 def pixelMeanStd(quant, pix, remove_zeros=True):
 	'''
