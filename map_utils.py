@@ -7,7 +7,7 @@ import healpy as hp
 import healsparse as hsp
 import gen_utils as gu
 
-def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', primary=None, return_pix=True, return_unique=True):
+def initialiseRecMap(nside_cover, nside_sparse, labels, pixels=None, ra=None, dec=None, dtypes='f8', primary=None, return_pix=True, return_unique=True):
 	'''
 	Initialises a RecArray of HealSparse maps. Useful e.g. when a single quantity is
 	measured for multiple bands. 
@@ -19,12 +19,19 @@ def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', pr
 
 	nside_sparse: int
 		Resolution of the regions of the HealSparse map in which data exist.
+	
+	pixels: array-like
+		List/array containing pixels (NESTED ordering) to be initialised. If 
+		not provided, ra and dec must be provided instead.
 
 	ra: array-like
-		RA coordinates at which data exist for the map.
+		RA coordinates at which data exist for the map. If not provided (along with 
+		dec) pixels must be provided instead.
 
 	dec: array-like
-		Dec. coordinates at which data exist for the map.
+		Dec. coordinates at which data exist for the map. If not provided (along with 
+		ra) pixels must be provided instead.
+	
 
 	labels: list
 		List of strings to use as labels for each map.
@@ -66,16 +73,19 @@ def initialiseRecMap(nside_cover, nside_sparse, ra, dec, labels, dtypes='f8', pr
 		primary = labels[0]
 	all_maps = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, dtype=dtype_maps, primary=primary)
 
-	#identify pixels in the HealSparse map that contain sources from the catalogue
-	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	if (pixels is None) and (ra is not None) and (dec is not None):
+		#identify pixels in the HealSparse map that contain sources from the catalogue
+		pixels = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	elif (pixels is None) and (ra is None) and (dec is None):
+		gu.error_message('initialiseRecMap', 'Must provide either pixel IDs, or RA and Dec. coordinates.')
 
 	#determine the unique pixels
-	px_data_u = np.unique(px_data)
+	pixels_u = np.unique(pixels)
 
 	#initially fill these pixels with zeroes so that HealSparse can update their values later
-	all_maps.update_values_pix(px_data_u, np.zeros(len(px_data_u), dtype=dtype_maps))
+	all_maps.update_values_pix(pixels_u, np.zeros(len(pixels_u), dtype=dtype_maps))
 
-	return all_maps, px_data, px_data_u
+	return all_maps, pixels, pixels_u
 
 
 def pixelCountsFromCoords(ra, dec, nside_cover, nside_sparse, return_pix_and_vals=False):
