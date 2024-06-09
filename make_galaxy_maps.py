@@ -123,7 +123,12 @@ for fd in cf.get_global_fields():
 	#load the fully cleaned galaxy catalogue for this field
 	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
 	#load the survey mask
-	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}', mask_thresh=cf.weight_thresh)
+	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}', 
+							mask_thresh=cf.weight_thresh,
+							smooth=True,
+							fwhm_arcmin=8,
+							smoothed_thresh=0.7,
+							smooth_file=cf.survey_mask[:-4]+'_smoothed.hsp')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
 	ngal_maps = makeNgalMaps(cat_main, mask=survey_mask, group='photometry')
