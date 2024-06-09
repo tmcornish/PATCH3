@@ -56,8 +56,8 @@ def combine_maps(map_name, fields):
         union, _, px_data_u = mu.initialiseRecMap(
             unions_indiv[0].nside_coverage,
             unions_indiv[0].nside_sparse,
-            *unions_indiv[0].valid_pixels_pos(lonlat=True),
             maps[0].dtype.names,
+            pixels=unions_indiv[0].valid_pixels,
             dtypes=str(maps[0].dtype[0])
             )
         #populate the maps
