@@ -298,6 +298,9 @@ class theoryPredictions(cf_global):
 		'n_s'     : 0.96
 	}
 
+	#base name of the files to which theory power spectra will be saved
+	theory_out = 'theory_cells.hdf5'
+
 ###############################
 #### compute_power_spectra ####
 ###############################
