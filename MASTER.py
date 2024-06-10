@@ -23,8 +23,9 @@ metadata_maps = False	#make maps for various quantities using the frame metadata
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
+theory_cells = True		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
-plot_cells = True		#plot the power spectra
+plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
 
@@ -39,6 +40,7 @@ settings = [
 	galaxy_maps,
 	combine_fields,
 	pca_systs,
+	theory_cells,
 	power_spectra,
 	plot_cells,
 	txpipe_inputs
@@ -53,6 +55,7 @@ proc = [
 	'Making galaxy count and density maps in z bins',
 	'Combining maps from all fields',
 	'Performing PCA',
+	'Computing theoretical power spectra',
 	'Computing power spectra',
 	'Plotting power spectra',
 	'Making TXPipe-compatible inputs'
@@ -67,6 +70,7 @@ run_str = [
 	'python -u make_galaxy_maps.py',
 	'python -u combine_fields.py',
 	'python -u pca_systematics.py',
+	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
