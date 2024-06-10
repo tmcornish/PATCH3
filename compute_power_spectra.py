@@ -159,6 +159,12 @@ for fd in cf.get_global_fields():
 
 	#path to the directory containing the maps
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
+	#path to the file containing theory predictions
+	theory_file = PATH_MAPS + cf.theory_out
+	theory_exists = os.path.exists(theory_file)
+	if theory_exists:
+		with h5py.File(theory_file, 'r') as psfile:
+			theory_keys = list(psfile.keys())
 
 	#load the survey mask and convert to full-sky realisation
 	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
@@ -346,7 +352,9 @@ for fd in cf.get_global_fields():
 			_ = gp.create_dataset('cl_bias', data=cl_bias)
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
-		
-
+			#see if theoretical predictions exist for this pairing
+			if theory_exists and (f'bin{i}-bin{j}' in theory_keys):
+				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
+				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 
 
