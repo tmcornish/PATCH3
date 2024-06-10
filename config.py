@@ -287,6 +287,15 @@ class theoryPredictions(cf_global):
 	#column in the catalogues containing the random MC draws from the redshift distribution
 	z_mc_col = 'pz_mc_dnnz'
 
+	#fiducial cosmology parameters
+	cosmo_fiducial = {
+		'Omega_c' : 0.27,
+		'Omega_b' : 0.045,
+		'h'       : 0.67,
+		'sigma8'  : 0.83,
+		'n_s'     : 0.96
+	}
+
 ###############################
 #### compute_power_spectra ####
 ###############################
