@@ -121,6 +121,21 @@ class cf_global:
 		return fields_global
 
 
+	@classmethod
+	def get_bin_pairings(cls):
+		'''
+		Returns pairs of IDs for each tomographic bin being analysed. Also
+		returns comma-separated string versions of the ID pairs.
+		'''
+		import itertools
+
+		nbins = len(cls.zbins) - 1
+		l = list(range(nbins))
+		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+		return pairings, pairings_s
+
+
 ##################
 #### get_data ####
 ##################
@@ -315,19 +330,6 @@ class computePowerSpectra(cf_global):
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
 
-	@classmethod
-	def get_bin_pairings(cls):
-		'''
-		Returns pairs of IDs for each tomographic bin being analysed. Also
-		returns comma-separated string versions of the ID pairs.
-		'''
-		import itertools
-
-		nbins = len(cls.zbins) - 1
-		l = list(range(nbins))
-		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
-		return pairings, pairings_s
 
 
 ###############################
