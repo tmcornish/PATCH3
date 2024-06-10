@@ -371,6 +371,8 @@ class plotPowerSpectra(computePowerSpectra):
 	show_pre_debias = False
 	#show the C_ells without deprojection
 	show_no_deproj = True
+	#show the theory predictions
+	show_theory = True
 	#make a figure showing all C_ells simultaneously
 	make_combined = False
 
