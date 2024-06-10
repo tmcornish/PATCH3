@@ -238,9 +238,9 @@ class makeGalaxyMaps(cf_global):
 	name = 'makeGalaxyMaps'
 
 
-#########################
-#### pca_systematics ####
-#########################
+########################
+#### combine_fields ####
+########################
 
 class combineFields(cf_global):
 
@@ -259,6 +259,16 @@ class pcaSystematics(cf_global):
 	plot_eigen = True
 	#fraction of total variance to keep with principal components
 	var_thresh = 0.98
+
+
+############################
+#### theory_predictions ####
+############################
+
+class theoryPredictions(cf_global):
+
+	name = 'theoryPredictions'
+
 	
 
 ###############################
