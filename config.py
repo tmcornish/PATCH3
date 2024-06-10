@@ -284,7 +284,8 @@ class theoryPredictions(cf_global):
 
 	name = 'theoryPredictions'
 
-	
+	#column in the catalogues containing the random MC draws from the redshift distribution
+	z_mc_col = 'pz_mc_dnnz'
 
 ###############################
 #### compute_power_spectra ####
