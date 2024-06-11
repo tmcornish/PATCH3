@@ -126,9 +126,10 @@ for fd in cf.get_global_fields():
 	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}', 
 							mask_thresh=cf.weight_thresh,
 							smooth=True,
-							fwhm_arcmin=8,
-							smoothed_thresh=0.7,
-							smooth_file=cf.survey_mask[:-4]+'_smoothed.hsp')
+							fwhm_arcmin=60,
+							smoothed_thresh=0.4,
+							smooth_file=f'{OUT}/{cf.survey_mask[:-4]}_smoothed.hsp')
+	print(f'{OUT}/{cf.survey_mask[:-4]}_smoothed.hsp')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
 	ngal_maps = makeNgalMaps(cat_main, mask=survey_mask, group='photometry')
