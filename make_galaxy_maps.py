@@ -128,8 +128,7 @@ for fd in cf.get_global_fields():
 							smooth=cf.smooth_mask,
 							fwhm_arcmin=cf.smooth_fwhm,
 							smoothed_thresh=cf.smooth_thresh,
-							smooth_file=f'{OUT}/{cf.survey_mask[:-4]}_smoothed.hsp')
-	print(f'{OUT}/{cf.survey_mask[:-4]}_smoothed.hsp')
+							smooth_file=f'{OUT}/{cf.survey_mask[:-4]}_smoothed{int(cf.smooth_thresh)}.hsp')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
 	ngal_maps = makeNgalMaps(cat_main, mask=survey_mask, group='photometry')
