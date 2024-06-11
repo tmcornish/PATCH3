@@ -125,9 +125,9 @@ for fd in cf.get_global_fields():
 	#load the survey mask
 	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}', 
 							mask_thresh=cf.weight_thresh,
-							smooth=True,
-							fwhm_arcmin=60,
-							smoothed_thresh=0.4,
+							smooth=cf.smooth_mask,
+							fwhm_arcmin=cf.smooth_fwhm,
+							smoothed_thresh=cf.smooth_thresh,
 							smooth_file=f'{OUT}/{cf.survey_mask[:-4]}_smoothed.hsp')
 	print(f'{OUT}/{cf.survey_mask[:-4]}_smoothed.hsp')
 

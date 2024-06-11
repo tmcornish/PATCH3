@@ -42,8 +42,8 @@ class cf_global:
 	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	#fields = ['combined']
-	fields = ['hectomap'] + equatora + equatorb
+	fields = ['combined']
+	#fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
 
@@ -82,6 +82,12 @@ class cf_global:
 	
 	#threshold below which pixels in the survey mask will be considered masked
 	weight_thresh = 0.5
+	#whether to smooth the mask
+	smooth_mask = True
+	#width (in arcmin) of the smoothing kernel
+	smooth_fwhm = 60.
+	#threshold to apply to smoothed mask
+	smooth_thresh = 0.4
 
 	#function for generating filenames for band-specific dust extinction maps
 	def dustmap_names(bands, nside_hi):
@@ -95,8 +101,8 @@ class cf_global:
 	depth_map = f'depth_map_{nside_hi}.hsp'
 
 	#basenames for the count and density maps
-	ngal_maps = f'ngal_maps_{nside_hi}_nodegrade.hsp'
-	deltag_maps = f'deltag_maps_{nside_hi}_nodegrade.hsp'
+	ngal_maps = f'ngal_maps_{nside_hi}_nodegrade_smoothedmask.hsp'
+	deltag_maps = f'deltag_maps_{nside_hi}_nodegrade_smoothedmask.hsp'
 
 	#redshift column to use for tomography
 	zcol = 'pz_best_dnnz'
@@ -237,6 +243,8 @@ class makeGalaxyMaps(cf_global):
 
 	name = 'makeGalaxyMaps'
 
+	#whether to smooth the map prior to removing pixels
+
 
 #########################
 #### pca_systematics ####
@@ -272,10 +280,10 @@ class computePowerSpectra(cf_global):
 	#systematics maps to deproject (add 'all' to the list of wanting to deproject all
 	#maps in the systematics directory)
 	systs = [
-		'all'
+		#'all'
 		]
 	#(optional) maximum number of systematics to deproject - uses all provided if set to None
-	Nsyst_max = 3
+	Nsyst_max = None
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
@@ -289,13 +297,13 @@ class computePowerSpectra(cf_global):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_nodegrade.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}_nodegrade_smoothedmask.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
-	wsp_file = f'workspace_{cf_global.nside_hi}_nodegrade.fits'
-	covwsp_file = f'covworkspace_{cf_global.nside_hi}_nodegrade.fits'
+	wsp_file = f'workspace_{cf_global.nside_hi}_nodegrade_smoothedmask.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}_nodegrade_smoothedmask.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
-	deproj_file = f'deprojected_{cf_global.nside_hi}_nodegrade.txt'
+	deproj_file = f'deprojected_{cf_global.nside_hi}_nodegrade_smoothedmask.txt'
 
 	#apply a multiplicative correction to delta_g due to star contamination
 	correct_for_stars = True
