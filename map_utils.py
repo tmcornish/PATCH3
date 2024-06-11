@@ -628,6 +628,6 @@ class MaskData:
 			#apply smoothing to the existing mask
 			self.mask_smoothed = hp.smoothing(self.mask, fwhm, nest=False)
 			#write out to the file
-			hsp.HealSparseMap(nside_coverage=self.nside_cover, healpix_map=self.mask_smoothed, nest=False)
+			hsp.HealSparseMap(nside_coverage=self.nside_cover, healpix_map=self.mask_smoothed, nest=False).write(mapfile, clobber=True)
 			
 
