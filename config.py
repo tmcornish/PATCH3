@@ -213,7 +213,7 @@ class makeMapsFromCat(cf_global):
 	name = 'makeMapsFromCat'
 
 	#whether or not to initially make the map at high resolution and degrade
-	highres_first = True
+	highres_first = False
 	#NSIDE for the upgraded-resolution version of the bright object mask
 	nside_mask = 16384
 
