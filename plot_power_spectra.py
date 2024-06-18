@@ -83,9 +83,11 @@ for idx, fd in enumerate(cf.get_global_fields()):
             #retrieve the relevant information
             gp = psfile[p_str]
             ell_effs = gp['ell_effs'][:]
+            ells_theory = gp['ells_theory'][:]
             Cell = gp['cl_decoupled'][:]
             Cell_debiased = gp['cl_decoupled_debiased'][:]
             Cell_no_deproj = gp['cl_decoupled_no_deproj'][:]
+            Cell_theory = gp['cl_theory'][:]
             bias = gp['cl_bias_decoupled'][:]
             err_cell = gp['err_cell'][:]
             err_cell_no_deproj = gp['err_cell_no_deproj'][:]
@@ -159,6 +161,10 @@ for idx, fd in enumerate(cf.get_global_fields()):
                 cell_plot_nd = ax.errorbar(ell_effs[mask_pve_nd]*1.05, Y_pve_nd, yerr=err_cell_no_deproj[mask_pve_nd], marker='o', c=pu.dark_blue, ecolor=pu.dark_blue, linestyle='none', alpha=0.4)
                 ax.errorbar(ell_effs[mask_nve_nd]*1.05, -Y_nve_nd, yerr=err_cell[mask_nve_nd], marker='o', markeredgecolor=pu.dark_blue, ecolor=pu.dark_blue, markerfacecolor='none', linestyle='none', alpha=0.4)
 
+            if cf.show_theory:
+                cell_plot_theory = ax.plot(ells_theory, Cell_theory, c=pu.orange, linestyle=':')[0]
+
+
             #reset the axis limits
             ax.set_xlim(xmin, xmax)
 
@@ -220,6 +226,10 @@ for idx, fd in enumerate(cf.get_global_fields()):
     if cf.show_no_deproj:
         handles.insert(1, cell_plot_nd)
         labels.insert(1, 'Signal pre-deproj.')
+        
+    if cf.show_theory:
+        handles.append(cell_plot_theory)
+        labels.append('Theory prediction')
 
     fig.legend(handles=handles, labels=labels, loc='upper right', fontsize=28)
 

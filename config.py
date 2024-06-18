@@ -127,6 +127,21 @@ class cf_global:
 		return fields_global
 
 
+	@classmethod
+	def get_bin_pairings(cls):
+		'''
+		Returns pairs of IDs for each tomographic bin being analysed. Also
+		returns comma-separated string versions of the ID pairs.
+		'''
+		import itertools
+
+		nbins = len(cls.zbins) - 1
+		l = list(range(nbins))
+		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+		return pairings, pairings_s
+
+
 ##################
 #### get_data ####
 ##################
@@ -248,9 +263,9 @@ class makeGalaxyMaps(cf_global):
 	#whether to smooth the map prior to removing pixels
 
 
-#########################
-#### pca_systematics ####
-#########################
+########################
+#### combine_fields ####
+########################
 
 class combineFields(cf_global):
 
@@ -269,7 +284,32 @@ class pcaSystematics(cf_global):
 	plot_eigen = True
 	#fraction of total variance to keep with principal components
 	var_thresh = 0.98
-	
+
+
+############################
+#### theory_predictions ####
+############################
+
+class theoryPredictions(cf_global):
+
+	name = 'theoryPredictions'
+
+	#column in the catalogues containing the random MC draws from the redshift distribution
+	z_mc_col = 'pz_mc_dnnz'
+	#number of bins to use in the n(z) histograms
+	nbins_nofz = 50
+
+	#fiducial cosmology parameters
+	cosmo_fiducial = {
+		'Omega_c' : 0.27,
+		'Omega_b' : 0.045,
+		'h'       : 0.67,
+		'sigma8'  : 0.83,
+		'n_s'     : 0.96
+	}
+
+	#base name of the files to which theory power spectra will be saved
+	theory_out = 'theory_cells.hdf5'
 
 ###############################
 #### compute_power_spectra ####
@@ -315,19 +355,6 @@ class computePowerSpectra(cf_global):
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
 
-	@classmethod
-	def get_bin_pairings(cls):
-		'''
-		Returns pairs of IDs for each tomographic bin being analysed. Also
-		returns comma-separated string versions of the ID pairs.
-		'''
-		import itertools
-
-		nbins = len(cls.zbins) - 1
-		l = list(range(nbins))
-		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
-		return pairings, pairings_s
 
 
 ###############################
@@ -354,6 +381,8 @@ class plotPowerSpectra(computePowerSpectra):
 	show_pre_debias = False
 	#show the C_ells without deprojection
 	show_no_deproj = True
+	#show the theory predictions
+	show_theory = True
 	#make a figure showing all C_ells simultaneously
 	make_combined = False
 
