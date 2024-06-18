@@ -161,7 +161,12 @@ for fd in cf.get_global_fields():
 	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
 
 	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_MAPS + cf.survey_mask, mask_thresh=cf.weight_thresh)
+	mask = MaskData(PATH_MAPS + cf.survey_mask, 
+				 	mask_thresh=cf.weight_thresh,
+					smooth=cf.smooth_mask,
+					fwhm_arcmin=cf.smooth_fwhm,
+					smoothed_thresh=cf.smooth_thresh,
+					smooth_file=f'{PATH_MAPS}{cf.survey_mask[:-4]}_smoothed{int(cf.smooth_thresh)}.hsp')
 	#retrieve relevant quantities from the mask data
 	above_thresh = mask.vpix
 	sum_w_above_thresh = mask.sum
