@@ -113,18 +113,25 @@ def makeMaskedFrac(cat, group=''):
 	add = lambda x,y : x+y
 	flagged = reduce(add, flags)
 
+	if cf.highres_first:
+		nside_mask = cf.nside_mask
+	else:
+		nside_mask = cf.nside_hi
+
 	#create counts map of all sources
-	Ntotal_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
+	Ntotal_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, nside_mask)
 	vpix_total = Ntotal_map.valid_pixels
 	#create counts map of flagged sources
-	Nflagged_map = pixelCountsFromCoords(ra[flagged], dec[flagged], cf.nside_lo, cf.nside_hi)
+	Nflagged_map = pixelCountsFromCoords(ra[flagged], dec[flagged], cf.nside_lo, nside_mask)
 	vpix_flagged = Nflagged_map.valid_pixels
 	#identify pixels that only contain unflagged sources
 	vpix_unflagged_only = np.array(list(set(vpix_total) - set(vpix_flagged)))
 	Nflagged_map[vpix_unflagged_only] = np.zeros(len(vpix_unflagged_only), dtype=np.int32)
 	#calculate the fraction of masked sources in each pixel
-	mf_map = hsp.HealSparseMap.make_empty(cf.nside_lo, cf.nside_hi, dtype=np.float64)
+	mf_map = hsp.HealSparseMap.make_empty(cf.nside_lo, nside_mask, dtype=np.float64)
 	mf_map[vpix_total] = Nflagged_map[vpix_total] / Ntotal_map[vpix_total]
+	if cf.highres_first:
+		mf_map = mf_map.degrade(cf.nside_hi, reduction='mean')
 
 	return mf_map
 
