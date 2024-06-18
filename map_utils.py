@@ -590,7 +590,8 @@ class MaskData:
 			smooth_file=None,
 			):
 		#load the HealSparse map and retrieve the high and low NSIDEs
-		self.mask = hsp.HealSparseMap.read(hsp_file)
+		self.filename = hsp_file
+		self.mask = hsp.HealSparseMap.read(self.filename)
 		self.nside = self.mask.nside_sparse
 		self.nside_cover = self.mask.nside_coverage
 		#now replace the mask with the full-sky version
@@ -599,9 +600,11 @@ class MaskData:
 		if smooth:
 			self._apply_smoothing(fwhm=fwhm_arcmin * np.pi / (180. * 60.), mapfile=smooth_file)
 			smooth_mask = self.mask_smoothed <= smoothed_thresh
+			self.smooth_fwhm_arcmin = fwhm_arcmin
 		else:
 			self.mask_smoothed = None
 			smooth_mask = False
+			self.smooth_fwhm_arcmin = None
 		#apply the mask threshold
 		self.mask[(self.mask <= mask_thresh) + smooth_mask] = 0.
 		#get the IDs of all pixels above the threshold
@@ -620,8 +623,11 @@ class MaskData:
 	
 	def _apply_smoothing(self, fwhm=0., mapfile=None):
 		import os
+		#if no mapfile provided, default to original filename with smoothing fwhm added
+		if mapfile is None:
+			mapfile = f'{self.filename[:-4]}_smoothed{int(self.smooth_fwhm_arcmin)}.hsp'
 		#see if a smoothed HealSparse map already exists
-		if (mapfile is not None) and os.path.exists(mapfile):
+		if os.path.exists(mapfile):
 			#load the smoothed mask from the file
 			self.mask_smoothed = hsp.HealSparseMap.read(mapfile).generate_healpix_map(nest=False)
 		else:
