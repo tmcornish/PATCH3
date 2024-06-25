@@ -116,20 +116,17 @@ def write_fieldsearch(
 		add_filters('_psfflux_flag', cat='forced2'),
 		add_filters('_psfflux_mag', cat='forced2'),
 		add_filters('_psfflux_magerr', cat='forced2'),
-		add_filters('_apertureflux_10_flux', cat='forced3'),
-		add_filters('_apertureflux_10_fluxerr', cat='forced3'),
-		add_filters('_apertureflux_10_flag', cat='forced3'),
-		add_filters('_apertureflux_10_mag', cat='forced3'),
-		add_filters('_apertureflux_10_magerr', cat='forced3'),
 		add_filters('_cmodel_flux'),
 		add_filters('_cmodel_fluxerr'),
 		add_filters('_cmodel_flux'),
 		add_filters('_cmodel_flag'),
 		add_filters('_cmodel_mag'),
 		add_filters('_cmodel_magerr'),
-		'masks.i_mask_brightstar_ghost15',
-		'masks.i_mask_brightstar_halo',
-		'masks.i_mask_brightstar_blooming',
+		add_filters('_mask_brightstar_ghost15', cat='masks'),
+		add_filters('_mask_brightstar_halo', cat='masks'),
+		add_filters('_mask_brightstar_blooming', cat='masks'),
+		add_filters('_mask_brightstar_dip', cat='masks'),
+		'masks.y_mask_brightstar_channel_stop'
 	]
 	if do_photoz:
 		pzcodes = ['demp', 'dnnz', 'mizu']
