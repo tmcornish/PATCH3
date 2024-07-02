@@ -5,7 +5,7 @@ import contextlib
 
 
 def add_photoz(mt):
-	quants = ['mean', 'mode', 'best', 'mc']
+	quants = ['mean', 'mode', 'best', 'mc', 'err68_min', 'err68_max', 'err95_min', 'err95_max']
 	sto = ',\n\t'.join([f'p{mt}.photoz_{q} as pz_{q}_{mt}' for q in quants])
 	return sto
 
