@@ -10,7 +10,8 @@ from astropy.io import fits
 import numpy as np
 import glob
 import h5py
-from output_utils import colour_string, error_message, write_output_hdf, h5py_dataset_iterator
+from output_utils import colour_string, write_output_hdf, h5py_dataset_iterator
+from gen_utils import error_message
 
 ### SETTINGS ###
 cf = config.cleanCats
