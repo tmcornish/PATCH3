@@ -156,7 +156,8 @@ class getData(cf_global):
 	#include photo-z information
 	photoz = True
 	#apply cuts based on existing flags in the catalogues
-	strict_cuts = True
+	apply_cuts = False
+	strict_cuts = False
 
 	#maximum number of sources allowed before catalogues split for field
 	Nmax = 20_000_000

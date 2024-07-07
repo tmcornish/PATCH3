@@ -71,6 +71,7 @@ def write_fieldsearch(
 	ra_range=None,
 	dec_range=None,
 	do_photoz=False,
+	apply_cuts=False,
 	strict_cuts=False,
 	do_download=False,
 	part=None
@@ -149,57 +150,59 @@ def write_fieldsearch(
 	stout2 = '\n\t'.join(stout2)
 	stout_final += stout2
 
-	stout_final += '\nWHERE\n\t'
-	stout3 = [
-		'forced.isprimary=True',
-		'forced.i_cmodel_flag_badcentroid=False',
-		'forced2.i_sdsscentroid_flag=False',
-		'forced.i_pixelflags_edge=False',
-		'forced.i_pixelflags_interpolatedcenter=False',
-		'forced.i_pixelflags_saturatedcenter=False',
-		'forced.i_pixelflags_crcenter=False',
-		'forced.i_pixelflags_bad=False',
-		'forced.i_pixelflags_suspectcenter=False',
-		'forced.i_pixelflags_clipped=False',
-		'meas.i_deblend_skipped=False'
-		]
-	if strict_cuts:
-		stout3 += [
-		'forced2.g_sdsscentroid_flag=False',
-		'forced2.r_sdsscentroid_flag=False',
-		'forced2.z_sdsscentroid_flag=False',
-		'forced2.y_sdsscentroid_flag=False',
-		'forced.g_cmodel_flag=False',
-		'forced.r_cmodel_flag=False',
-		'forced.i_cmodel_flag=False',
-		'forced.z_cmodel_flag=False',
-		'forced.y_cmodel_flag=False',
-		'forced2.g_psfflux_flag=False',
-		'forced2.r_psfflux_flag=False',
-		'forced2.i_psfflux_flag=False',
-		'forced2.z_psfflux_flag=False',
-		'forced2.y_psfflux_flag=False',
-		'forced.g_pixelflags_edge=False',
-		'forced.r_pixelflags_edge=False',
-		'forced.z_pixelflags_edge=False',
-		'forced.y_pixelflags_edge=False',
-		'forced.g_pixelflags_interpolatedcenter=False',
-		'forced.r_pixelflags_interpolatedcenter=False',
-		'forced.z_pixelflags_interpolatedcenter=False',
-		'forced.y_pixelflags_interpolatedcenter=False',
-		'forced.g_pixelflags_saturatedcenter=False',
-		'forced.r_pixelflags_saturatedcenter=False',
-		'forced.z_pixelflags_saturatedcenter=False',
-		'forced.y_pixelflags_saturatedcenter=False',
-		'forced.g_pixelflags_crcenter=False',
-		'forced.r_pixelflags_crcenter=False',
-		'forced.z_pixelflags_crcenter=False',
-		'forced.y_pixelflags_crcenter=False',
-		'forced.g_pixelflags_bad=False',
-		'forced.r_pixelflags_bad=False',
-		'forced.z_pixelflags_bad=False',
-		'forced.y_pixelflags_bad=False'
-		]
+	if apply_cuts or do_field or (ra_range is not None) or (dec_range is not None):
+		stout_final += '\nWHERE\n\t'
+	if apply_cuts:
+		stout3 = [
+			'forced.isprimary=True',
+			'forced.i_cmodel_flag_badcentroid=False',
+			'forced2.i_sdsscentroid_flag=False',
+			'forced.i_pixelflags_edge=False',
+			'forced.i_pixelflags_interpolatedcenter=False',
+			'forced.i_pixelflags_saturatedcenter=False',
+			'forced.i_pixelflags_crcenter=False',
+			'forced.i_pixelflags_bad=False',
+			'forced.i_pixelflags_suspectcenter=False',
+			'forced.i_pixelflags_clipped=False',
+			'meas.i_deblend_skipped=False'
+			]
+		if strict_cuts:
+			stout3 += [
+			'forced2.g_sdsscentroid_flag=False',
+			'forced2.r_sdsscentroid_flag=False',
+			'forced2.z_sdsscentroid_flag=False',
+			'forced2.y_sdsscentroid_flag=False',
+			'forced.g_cmodel_flag=False',
+			'forced.r_cmodel_flag=False',
+			'forced.i_cmodel_flag=False',
+			'forced.z_cmodel_flag=False',
+			'forced.y_cmodel_flag=False',
+			'forced2.g_psfflux_flag=False',
+			'forced2.r_psfflux_flag=False',
+			'forced2.i_psfflux_flag=False',
+			'forced2.z_psfflux_flag=False',
+			'forced2.y_psfflux_flag=False',
+			'forced.g_pixelflags_edge=False',
+			'forced.r_pixelflags_edge=False',
+			'forced.z_pixelflags_edge=False',
+			'forced.y_pixelflags_edge=False',
+			'forced.g_pixelflags_interpolatedcenter=False',
+			'forced.r_pixelflags_interpolatedcenter=False',
+			'forced.z_pixelflags_interpolatedcenter=False',
+			'forced.y_pixelflags_interpolatedcenter=False',
+			'forced.g_pixelflags_saturatedcenter=False',
+			'forced.r_pixelflags_saturatedcenter=False',
+			'forced.z_pixelflags_saturatedcenter=False',
+			'forced.y_pixelflags_saturatedcenter=False',
+			'forced.g_pixelflags_crcenter=False',
+			'forced.r_pixelflags_crcenter=False',
+			'forced.z_pixelflags_crcenter=False',
+			'forced.y_pixelflags_crcenter=False',
+			'forced.g_pixelflags_bad=False',
+			'forced.r_pixelflags_bad=False',
+			'forced.z_pixelflags_bad=False',
+			'forced.y_pixelflags_bad=False'
+			]
 	if do_field:
 		stout3 += [f"forced.field='{fieldname}'"]
 	
