@@ -152,75 +152,78 @@ def write_fieldsearch(
 
 	if apply_cuts or do_field or (ra_range is not None) or (dec_range is not None):
 		stout_final += '\nWHERE\n\t'
-	if apply_cuts:
-		stout3 = [
-			'forced.isprimary=True',
-			'forced.i_cmodel_flag_badcentroid=False',
-			'forced2.i_sdsscentroid_flag=False',
-			'forced.i_pixelflags_edge=False',
-			'forced.i_pixelflags_interpolatedcenter=False',
-			'forced.i_pixelflags_saturatedcenter=False',
-			'forced.i_pixelflags_crcenter=False',
-			'forced.i_pixelflags_bad=False',
-			'forced.i_pixelflags_suspectcenter=False',
-			'forced.i_pixelflags_clipped=False',
-			'meas.i_deblend_skipped=False'
-			]
-		if strict_cuts:
+		stout3 = []
+		if apply_cuts:
+			stout3 = [
+				'forced.isprimary=True',
+				'forced.i_cmodel_flag_badcentroid=False',
+				'forced2.i_sdsscentroid_flag=False',
+				'forced.i_pixelflags_edge=False',
+				'forced.i_pixelflags_interpolatedcenter=False',
+				'forced.i_pixelflags_saturatedcenter=False',
+				'forced.i_pixelflags_crcenter=False',
+				'forced.i_pixelflags_bad=False',
+				'forced.i_pixelflags_suspectcenter=False',
+				'forced.i_pixelflags_clipped=False',
+				'meas.i_deblend_skipped=False'
+				]
+			if strict_cuts:
+				stout3 += [
+				'forced2.g_sdsscentroid_flag=False',
+				'forced2.r_sdsscentroid_flag=False',
+				'forced2.z_sdsscentroid_flag=False',
+				'forced2.y_sdsscentroid_flag=False',
+				'forced.g_cmodel_flag=False',
+				'forced.r_cmodel_flag=False',
+				'forced.i_cmodel_flag=False',
+				'forced.z_cmodel_flag=False',
+				'forced.y_cmodel_flag=False',
+				'forced2.g_psfflux_flag=False',
+				'forced2.r_psfflux_flag=False',
+				'forced2.i_psfflux_flag=False',
+				'forced2.z_psfflux_flag=False',
+				'forced2.y_psfflux_flag=False',
+				'forced.g_pixelflags_edge=False',
+				'forced.r_pixelflags_edge=False',
+				'forced.z_pixelflags_edge=False',
+				'forced.y_pixelflags_edge=False',
+				'forced.g_pixelflags_interpolatedcenter=False',
+				'forced.r_pixelflags_interpolatedcenter=False',
+				'forced.z_pixelflags_interpolatedcenter=False',
+				'forced.y_pixelflags_interpolatedcenter=False',
+				'forced.g_pixelflags_saturatedcenter=False',
+				'forced.r_pixelflags_saturatedcenter=False',
+				'forced.z_pixelflags_saturatedcenter=False',
+				'forced.y_pixelflags_saturatedcenter=False',
+				'forced.g_pixelflags_crcenter=False',
+				'forced.r_pixelflags_crcenter=False',
+				'forced.z_pixelflags_crcenter=False',
+				'forced.y_pixelflags_crcenter=False',
+				'forced.g_pixelflags_bad=False',
+				'forced.r_pixelflags_bad=False',
+				'forced.z_pixelflags_bad=False',
+				'forced.y_pixelflags_bad=False'
+				]
+		if do_field:
+			stout3 += [f"forced.field='{fieldname}'"]
+		
+		if ra_range is not None:
 			stout3 += [
-			'forced2.g_sdsscentroid_flag=False',
-			'forced2.r_sdsscentroid_flag=False',
-			'forced2.z_sdsscentroid_flag=False',
-			'forced2.y_sdsscentroid_flag=False',
-			'forced.g_cmodel_flag=False',
-			'forced.r_cmodel_flag=False',
-			'forced.i_cmodel_flag=False',
-			'forced.z_cmodel_flag=False',
-			'forced.y_cmodel_flag=False',
-			'forced2.g_psfflux_flag=False',
-			'forced2.r_psfflux_flag=False',
-			'forced2.i_psfflux_flag=False',
-			'forced2.z_psfflux_flag=False',
-			'forced2.y_psfflux_flag=False',
-			'forced.g_pixelflags_edge=False',
-			'forced.r_pixelflags_edge=False',
-			'forced.z_pixelflags_edge=False',
-			'forced.y_pixelflags_edge=False',
-			'forced.g_pixelflags_interpolatedcenter=False',
-			'forced.r_pixelflags_interpolatedcenter=False',
-			'forced.z_pixelflags_interpolatedcenter=False',
-			'forced.y_pixelflags_interpolatedcenter=False',
-			'forced.g_pixelflags_saturatedcenter=False',
-			'forced.r_pixelflags_saturatedcenter=False',
-			'forced.z_pixelflags_saturatedcenter=False',
-			'forced.y_pixelflags_saturatedcenter=False',
-			'forced.g_pixelflags_crcenter=False',
-			'forced.r_pixelflags_crcenter=False',
-			'forced.z_pixelflags_crcenter=False',
-			'forced.y_pixelflags_crcenter=False',
-			'forced.g_pixelflags_bad=False',
-			'forced.r_pixelflags_bad=False',
-			'forced.z_pixelflags_bad=False',
-			'forced.y_pixelflags_bad=False'
-			]
-	if do_field:
-		stout3 += [f"forced.field='{fieldname}'"]
-	
-	if ra_range is not None:
-		stout3 += [
-			f'forced.ra>={ra_range[0]:.3f}',
-			f'forced.ra<{ra_range[1]:.3f}'
-			]
-	if dec_range is not None:
-		stout3 += [
-			f'forced.dec>={dec_range[0]:.3f}',
-			f'forced.dec<{dec_range[1]:.3f}'
-			]
-	
-	stout3 = ' and\n\t'.join(stout3)
+				f'forced.ra>={ra_range[0]:.3f}',
+				f'forced.ra<{ra_range[1]:.3f}'
+				]
+		if dec_range is not None:
+			stout3 += [
+				f'forced.dec>={dec_range[0]:.3f}',
+				f'forced.dec<{dec_range[1]:.3f}'
+				]
+		
+		stout3 = ' and\n\t'.join(stout3)
 
-	#stout_final = '\n'.join([stout, stout2, stout3]) + '\n;\n'
-	stout_final += stout3 + '\n;\n'
+		#stout_final = '\n'.join([stout, stout2, stout3]) + '\n;\n'
+		stout_final += stout3
+		
+	stout_final += '\n;\n'
 
 	with open(fname_out, 'w') as f:
 		f.write(stout_final)
