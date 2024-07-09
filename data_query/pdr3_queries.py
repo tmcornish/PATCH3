@@ -154,7 +154,7 @@ def write_fieldsearch(
 		stout_final += '\nWHERE\n\t'
 		stout3 = []
 		if apply_cuts:
-			stout3 = [
+			stout3 += [
 				'forced.isprimary=True',
 				'forced.i_cmodel_flag_badcentroid=False',
 				'forced2.i_sdsscentroid_flag=False',
