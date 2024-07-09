@@ -160,7 +160,7 @@ class getData(cf_global):
 	strict_cuts = False
 
 	#maximum number of sources allowed before catalogues split for field
-	Nmax = 20_000_000
+	Nmax = 10_000_000
 
 	@classmethod
 	def suffix(cls):
