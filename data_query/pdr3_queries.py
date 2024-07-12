@@ -128,7 +128,50 @@ def write_fieldsearch(
 		add_filters('_mask_brightstar_blooming', cat='masks'),
 		add_filters('_mask_brightstar_dip', cat='masks'),
 		'masks.y_mask_brightstar_channel_stop'
+		'forced.isprimary',
+		'forced.i_cmodel_flag_badcentroid',
+		'forced2.i_sdsscentroid_flag',
+		'forced.i_pixelflags_edge',
+		'forced.i_pixelflags_interpolatedcenter',
+		'forced.i_pixelflags_saturatedcenter',
+		'forced.i_pixelflags_crcenter',
+		'forced.i_pixelflags_bad',
+		'forced.i_pixelflags_suspectcenter',
+		'forced.i_pixelflags_clipped',
+		'meas.i_deblend_skipped'
+
 	]
+	if not apply_cuts:
+		stout += [
+			'forced.isprimary',
+			'forced.i_cmodel_flag_badcentroid'
+			'meas.i_deblend_skipped'
+			]
+		if strict_cuts:
+			stout += [
+				'i_cmodel_flag_badcentroid',
+				'i_sdss_centroid_flag',
+				'i_pixelflags_edge',
+				'i_pixelflags_interpolatedcenter',
+				'i_pixelflags_saturatedcenter',
+				'i_pixelflags_crcenter',
+				'i_pixelflags_bad',
+				'i_pixelflags_suspectcenter',
+				'i_pixelflags_clipped'
+			]
+		else:
+			stout += [
+				add_filters('_cmodel_flag_badcentroid'),
+				add_filters('_sdss_centroid_flag', cat='forced2'),
+				add_filters('_pixelflags_edge'),
+				add_filters('_pixelflags_interpolatedcenter'),
+				add_filters('_pixelflags_saturatedcenter'),
+				add_filters('_pixelflags_crcenter'),
+				add_filters('_pixelflags_bad'),
+				add_filters('_pixelflags_suspectcenter'),
+				add_filters('_pixelflags_clipped')
+			]
+
 	if do_photoz:
 		pzcodes = ['demp', 'dnnz', 'mizu']
 		stout += [add_photoz(mt) for mt in pzcodes]
