@@ -164,9 +164,11 @@ class getData(cf_global):
 
 	@classmethod
 	def suffix(cls):
-		suff = '_forced'
-		if not cls.strict_cuts:
-			suff += '_shearcat'
+		if cls.strict_cuts:
+			suff = ''
+		else:
+			suff = '_shearcat'
+		suff += '_forced'
 		return suff
 
 
