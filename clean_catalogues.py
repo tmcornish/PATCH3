@@ -240,7 +240,7 @@ for g in f_in_g:
 			l_final = len(data_all)
 		else: 
 			#see if catalogues exist for separate parts of the field
-			parts = sorted(glob.glob(f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}_part?{cf.suffix}.fits'))
+			parts = sorted(glob.glob(f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}_part??{cf.suffix}.fits'))
 			if len(parts) >= 1:
 				#set up a list to contain data from all catalogues associated with this field
 				data_all = []
