@@ -54,7 +54,7 @@ for fd in cf.fields:
 			decmax_now = decmin_now + ddec
 			
 			#write and submit a query for the data in this sub-field
-			write_fieldsearch(cf.dr, fd, f'{PATH_SQL}run_{fd.upper()}_part{i+1}.sql', dir_out=cf.PATH_DATA, do_photoz=cf.photoz, submit=cf.submit, apply_cuts=cf.apply_cuts, strict_cuts=cf.strict_cuts, dec_range=[decmin_now,decmax_now], do_download=cf.download, part=i+1)
+			write_fieldsearch(cf.dr, fd, f'{PATH_SQL}run_{fd.upper()}_part{i+1:02d}.sql', dir_out=cf.PATH_DATA, do_photoz=cf.photoz, submit=cf.submit, apply_cuts=cf.apply_cuts, strict_cuts=cf.strict_cuts, dec_range=[decmin_now,decmax_now], do_download=cf.download, part=i+1)
 	else:
 		write_fieldsearch(cf.dr, fd, f'{PATH_SQL}run_{fd.upper()}.sql', dir_out=cf.PATH_DATA, do_photoz=cf.photoz, submit=cf.submit, apply_cuts=cf.apply_cuts, strict_cuts=cf.strict_cuts, do_download=cf.download)
 

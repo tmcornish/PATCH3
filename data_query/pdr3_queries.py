@@ -93,7 +93,7 @@ def write_fieldsearch(
 		fname_job = f'{dir_out}{tablename.upper()}_{fieldname.upper()}'
 
 		if part is not None:
-			fname_job += f'_part{part}'
+			fname_job += f'_part{part:02d}'
 		if not strict_cuts:
 			fname_job += f'_shearcat'
 
