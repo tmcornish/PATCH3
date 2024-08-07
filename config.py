@@ -239,6 +239,10 @@ class makeMapsFromCat(cf_global):
 	bo_flags = [f'{cf_global.band}_mask_brightstar_ghost15',
 				f'{cf_global.band}_mask_brightstar_halo',
 				f'{cf_global.band}_mask_brightstar_blooming']
+	
+	#whether or not to include additional flags in the mask
+	incl_main = True
+	incl_strict = True
 
 
 #################################
