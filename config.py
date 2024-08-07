@@ -39,10 +39,10 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	#fields = ['hectomap']
+	fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	fields = ['combined']
+	#fields = ['combined']
 	#fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
@@ -96,13 +96,13 @@ class cf_global:
 	dustmaps = dustmap_names(bands, nside_hi)
 	bo_mask = f'bo_mask_{nside_hi}.hsp'
 	masked_frac = f'masked_fraction_{nside_hi}.hsp'
-	survey_mask = f'survey_mask_{nside_hi}_nodegrade.hsp'
+	survey_mask = f'survey_mask_{nside_hi}.hsp'
 	star_map = f'star_counts_{nside_hi}.hsp'
 	depth_map = f'depth_map_{nside_hi}.hsp'
 
 	#basenames for the count and density maps
-	ngal_maps = f'ngal_maps_{nside_hi}_nodegrade_smoothedmask.hsp'
-	deltag_maps = f'deltag_maps_{nside_hi}_nodegrade_smoothedmask.hsp'
+	ngal_maps = f'ngal_maps_{nside_hi}.hsp'
+	deltag_maps = f'deltag_maps_{nside_hi}.hsp'
 
 	#redshift column to use for tomography
 	zcol = 'pz_best_dnnz'
