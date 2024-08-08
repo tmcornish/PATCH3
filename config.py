@@ -234,15 +234,15 @@ class makeMapsFromCat(cf_global):
 	highres_first = False
 	#NSIDE for the upgraded-resolution version of the bright object mask
 	nside_mask = 16384
-
-	#column names for flags identifying sources near bright objects
-	bo_flags = [f'{cf_global.band}_mask_brightstar_ghost15',
-				f'{cf_global.band}_mask_brightstar_halo',
-				f'{cf_global.band}_mask_brightstar_blooming']
 	
-	#whether or not to include additional flags in the mask
-	incl_main = True
-	incl_strict = True
+	#types of flag to include in the mask (see flags.py for definitions)
+	flags_to_mask = [
+		'brightstar',
+		#'main',
+		#'strict'
+	]
+	#whether or not to include the y-band channel stop in the brightstar flags
+	incl_channelstop = False
 
 
 #################################
