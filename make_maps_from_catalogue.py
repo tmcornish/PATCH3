@@ -21,11 +21,40 @@ from functools import reduce
 
 ### SETTINGS ###
 cf = config.makeMapsFromCat
+npix = hp.nside2npix(cf.nside_hi)
 
 
 ###################
 #### FUNCTIONS ####
 ###################
+
+
+def makeFootprint(cat, group=''):
+	'''
+	Defines the survey footprint as any pixel in a map of resolution NSIDE within which
+	there are sources. Returns a boolean healpix map.
+
+	Parameters
+	----------
+	cat: h5py.File object
+		Catalogue containing (at least): RAs, Decs.
+	
+	group: str
+		Group within which the relevant data are expected to reside.
+
+	Returns
+	-------
+	footprint: array
+		Healpix map containing True at all pixels in which sources exist.
+	'''
+
+	print('Determining survey footprint for the current field...')
+
+	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'{group}/ra'][:], cat[f'{group}/dec'][:], lonlat=True)
+	nall = np.bincount(ipix_all, minlength=npix)
+	footprint = nall > 0
+
+	return footprint
 
 
 def makeDustMap(cat, group='', band='i'):
