@@ -15,6 +15,7 @@ flags_brightstar = [
 	'_mask_brightstar_blooming',
 	#'_mask_brightstar_dip'
 ]
+flag_channelstop = 'y_mask_brightstar_channel_stop'
 
 #flags associated with the primary photometric band
 flags_main = [
@@ -92,7 +93,7 @@ def get_flags(b_primary, b_secondary=[], types=['main'], incl_channelstop=False)
 		else:
 			flags_all += [f'{b_primary}{fl}' for fl in flags_brightstar]
 			if incl_channelstop:
-				flags_all += ['y_mask_brightstar_channel_stop']
+				flags_all += [flag_channelstop]
 	
 	return list(set(flags_all))
 
