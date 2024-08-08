@@ -95,3 +95,42 @@ def get_flags(b_primary, b_secondary=[], types=['main'], incl_channelstop=False)
 				flags_all += ['y_mask_brightstar_channel_stop']
 	
 	return list(set(flags_all))
+
+
+
+def combine_flags(dataset, flagcols, combine_type='or'):
+	'''
+	Combines flag columns with the specified operation ('and' or 'or').
+
+	Parameters
+	----------
+	dataset: HDF5 Dataset or Group
+		Dataset containing the relevant flags.
+	
+	flagcols: list
+		List of all columns containing the flags to be combined.
+
+	combine_type: str
+		Operation to be used to combine the flags ('and' or 'or').
+
+	Returns
+	-------
+	flags_comb: array-like
+		The result of combining the flags.
+	'''
+
+	#see if valid combine_type has been chosen
+	combine_type = combine_type.lower()
+	if combine_type not in ['or', 'and']:
+		raise TypeError('combine_type must be either "and" or "or" (capital letters allowed).')
+
+	if combine_type == 'or':
+		combine = lambda x,y : x + y
+	else:
+		combine = lambda x,y : x * y
+	
+	flags_comb = [dataset[fl][:] for fl in flagcols]
+	from functools import reduce
+	flags_comb = reduce(combine, flags_comb)
+
+	return flags_comb
