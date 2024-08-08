@@ -29,7 +29,7 @@ npix = hp.nside2npix(cf.nside_hi)
 ###################
 
 
-def makeFootprint(cat, group=''):
+def makeFootprint(cat, group='', keep=None):
 	'''
 	Defines the survey footprint as any pixel in a map of resolution NSIDE within which
 	there are sources. Returns a boolean healpix map.
@@ -41,6 +41,10 @@ def makeFootprint(cat, group=''):
 	
 	group: str
 		Group within which the relevant data are expected to reside.
+	
+	keep: array or None
+		Boolean array with length equal to the input catalogue, specifying
+		which sources to keep. If set to None, will keep all sources.
 
 	Returns
 	-------
@@ -50,7 +54,12 @@ def makeFootprint(cat, group=''):
 
 	print('Determining survey footprint for the current field...')
 
-	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'{group}/ra'][:], cat[f'{group}/dec'][:], lonlat=True)
+	#see if sources are to be removed when considering the footprint
+	if keep is None:
+		keep = np.ones_like(cat[f'{group}/ra'][:], dtype=bool)
+	#get the pixel IDs corresponding to each source
+	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'{group}/ra'][keep], cat[f'{group}/dec'][keep], lonlat=True)
+	#identify pixels where sources exist
 	nall = np.bincount(ipix_all, minlength=npix)
 	footprint = nall > 0
 
