@@ -17,7 +17,7 @@ import numpy as np
 from output_utils import colour_string
 from map_utils import *
 import h5py
-from functools import reduce
+import flags as fl
 
 ### SETTINGS ###
 cf = config.makeMapsFromCat
@@ -78,7 +78,8 @@ def makeBOMask(cat, group=''):
 	ra = cat[f'{group}/ra'][:]
 	dec = cat[f'{group}/dec'][:]
 	#get the columns containing bright-object flags
-	flags = [cat[f'{group}/{flag_col}'][:] for flag_col in cf.bo_flags]
+	flags = fl.get_flags(cf.band, cf.bands, types=['brightstar'], incl_channelstop=cf.incl_channelstop)
+	flags = [cat[f'{group}/{flag}'][:] for flag in flags] 
 
 	bo_mask = createMask(ra, dec, flags, cf.nside_lo, cf.nside_hi)
 
@@ -107,11 +108,10 @@ def makeMaskedFrac(cat, group=''):
 	#get the RAs and Decs of all sources in the catalogue
 	ra = cat[f'{group}/ra'][:]
 	dec = cat[f'{group}/dec'][:]
-	#get the columns containing bright-object flags
-	flags = [cat[f'{group}/{flag_col}'][:] for flag_col in cf.bo_flags]
-	#add all the masks together
-	add = lambda x,y : x+y
-	flagged = reduce(add, flags)
+	#get the columns containing the flags to be incorporated in the mask
+	flags = fl.get_flags(cf.band, cf.bands, types=cf.flags_to_mask, incl_channelstop=cf.incl_channelstop)
+	#combine the flags
+	flagged = fl.combine_flags(cat[f'{group}'], flags)
 
 	if cf.highres_first:
 		nside_mask = cf.nside_mask
