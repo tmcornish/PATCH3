@@ -3,7 +3,7 @@
 # and means of retrieving them for analysis.
 #####################################################################################################
 
-#only sources with these flags set to False must be included in analysis
+#only sources with these flags set to True must be included in analysis
 flags_keep = [
 	'isprimary'
 ]
