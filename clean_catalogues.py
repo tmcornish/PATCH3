@@ -37,6 +37,7 @@ def basic_clean(t):
 	'''
 
 	sel = np.ones(len(t), dtype=bool)
+
 	#create an empty list to which column names with the 'is_null' suffix will be appended
 	isnull_names = []
 
@@ -48,7 +49,7 @@ def basic_clean(t):
 		else:
 			#want to remove NaNs UNLESS they are photo-zs
 			if not key.startswith('pz_'):
-				sel[np.isnan(t[key])]
+				sel[np.isnan(t[key])] = 0
 
 	t.remove_columns(isnull_names)
 	t = t[sel]
