@@ -41,7 +41,7 @@ def basic_clean(t):
 	#first, remove any sources that don't satisfy all of the flags_keep (see flags.py for definitions)
 	import flags as fl
 	for k in fl.flags_keep:
-		sel *= ~t[k]
+		sel *= t[k]
 		
 	#create an empty list to which column names with the 'is_null' suffix will be appended
 	isnull_names = []
