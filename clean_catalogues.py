@@ -54,6 +54,20 @@ def basic_clean(t):
 	#also remove any sources that are not primary detections
 	sel *= t['isprimary']
 
+	#if told to apply 'main' and 'strict'  cuts at this stage, do so
+	if len(cf.remove_if_flagged) > 0:
+		import flags as fl
+		to_remove = fl.combine_flags(
+						t,
+						fl.get_flags(
+							cf.band,
+							cf.secondary_bands(),
+							cf.remove_if_flagged
+						),
+						combine_type='or'
+		)
+		sel *= ~to_remove
+
 	t.remove_columns(isnull_names)
 	t = t[sel]
 
