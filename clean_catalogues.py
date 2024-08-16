@@ -37,11 +37,6 @@ def basic_clean(t):
 	'''
 
 	sel = np.ones(len(t), dtype=bool)
-
-	#first, remove any sources that don't satisfy all of the flags_keep (see flags.py for definitions)
-	import flags as fl
-	for k in fl.flags_keep:
-		sel *= t[k]
 		
 	#create an empty list to which column names with the 'is_null' suffix will be appended
 	isnull_names = []
@@ -55,6 +50,9 @@ def basic_clean(t):
 			#want to remove NaNs UNLESS they are photo-zs
 			if not key.startswith('pz_'):
 				sel[np.isnan(t[key])] = 0
+	
+	#also remove any sources that are not primary detections
+	sel *= t['isprimary']
 
 	t.remove_columns(isnull_names)
 	t = t[sel]
