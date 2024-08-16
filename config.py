@@ -141,6 +141,13 @@ class cf_global:
 		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
 		return pairings, pairings_s
 
+	@classmethod
+	def secondary_bands(cls):
+		'''
+		Returns a list containing only the secondary bands used in the
+		analysis.
+		'''
+		return [b for b in cls.bands if b != cls.band]
 
 ##################
 #### get_data ####
@@ -199,6 +206,12 @@ class splitMetadata(cf_global):
 class cleanCats(cf_global):
 
 	name = 'cleanCats'
+
+	#types of flag to apply during basic cleaning (can be empty)
+	remove_if_flagged = [
+		#'main',
+		#'strict'
+	]
 
 	#parts of the naming structure for raw data files
 	prefix = f'{cf_global.dr.upper()}_'
