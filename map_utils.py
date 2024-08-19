@@ -172,7 +172,7 @@ def countsInPixels(ra, dec, nside_cover, nside_sparse, pix_ids, return_vals=Fals
 	weights[np.in1d(px_data, pix_ids)] = 1
 
 	#count the number of sources in each pixel (going from 0 to max(px_data))
-	N = np.bincount(px_data, weights=weights).astype(np.int32)
+	N = np.bincount(px_data, weights=weights, minlength=hp.nside2npix(nside_sparse)).astype(np.int32)
 	#fill the map at these positions with the number of sources in the pixel
 	counts_map[pix_ids] = N[pix_ids]
 
