@@ -317,6 +317,11 @@ for fd in cf.get_global_fields():
 	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
 	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')
 
+	#make the footprint for the current field
+	footprint = makeFootprint(cat_basic, group='photometry', keep=None)
+	#write to a file
+	footprint.write(f'{OUT}/{cf.footprint}', clobber=True)
+
 	for b,dm in zip(cf.bands, cf.dustmaps):
 		#make the dust maps in the current band
 		dust_map = makeDustMap(cat_basic, group='photometry', band=b)
