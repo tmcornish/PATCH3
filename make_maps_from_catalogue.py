@@ -32,7 +32,7 @@ npix = hp.nside2npix(cf.nside_hi)
 def makeFootprint(cat, group='', keep=None):
 	'''
 	Defines the survey footprint as any pixel in a map of resolution NSIDE within which
-	there are sources. Returns a boolean healpix map.
+	there are sources. Returns a boolean HealSparse map.
 
 	Parameters
 	----------
@@ -48,8 +48,8 @@ def makeFootprint(cat, group='', keep=None):
 
 	Returns
 	-------
-	footprint: array
-		Healpix map containing True at all pixels in which sources exist.
+	footprint: HealSparseMap
+		HealSparse map containing True at all pixels in which sources exist.
 	'''
 
 	print('Determining survey footprint for the current field...')
@@ -62,8 +62,12 @@ def makeFootprint(cat, group='', keep=None):
 	#identify pixels where sources exist
 	nall = np.bincount(ipix_all, minlength=npix)
 	footprint = nall > 0
+	#set up empty HealSparse boolean map
+	footprint_hsp = hsp.HealSparseMap.make_empty(cf.nside_lo, cf.nside_hi, bool)
+	#fill the occupied pixels with True
+	footprint_hsp[np.where(footprint)[0]] = True
 
-	return footprint
+	return footprint_hsp
 
 
 def makeDustMap(cat, group='', band='i'):
