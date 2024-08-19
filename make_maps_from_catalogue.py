@@ -29,18 +29,15 @@ npix = hp.nside2npix(cf.nside_hi)
 ###################
 
 
-def makeFootprint(cat, group='', keep=None):
+def makeFootprint(cat, keep=None):
 	'''
 	Defines the survey footprint as any pixel in a map of resolution NSIDE within which
 	there are sources. Returns a boolean HealSparse map.
 
 	Parameters
 	----------
-	cat: h5py.File object
+	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs, Decs.
-	
-	group: str
-		Group within which the relevant data are expected to reside.
 	
 	keep: array or None
 		Boolean array with length equal to the input catalogue, specifying
@@ -56,9 +53,9 @@ def makeFootprint(cat, group='', keep=None):
 
 	#see if sources are to be removed when considering the footprint
 	if keep is None:
-		keep = np.ones_like(cat[f'{group}/ra'][:], dtype=bool)
+		keep = np.ones_like(cat[f'ra'][:], dtype=bool)
 	#get the pixel IDs corresponding to each source
-	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'{group}/ra'][keep], cat[f'{group}/dec'][keep], lonlat=True)
+	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'ra'][keep], cat[f'dec'][keep], lonlat=True)
 	#identify pixels where sources exist
 	nall = np.bincount(ipix_all, minlength=npix)
 	footprint = nall > 0
@@ -70,18 +67,15 @@ def makeFootprint(cat, group='', keep=None):
 	return footprint_hsp
 
 
-def makeDustMap(cat, group='', band='i'):
+def makeDustMap(cat, band='i'):
 	'''
 	Creates dust maps for each of the specified bands.
 
-	Paameters
+	Parameters
 	---------
-	cat: h5py.File object
+	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs, Decs, and dust attenuation values at each of these
 		coordinates in each of the specified bands.
-
-	group: str
-		Group within which the relevant data are expected to reside.
 
 	Returns
 	-------
@@ -92,22 +86,19 @@ def makeDustMap(cat, group='', band='i'):
 	print(f'Creating dust map (band {band})...')
 
 	#cycle through the bands and calculate the mean dust attenuation in each pixel
-	dust_map, _ = createMeanStdMap(cat[f'{group}/ra'][:], cat[f'{group}/dec'][:], cat[f'{group}/a_{band}'][:], cf.nside_lo, cf.nside_hi)
+	dust_map, _ = createMeanStdMap(cat[f'ra'][:], cat[f'dec'][:], cat[f'a_{band}'][:], cf.nside_lo, cf.nside_hi)
 
 	return dust_map
 
 
-def makeBOMask(cat, group=''):
+def makeBOMask(cat):
 	'''
 	Creates bright object mask.
 
-	Paameters
+	Parameters
 	---------
-	cat: h5py.File object
+	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs, Decs.
-
-	group: str
-		Group within which the relevant data are expected to reside.
 
 	Returns
 	-------
@@ -117,28 +108,25 @@ def makeBOMask(cat, group=''):
 
 	print('Creating bright object mask...')
 	#get the RAs and Decs of all sources in the catalogue
-	ra = cat[f'{group}/ra'][:]
-	dec = cat[f'{group}/dec'][:]
+	ra = cat[f'ra'][:]
+	dec = cat[f'dec'][:]
 	#get the columns containing bright-object flags
-	flags = [cat[f'{group}/{flag_col}'][:] for flag_col in cf.bo_flags]
+	flags = [cat[f'{flag_col}'][:] for flag_col in cf.bo_flags]
 
 	bo_mask = createMask(ra, dec, flags, cf.nside_lo, cf.nside_hi)
 
 	return bo_mask
 
 
-def makeMaskedFrac(cat, group=''):
+def makeMaskedFrac(cat):
 	'''
 	Creates a map showing the fraction of each pixel that is maske by the bright object criteria.
 
-	Paameters
+	Parameters
 	---------
-	cat: h5py.File object
+	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs, Decs.
-
-	group: str
-		Group within which the relevant data are expected to reside.
-
+	
 	Returns
 	-------
 	mf_map: HealSparseMap
@@ -147,10 +135,10 @@ def makeMaskedFrac(cat, group=''):
 
 	print('Creating masked fraction map...')
 	#get the RAs and Decs of all sources in the catalogue
-	ra = cat[f'{group}/ra'][:]
-	dec = cat[f'{group}/dec'][:]
+	ra = cat[f'ra'][:]
+	dec = cat[f'dec'][:]
 	#get the columns containing bright-object flags
-	flags = [cat[f'{group}/{flag_col}'][:] for flag_col in cf.bo_flags]
+	flags = [cat[f'{flag_col}'][:] for flag_col in cf.bo_flags]
 	#add all the masks together
 	add = lambda x,y : x+y
 	flagged = reduce(add, flags)
@@ -178,17 +166,14 @@ def makeMaskedFrac(cat, group=''):
 	return mf_map
 
 
-def makeStarMap(cat, group=''):
+def makeStarMap(cat):
 	'''
 	Creates map showing the number of stars in each pixel.
 
-	Paameters
+	Parameters
 	---------
-	cat: h5py.File object
+	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs and Decs of each star detected in the field.
-
-	group: str
-		Group within which the relevant data are expected to reside.
 
 	Returns
 	-------
@@ -197,8 +182,8 @@ def makeStarMap(cat, group=''):
 	'''
 	print('Creating star counts map...')
 	#get the RAs and Decs of all sources in the catalogue
-	ra = cat[f'{group}/ra'][:]
-	dec = cat[f'{group}/dec'][:]
+	ra = cat[f'ra'][:]
+	dec = cat[f'dec'][:]
 
 	#count the stars in each pixel
 	star_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
@@ -206,17 +191,14 @@ def makeStarMap(cat, group=''):
 	return star_map
 
 
-def makeDepthMap(cat, group='', stars_only=True):
+def makeDepthMap(cat, stars_only=True):
 	'''
 	Creates map showing the number of stars in each pixel.
 
-	Paameters
+	Parameters
 	---------
-	cat: h5py.File object
+	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs and Decs of each star detected in the field.
-
-	group: str
-		Group within which the relevant data are expected to reside.
 
 	stars_only: bool
 		Whether to just use stars for the calculation of the depth.
@@ -230,25 +212,25 @@ def makeDepthMap(cat, group='', stars_only=True):
 	print('Creating depth map...')
 	'''
 	#begin by calculating SNR of each source in the primary band
-	snrs = cat[f'{group}/{cf.band}_cmodel_flux'][:] / cat[f'{group}/{cf.band}_cmodel_fluxerr'][:]
+	snrs = cat[f'{cf.band}_cmodel_flux'][:] / cat[f'{cf.band}_cmodel_fluxerr'][:]
 	'''
 	#if told to use stars only, use flags to identify which sources are stars
 	if stars_only:
 		try:
-			star_mask = cat[f'{group}/is_star'][:]
+			star_mask = cat[f'is_star'][:]
 		except KeyError:
-			print(colour_string('Error: '), f'No dataset "{group}/is_star" found. Using all sources instead.')
-			star_mask = np.full(len(cat[f'{group}/ra']), True)
+			print(colour_string('Error: '), f'No dataset "is_star" found. Using all sources instead.')
+			star_mask = np.full(len(cat[f'ra']), True)
 	else:
-		star_mask = np.full(len(cat[f'{group}/ra']), True)
+		star_mask = np.full(len(cat[f'ra']), True)
 
 	#get the RAs and Decs of all sources in the catalogue
-	ra = cat[f'{group}/ra'][star_mask]
-	dec = cat[f'{group}/dec'][star_mask]
+	ra = cat[f'ra'][star_mask]
+	dec = cat[f'dec'][star_mask]
 
 
 	#retrieve the flux error in the primary band for each source
-	fluxerr = cat[f'{group}/{cf.band}_cmodel_fluxerr'][star_mask]
+	fluxerr = cat[f'{cf.band}_cmodel_fluxerr'][star_mask]
 	#retrieve the SNR threshold
 	snr_thresh = int(cf.sn_pri)
 
@@ -313,9 +295,9 @@ for fd in cf.get_global_fields():
 		os.system(f'mkdir -p {PATH_SYST}')
 
 	#load the basic and fully cleaned galaxy/star catalogues for this field
-	cat_basic = h5py.File(f'{OUT}/{cf.cat_basic}', 'r')
-	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
-	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')
+	cat_basic = h5py.File(f'{OUT}/{cf.cat_basic}', 'r')['photometry']
+	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')['photometry']
+	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')['photometry']
 
 	#make the footprint for the current field
 	footprint = makeFootprint(cat_basic, group='photometry', keep=None)
