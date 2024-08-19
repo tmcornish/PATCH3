@@ -300,34 +300,34 @@ for fd in cf.get_global_fields():
 	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')['photometry']
 
 	#make the footprint for the current field
-	footprint = makeFootprint(cat_basic, group='photometry', keep=None)
+	footprint = makeFootprint(cat_basic, keep=None)
 	#write to a file
 	footprint.write(f'{OUT}/{cf.footprint}', clobber=True)
 
 	for b,dm in zip(cf.bands, cf.dustmaps):
 		#make the dust maps in the current band
-		dust_map = makeDustMap(cat_basic, group='photometry', band=b)
+		dust_map = makeDustMap(cat_basic, band=b)
 		#write to a file
 		dust_map.write(f'{PATH_SYST}/{dm}', clobber=True)
 
 	#make the bright object mask
-	bo_mask = makeBOMask(cat_basic, group='photometry')
+	bo_mask = makeBOMask(cat_basic)
 	#write to a file
 	bo_mask.write(f'{OUT}/{cf.bo_mask}', clobber=True)
 	healsparseToHDF(bo_mask, f'{OUT}/{cf.bo_mask[:-4]}.hdf5', group='maps/mask')
 
 	#make the masked fraction map
-	mf_map = makeMaskedFrac(cat_basic, group='photometry')
+	mf_map = makeMaskedFrac(cat_basic)
 	#write to a file
 	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)
 
 	#make the star counts map
-	star_map = makeStarMap(cat_stars, group='photometry')
+	star_map = makeStarMap(cat_stars)
 	#write to a file
 	star_map.write(f'{PATH_SYST}/{cf.star_map}', clobber=True)
 
 	#make the depth map
-	depth_map = makeDepthMap(cat_basic, group='photometry', stars_only=True)
+	depth_map = makeDepthMap(cat_basic, stars_only=True)
 	#write to a file
 	depth_map.write(f'{OUT}/{cf.depth_map}', clobber=True)
 
