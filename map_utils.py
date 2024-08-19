@@ -218,9 +218,9 @@ def pixelMeanStd(quant, pix, remove_zeros=True):
 		qmean = qsum[good] / N[good]
 		qmeansq = qmean ** 2.
 		qvar = (qsqsum[good] - (2 * qmean * qsum[good])) / N[good] + qmeansq
-		#identify pixels for which the variance is < a millionth of the squared mean (arises from rounding errors)
-		zero_var = np.isclose(np.zeros(len(qvar)), qvar, atol=1e-6*qmeansq)
-		qvar[zero_var] = 0.
+		#identify pixels for which the variance is negative (arises from rounding errors)
+		nve_var = qvar < 0.
+		qvar[nve_var] = 0.
 		qstd = np.sqrt(qvar)
 	else:
 		#suppress numpy DivideByZero warnings
