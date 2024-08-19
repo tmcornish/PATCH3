@@ -55,7 +55,7 @@ def makeFootprint(cat, keep=None):
 	if keep is None:
 		keep = np.ones_like(cat[f'ra'][:], dtype=bool)
 	#get the pixel IDs corresponding to each source
-	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'ra'][keep], cat[f'dec'][keep], lonlat=True)
+	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'ra'][keep], cat[f'dec'][keep], lonlat=True, nest=True)
 	#identify pixels where sources exist
 	nall = np.bincount(ipix_all, minlength=npix)
 	footprint = nall > 0
