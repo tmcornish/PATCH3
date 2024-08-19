@@ -165,7 +165,7 @@ def countsInPixels(ra, dec, nside_cover, nside_sparse, pix_ids, return_vals=Fals
 	#initialise a HealSparse integer map
 	counts_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.int32)
 	#convert the provided coordinates into pixel IDs
-	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	px_data = hp.ang2pix(nside_sparse, ra, dec, nest=True, lonlat=True)
 	#make an array of weights for counting galaxies in each pixel
 	weights = np.zeros_like(px_data)
 	#give specified pixels a weight of 1
