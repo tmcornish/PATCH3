@@ -39,10 +39,10 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	#fields = ['hectomap']
+	fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
-	fields = ['combined']
+	#fields = ['combined']
 	#fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
@@ -219,26 +219,6 @@ class cleanCats(cf_global):
 		return f_in_g
 
 
-
-##################################
-#### make_maps_from_catalogue ####
-##################################
-
-class makeMapsFromCat(cf_global):
-
-	name = 'makeMapsFromCat'
-
-	#whether or not to initially make the map at high resolution and degrade
-	highres_first = False
-	#NSIDE for the upgraded-resolution version of the bright object mask
-	nside_mask = 16384
-
-	#column names for flags identifying sources near bright objects
-	bo_flags = [f'{cf_global.band}_mask_brightstar_ghost15',
-				f'{cf_global.band}_mask_brightstar_halo',
-				f'{cf_global.band}_mask_brightstar_blooming']
-
-
 #################################
 #### make_maps_from_metadata ####
 #################################
@@ -252,6 +232,26 @@ class makeMapsFromMetadata(splitMetadata):
 	#number of cores to use if running locally (if running on glamdring need to specify that elsewhere)
 	ncores = 18
 	
+
+##################################
+#### make_maps_from_catalogue ####
+##################################
+
+class makeMapsFromCat(cf_global):
+
+	name = 'makeMapsFromCat'
+
+	#whether or not to initially make the map at high resolution and degrade
+	highres_first = False
+	#NSIDE for the upgraded-resolution version of the bright object mask
+	nside_mask = 8192
+
+	#column names for flags identifying sources near bright objects
+	bo_flags = [f'{cf_global.band}_mask_brightstar_ghost15',
+				f'{cf_global.band}_mask_brightstar_halo',
+				f'{cf_global.band}_mask_brightstar_blooming']
+
+
 
 ##########################
 #### make_galaxy_maps ####
