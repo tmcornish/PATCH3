@@ -18,12 +18,12 @@ import output_utils as opu
 get_data = False		#run data acquisition script
 split_meta = False		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
-catbased_maps = False	#make maps for various quantities using the catalogue
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
+catbased_maps = True	#make maps for various quantities using the catalogue
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
-theory_cells = True		#compute theoretical angular power spectra
+theory_cells = False		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
 plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
@@ -35,8 +35,8 @@ settings = [
 	get_data,
 	split_meta,
 	clean_cats,
-	catbased_maps,
 	metadata_maps,
+	catbased_maps,
 	galaxy_maps,
 	combine_fields,
 	pca_systs,
@@ -50,8 +50,8 @@ proc = [
 	'Downloading data from HSC database',
 	'Splitting metadata by field',
 	'Cleaning catalogues',
-	'Making maps from catalogue data',
 	'Making maps from frame metadata',
+	'Making maps from catalogue data',
 	'Making galaxy count and density maps in z bins',
 	'Combining maps from all fields',
 	'Performing PCA',
@@ -65,8 +65,8 @@ run_str = [
 	'cd data_query/ && python -u get_data.py; cd ..',
 	'python -u split_metadata.py',
 	'python -u clean_catalogues.py',
-	'python -u make_maps_from_catalogue.py',
 	'python -u make_maps_from_metadata.py',
+	'python -u make_maps_from_catalogue.py',
 	'python -u make_galaxy_maps.py',
 	'python -u combine_fields.py',
 	'python -u pca_systematics.py',
