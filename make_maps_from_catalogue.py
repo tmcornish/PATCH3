@@ -273,20 +273,17 @@ def makeSurveyMask(cat, depth_map=None):
 		# then upgraded to high resolution (HealSparse format)
 		fp = makeFootprint(cat, cf.nside_hi).upgrade(nside)
 		# then the masked fraction must be computed at high resolution (HealSparse format)
-		mf_map = makeMaskedFrac(cat, nside)
-		# initially define the mask in HealPy format at high resolution
-		mask = np.zeros(hp.nside2npix(nside))
+		mask = makeMaskedFrac(cat, nside)
+		vpix = mask.valid_pixels
 		# fill valid pixels using the masked fraction map
-		mask[mf_map.valid_pixels] = 1. - mf_map[mf_map.valid_pixels]
+		mask[vpix] = 1. - mask[vpix]
 		# identify valid pixels in the footprint
-		vpix = fp.valid_pixels
-		# construct a mask for identifying pixels with sources in the footprint
-		fp_bin = np.zeros(hp.nside2npix(nside), dtype=bool)
-		fp_bin[vpix] = True
-		# set all other pixels in the mask equal to UNSEEN
-		mask[~fp_bin] = hp.UNSEEN
-		#convert this to a HealSparse map and degrade to the final resolution
-		mask = hsp.HealSparseMap(nside_coverage=32, healpix_map=mask, nest=True)
+		vpix_fp = fp.valid_pixels
+		# identify which of these pixels were not valid in the masked fraction map
+		vpix_empty = list(set(vpix_fp) - set(vpix))
+		#set these pixels equal to 0
+		mask[vpix_empty] = 0.
+		#degrade the mask to the final resolution
 		mask = mask.degrade(cf.nside_hi)
 	else:
 		#otherwise, define the mask simply as 1-masked_fraction
