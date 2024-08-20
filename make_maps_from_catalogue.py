@@ -29,7 +29,7 @@ npix = hp.nside2npix(cf.nside_hi)
 ###################
 
 
-def makeFootprint(cat, keep=None):
+def makeFootprint(cat, nside, keep=None):
 	'''
 	Defines the survey footprint as any pixel in a map of resolution NSIDE within which
 	there are sources. Returns a boolean HealSparse map.
@@ -39,6 +39,10 @@ def makeFootprint(cat, keep=None):
 	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs, Decs.
 	
+	nside: int
+		Determines the resolution of the footprint. (Left as an argument rather
+		than using the value in the config file for flexibility.)
+		
 	keep: array or None
 		Boolean array with length equal to the input catalogue, specifying
 		which sources to keep. If set to None, will keep all sources.
@@ -49,18 +53,18 @@ def makeFootprint(cat, keep=None):
 		HealSparse map containing True at all pixels in which sources exist.
 	'''
 
-	print('Determining survey footprint for the current field...')
+	print(f'Determining survey footprint at NSIDE={nside}...')
 
 	#see if sources are to be removed when considering the footprint
 	if keep is None:
 		keep = np.ones_like(cat[f'ra'][:], dtype=bool)
 	#get the pixel IDs corresponding to each source
-	ipix_all = hp.ang2pix(cf.nside_hi, cat[f'ra'][keep], cat[f'dec'][keep], lonlat=True, nest=True)
+	ipix_all = hp.ang2pix(nside, cat[f'ra'][keep], cat[f'dec'][keep], lonlat=True, nest=True)
 	#identify pixels where sources exist
 	nall = np.bincount(ipix_all, minlength=npix)
 	footprint = nall > 0
 	#set up empty HealSparse boolean map
-	footprint_hsp = hsp.HealSparseMap.make_empty(cf.nside_lo, cf.nside_hi, bool)
+	footprint_hsp = hsp.HealSparseMap.make_empty(cf.nside_lo, nside, bool)
 	#fill the occupied pixels with True
 	footprint_hsp[np.where(footprint)[0]] = True
 
@@ -118,7 +122,7 @@ def makeBOMask(cat):
 	return bo_mask
 
 
-def makeMaskedFrac(cat):
+def makeMaskedFrac(cat, nside):
 	'''
 	Creates a map showing the fraction of each pixel that is maske by the bright object criteria.
 
@@ -127,6 +131,10 @@ def makeMaskedFrac(cat):
 	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs, Decs.
 	
+	nside: int
+		Determines the resolution of the map. (Left as an argument rather
+		than using the value in the config file for flexibility.)
+		
 	Returns
 	-------
 	mf_map: HealSparseMap
@@ -143,25 +151,16 @@ def makeMaskedFrac(cat):
 	add = lambda x,y : x+y
 	flagged = reduce(add, flags)
 
-	if cf.highres_first:
-		nside_mask = cf.nside_mask
-	else:
-		nside_mask = cf.nside_hi
+	#get the valid pixels at the desired resolution
+	vpix = makeFootprint(cat, nside).valid_pixels
 
 	#create counts map of all sources
-	Ntotal_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, nside_mask)
-	vpix_total = Ntotal_map.valid_pixels
+	Ntotal_map = countsInPixels(ra, dec, cf.nside_lo, nside, vpix)
 	#create counts map of flagged sources
-	Nflagged_map = pixelCountsFromCoords(ra[flagged], dec[flagged], cf.nside_lo, nside_mask)
-	vpix_flagged = Nflagged_map.valid_pixels
-	#identify pixels that only contain unflagged sources
-	vpix_unflagged_only = np.array(list(set(vpix_total) - set(vpix_flagged)))
-	Nflagged_map[vpix_unflagged_only] = np.zeros(len(vpix_unflagged_only), dtype=np.int32)
+	Nflagged_map = countsInPixels(ra[flagged], dec[flagged], cf.nside_lo, nside, vpix)
 	#calculate the fraction of masked sources in each pixel
-	mf_map = hsp.HealSparseMap.make_empty(cf.nside_lo, nside_mask, dtype=np.float64)
-	mf_map[vpix_total] = Nflagged_map[vpix_total] / Ntotal_map[vpix_total]
-	if cf.highres_first:
-		mf_map = mf_map.degrade(cf.nside_hi, reduction='mean')
+	mf_map = hsp.HealSparseMap.make_empty(cf.nside_lo, nside, dtype=np.float64)
+	mf_map[vpix] = Nflagged_map[vpix] / Ntotal_map[vpix]
 
 	return mf_map
 
@@ -243,15 +242,15 @@ def makeDepthMap(cat, stars_only=True):
 	return depth_map
 
 
-def makeSurveyMask(mf_map, depth_map=None):
+def makeSurveyMask(cat, depth_map=None):
 	'''
 	Creates a binary mask from the masked fraction map by applying a threshold for the
 	masked fraction.
 
 	Parameters
 	----------
-	mf_map: HealSparseMap
-		Masked fraction map.
+	cat: h5py Dataset or Group
+		Catalogue containing (at least): RAs and Decs of each star detected in the field.
 
 	depth_map: HealSparseMap or None
 		(Optional) Map of the survey depth. If provided, will additionally set to 0 the
@@ -263,13 +262,37 @@ def makeSurveyMask(mf_map, depth_map=None):
 		Binary mask.
 	'''
 	print('Creating survey mask...')
-	#make an empty map with the same properties as the masked fraction map
-	mask = hsp.HealSparseMap.make_empty(mf_map.nside_coverage, mf_map.nside_sparse, dtype=np.float64)
-	#identify valid pixels
-	vpix = mf_map.valid_pixels
 
-	#fill the survey mask with 1 minus the masked fraction at the relevant pixels
-	mask[vpix] = 1. - mf_map[vpix]
+	#create the masked fraction map using flags from the catalogue
+	if cf.highres_first:
+		# if initially making the mask at high resolution the process becomes 
+		# somewhat convoluted, as one needs to identify pixels with 0 galaxies
+		# that also lie within the footprint...
+		nside = cf.nside_mask
+		# first the footprint must be defined at the resolution of the maps, 
+		# then upgraded to high resolution (HealSparse format)
+		fp = makeFootprint(cat, cf.nside_hi).upgrade(nside)
+		# then the masked fraction must be computed at high resolution (HealSparse format)
+		mf_map = makeMaskedFrac(cat, nside)
+		# initially define the mask in HealPy format at high resolution
+		mask = np.zeros(hp.nside2npix(nside))
+		# fill valid pixels using the masked fraction map
+		mask[mf_map.valid_pixels] = 1. - mf_map[mf_map.valid_pixels]
+		# identify valid pixels in the footprint
+		vpix = fp.valid_pixels
+		# construct a mask for identifying pixels with sources in the footprint
+		fp_bin = np.zeros(hp.nside2npix(nside), dtype=bool)
+		fp_bin[vpix] = True
+		# set all other pixels in the mask equal to UNSEEN
+		mask[~fp_bin] = hp.UNSEEN
+		#convert this to a HealSparse map and degrade to the final resolution
+		mask = hsp.HealSparseMap(nside_coverage=32, healpix_map=mask, nest=True)
+		mask = mask.degrade(cf.nside_hi)
+	else:
+		#otherwise, define the mask simply as 1-masked_fraction
+		mask = makeMaskedFrac(cat, cf.nside_hi)
+		vpix = mask.valid_pixels
+		mask[vpix] = 1. - mask[vpix]
 
 	#mask pixels below the depth threshold if a depth map is provided
 	if depth_map is not None:
@@ -300,9 +323,11 @@ for fd in cf.get_global_fields():
 	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')['photometry']
 
 	#make the footprint for the current field
-	footprint = makeFootprint(cat_basic, keep=None)
+	footprint = makeFootprint(cat_basic, cf.nside_hi, keep=None)
 	#write to a file
 	footprint.write(f'{OUT}/{cf.footprint}', clobber=True)
+	#retrieve the IDs of the occupied pixels
+	vpix = footprint.valid_pixels
 
 	for b,dm in zip(cf.bands, cf.dustmaps):
 		#make the dust maps in the current band
@@ -316,10 +341,10 @@ for fd in cf.get_global_fields():
 	bo_mask.write(f'{OUT}/{cf.bo_mask}', clobber=True)
 	healsparseToHDF(bo_mask, f'{OUT}/{cf.bo_mask[:-4]}.hdf5', group='maps/mask')
 
-	#make the masked fraction map
+	'''#make the masked fraction map
 	mf_map = makeMaskedFrac(cat_basic)
 	#write to a file
-	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)
+	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)'''
 
 	#make the star counts map
 	star_map = makeStarMap(cat_stars)
@@ -332,7 +357,7 @@ for fd in cf.get_global_fields():
 	depth_map.write(f'{OUT}/{cf.depth_map}', clobber=True)
 
 	#make a survey mask by applying a masked fraction threshold
-	survey_mask = makeSurveyMask(mf_map, depth_map=depth_map)
+	survey_mask = makeSurveyMask(cat_basic, depth_map=depth_map)
 	#write to a file
 	survey_mask.write(f'{OUT}/{cf.survey_mask}', clobber=True)
 	#calculate the area above the mask threshold and the fractional sky coverage
