@@ -251,7 +251,10 @@ class makeMapsFromCat(cf_global):
 				f'{cf_global.band}_mask_brightstar_halo',
 				f'{cf_global.band}_mask_brightstar_blooming']
 
-
+	#if only stars should be used for creating depth map
+	stars_for_depth = True
+	#minimum number of sources required to calculate depth in a pixel
+	min_sources = 4
 
 ##########################
 #### make_galaxy_maps ####

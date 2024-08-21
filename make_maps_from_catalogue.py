@@ -197,7 +197,7 @@ def makeStarMap(cat, footprint):
 	return star_map
 
 
-def makeDepthMap(cat, stars_only=True):
+def makeDepthMap(cat, stars_only=True, min_sources=0, footprint=None):
 	'''
 	Creates map showing the number of stars in each pixel.
 
@@ -208,6 +208,14 @@ def makeDepthMap(cat, stars_only=True):
 
 	stars_only: bool
 		Whether to just use stars for the calculation of the depth.
+	
+	min_sources: int
+		Minimum number of sources required in a pixel for depth to be calculated.	
+	
+	footprint: HealSparseMap or None
+		If provided, must be a Healpsarse boolean map identifying pixels belonging to the
+		survey footprint. If not provided, will only use pixels in which there are sources
+		in the 
 
 	Returns
 	-------
@@ -216,10 +224,7 @@ def makeDepthMap(cat, stars_only=True):
 		SNR threshold of the primary band (set in the config file).
 	'''
 	print('Creating depth map...')
-	'''
-	#begin by calculating SNR of each source in the primary band
-	snrs = cat[f'{cf.band}_cmodel_flux'][:] / cat[f'{cf.band}_cmodel_fluxerr'][:]
-	'''
+
 	#if told to use stars only, use flags to identify which sources are stars
 	if stars_only:
 		try:
@@ -234,7 +239,6 @@ def makeDepthMap(cat, stars_only=True):
 	ra = cat[f'ra'][star_mask]
 	dec = cat[f'dec'][star_mask]
 
-
 	#retrieve the flux error in the primary band for each source
 	fluxerr = cat[f'{cf.band}_cmodel_fluxerr'][star_mask]
 	#retrieve the SNR threshold
@@ -242,6 +246,25 @@ def makeDepthMap(cat, stars_only=True):
 
 	#create a map containing the mean fluxerr multiplied by the SNR threshold
 	depth_map, _ = createMeanStdMap(ra, dec, snr_thresh * fluxerr, cf.nside_lo, cf.nside_hi)
+
+	#if a minimum number of sources is required, use interpolation to fill in the
+	#values for pixels with fewer sources
+	if min_sources > 0:
+		if footprint:
+			vpix_fp = footprint.valid_pixels
+			counts = countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix_fp)
+		else:
+			counts = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
+			vpix_fp = counts.valid_pixels 
+		#identify valid pixels with fewer sources than the limit 
+		pix_few = vpix_fp[counts[vpix_fp] < min_sources]
+		#get the coordinates of these pixels
+		ra_few, dec_few = hp.pix2ang(cf.nside_hi, pix_few, nest=True, lonlat=True)
+		#get the values of these pixels through nearest-neighbour interpolation
+		pix_new_vals = depth_map.interpolate_pos(ra_few, dec_few, lonlat=True, allow_partial=True)
+		#update these pixels in the map
+		depth_map[pix_few] = pix_new_vals
+
 	vpix = depth_map.valid_pixels
 	#fluxes and associated errors are given in nJy - convert to AB mags
 	depth_map[vpix] = -2.5 * np.log10(depth_map[vpix] * 10. ** (-9.)) + 8.9
@@ -356,7 +379,7 @@ for fd in cf.get_global_fields():
 	star_map.write(f'{PATH_SYST}/{cf.star_map}', clobber=True)
 
 	#make the depth map
-	depth_map = makeDepthMap(cat_basic, stars_only=True)
+	depth_map = makeDepthMap(cat_basic, stars_only=cf.stars_for_depth, min_sources=cf.min_sources, footprint=footprint)
 	#write to a file
 	depth_map.write(f'{OUT}/{cf.depth_map}', clobber=True)
 
