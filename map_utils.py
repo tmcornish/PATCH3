@@ -253,6 +253,13 @@ def createMeanStdMap(ra, dec, quant, nside_cover, nside_sparse):
 	nside_sparse: int
 		NSIDE parameter definining the high-resolution regions of the map (where data exist).
 
+	Returns
+	-------
+	mean_map: HealSparseMap
+		Map containing the means of the specified quantity in each pixel.	
+
+	std_map: HealSparseMap
+		Map containing the standard deviations of the specified quantity in each pixel.	
 	'''
 
 	#set up two maps with the desired resolutions (one for mean and one for std)
@@ -260,7 +267,7 @@ def createMeanStdMap(ra, dec, quant, nside_cover, nside_sparse):
 	std_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.float64)
 
 	#convert the provided coordinates into pixel coordinates in the high-resolution map
-	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	px_data = hp.ang2pix(nside_sparse, ra, dec, nest=True, lonlat=True)
 	px_data_u = np.unique(px_data)
 
 	#calculate the mean and std of the quantity at each pixel and populate the maps
