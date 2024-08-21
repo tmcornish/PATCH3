@@ -165,7 +165,7 @@ def makeMaskedFrac(cat, nside):
 	return mf_map
 
 
-def makeStarMap(cat):
+def makeStarMap(cat, footprint):
 	'''
 	Creates map showing the number of stars in each pixel.
 
@@ -174,6 +174,10 @@ def makeStarMap(cat):
 	cat: h5py Dataset or Group
 		Catalogue containing (at least): RAs and Decs of each star detected in the field.
 
+	footprint: HealSparseMap or None
+		If provided, must be a Healpsarse boolean map identifying pixels belonging to the
+		survey footprint. If not provided, will make from scratch using the catalogue.
+		
 	Returns
 	-------
 	star_map: HealSparseMap
@@ -184,8 +188,11 @@ def makeStarMap(cat):
 	ra = cat[f'ra'][:]
 	dec = cat[f'dec'][:]
 
+	#identify pixels in the survey footprint
+	vpix = footprint.valid_pixels
 	#count the stars in each pixel
-	star_map = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
+	star_map = countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix)
+	#pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
 
 	return star_map
 
@@ -344,7 +351,7 @@ for fd in cf.get_global_fields():
 	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)'''
 
 	#make the star counts map
-	star_map = makeStarMap(cat_stars)
+	star_map = makeStarMap(cat_stars, footprint)
 	#write to a file
 	star_map.write(f'{PATH_SYST}/{cf.star_map}', clobber=True)
 
