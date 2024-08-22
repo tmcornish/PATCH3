@@ -256,6 +256,9 @@ class makeMapsFromCat(cf_global):
 	#minimum number of sources required to calculate depth in a pixel
 	min_sources = 4
 
+	#radius (in deg) of the Guassian kernel used to smooth certain maps
+	r_smooth = 2.
+
 ##########################
 #### make_galaxy_maps ####
 ##########################

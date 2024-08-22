@@ -313,12 +313,24 @@ def makeSurveyMask(cat, depth_map=None):
 		mask = makeMaskedFrac(cat, cf.nside_hi)
 		vpix = mask.valid_pixels
 		mask[vpix] = 1. - mask[vpix]
+	
+	#set any pixels below the mask threshold equal to UNSEEN
+	mask[vpix[mask[vpix] < cf.weight_thresh]] = hp.UNSEEN
 
 	#mask pixels below the depth threshold if a depth map is provided
 	if depth_map is not None:
 		vpix_dm = depth_map.valid_pixels
 		vpix_shallow = vpix_dm[depth_map[vpix_dm] < cf.depth_cut]
-		mask[vpix_shallow] = 0.
+		mask[vpix_shallow] = hp.UNSEEN
+
+		#create a full-sky binary version of the depth map
+		depth_bin = depth_map[:] >= cf.depth_cut
+		#smooth it with a Guassian kernel
+		depth_bin = hp.smoothing(depth_bin, np.radians(cf.r_smooth), nest=True)
+		#identify valid pixels below 0.5 in the smoothed version
+		vpix_shallow = np.where(depth_bin[vpix] < 0.5)[0]
+		mask[vpix[vpix_shallow]] = hp.UNSEEN
+
 
 	return mask
 
