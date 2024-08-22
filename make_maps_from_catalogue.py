@@ -29,7 +29,7 @@ npix = hp.nside2npix(cf.nside_hi)
 ###################
 
 
-def makeFootprint(cat, nside, keep=None):
+def makeFootprint(cat, nside):
 	'''
 	Defines the survey footprint as any pixel in a map of resolution NSIDE within which
 	there are sources. Returns a boolean HealSparse map.
@@ -42,10 +42,6 @@ def makeFootprint(cat, nside, keep=None):
 	nside: int
 		Determines the resolution of the footprint. (Left as an argument rather
 		than using the value in the config file for flexibility.)
-		
-	keep: array or None
-		Boolean array with length equal to the input catalogue, specifying
-		which sources to keep. If set to None, will keep all sources.
 
 	Returns
 	-------
@@ -55,11 +51,8 @@ def makeFootprint(cat, nside, keep=None):
 
 	print(f'Determining survey footprint at NSIDE={nside}...')
 
-	#see if sources are to be removed when considering the footprint
-	if keep is None:
-		keep = np.ones_like(cat[f'ra'][:], dtype=bool)
 	#get the pixel IDs corresponding to each source
-	ipix_all = hp.ang2pix(nside, cat[f'ra'][keep], cat[f'dec'][keep], lonlat=True, nest=True)
+	ipix_all = hp.ang2pix(nside, cat[f'ra'][:], cat[f'dec'][:], lonlat=True, nest=True)
 	#identify pixels where sources exist
 	nall = np.bincount(ipix_all, minlength=npix)
 	footprint = nall > 0
@@ -350,7 +343,7 @@ for fd in cf.get_global_fields():
 	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')['photometry']
 
 	#make the footprint for the current field
-	footprint = makeFootprint(cat_basic, cf.nside_hi, keep=None)
+	footprint = makeFootprint(cat_basic, cf.nside_hi)
 	#write to a file
 	footprint.write(f'{OUT}/{cf.footprint}', clobber=True)
 	#retrieve the IDs of the occupied pixels
