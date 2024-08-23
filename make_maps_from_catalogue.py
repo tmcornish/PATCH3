@@ -394,10 +394,10 @@ for fd in cf.get_global_fields():
 	bo_mask.write(f'{OUT}/{cf.bo_mask}', clobber=True)
 	healsparseToHDF(bo_mask, f'{OUT}/{cf.bo_mask[:-4]}.hdf5', group='maps/mask')
 
-	'''#make the masked fraction map
-	mf_map = makeMaskedFrac(cat_basic)
+	#make the masked fraction map
+	mf_map = makeMaskedFrac(cat_basic, cf.nside_hi)
 	#write to a file
-	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)'''
+	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)
 
 	#make the star counts map
 	star_map = makeStarMap(cat_stars, footprint)
