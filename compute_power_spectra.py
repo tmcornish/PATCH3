@@ -67,13 +67,13 @@ def make_density_fields(deproj_file, systs, idx=None):
 	print('Done!')
 
 	print('Creating NmtFields (without deprojection)...')
-	density_fields_nd = [nmt.NmtField(mask.mask, [d], templates=None, lite=cf.lite) for d in deltag_maps]
+	density_fields_nd = [nmt.NmtField(mask.mask_full, [d], templates=None, lite=cf.lite) for d in deltag_maps]
 	print('Done!')
 	if systmaps is None:
 		return density_fields_nd, density_fields_nd, 0
 
 	print('Creating NmtFields...')
-	density_fields = [nmt.NmtField(mask.mask, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
+	density_fields = [nmt.NmtField(mask.mask_full, [d], templates=systmaps, lite=cf.lite) for d in deltag_maps]
 	print('Done!')
 
 	#delete the systematics and delta_g maps to clear some memory
@@ -167,14 +167,9 @@ for fd in cf.get_global_fields():
 			theory_keys = list(psfile.keys())
 
 	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_MAPS + cf.survey_mask, 
-				 	mask_thresh=cf.weight_thresh,
-					smooth=cf.smooth_mask,
-					fwhm_arcmin=cf.smooth_fwhm,
-					smoothed_thresh=cf.smooth_thresh,
-					smooth_file=f'{PATH_MAPS}{cf.survey_mask[:-4]}_smoothed{int(cf.smooth_thresh)}.hsp')
+	mask = MaskData(PATH_MAPS + cf.survey_mask)
 	#retrieve relevant quantities from the mask data
-	above_thresh = mask.vpix
+	above_thresh = mask.vpix_ring
 	sum_w_above_thresh = mask.sum
 	mu_w = mask.mean
 	mu_w2 = mask.meansq

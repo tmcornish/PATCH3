@@ -325,7 +325,7 @@ class theoryPredictions(cf_global):
 #### compute_power_spectra ####
 ###############################
 
-class computePowerSpectra(cf_global):
+class computePowerSpectra(theoryPredictions):
 
 	name = 'computePowerSpectra'
 
@@ -349,13 +349,13 @@ class computePowerSpectra(cf_global):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_nodegrade_smoothedmask.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}_new.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
-	wsp_file = f'workspace_{cf_global.nside_hi}_nodegrade_smoothedmask.fits'
-	covwsp_file = f'covworkspace_{cf_global.nside_hi}_nodegrade_smoothedmask.fits'
+	wsp_file = f'workspace_{cf_global.nside_hi}_new.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}_new.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
-	deproj_file = f'deprojected_{cf_global.nside_hi}_nodegrade_smoothedmask.txt'
+	deproj_file = f'deprojected_{cf_global.nside_hi}_new.txt'
 
 	#apply a multiplicative correction to delta_g due to star contamination
 	correct_for_stars = True
