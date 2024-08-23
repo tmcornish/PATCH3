@@ -259,6 +259,9 @@ class makeMapsFromCat(cf_global):
 	#radius (in deg) of the Guassian kernel used to smooth certain maps
 	r_smooth = 2.
 
+	#use N_exp maps to define an extra cut?
+	use_nexp_maps = True
+
 ##########################
 #### make_galaxy_maps ####
 ##########################

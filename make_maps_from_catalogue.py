@@ -331,6 +331,27 @@ def makeSurveyMask(cat, depth_map=None):
 		vpix_shallow = np.where(depth_bin[vpix] < 0.5)[0]
 		mask[vpix[vpix_shallow]] = hp.UNSEEN
 
+	if cf.use_nexp_maps:
+		#set up a list of maps to be combined into a binary map
+		nexp_bin = []
+		#load the N_exp maps for each band
+		for b in cf.bands:
+			nexp = hsp.HealSparseMap.read(f'{PATH_SYST}/decasu_{cf.nside_hi}_{b}_nexp_sum.hsp')
+			#set all pixels with n_exp > 1 equal to 1
+			nexp[nexp.valid_pixels] = 1
+			nexp_bin.append(nexp)
+		#identify all pixels with exposures in all frames
+		nexp_bin = hsp.operations.and_union(nexp_bin)
+		#convert this to a healpix map and set all UNSEEN to 0
+		nexp_bin = nexp_bin.generate_healpix_map(nest=True)
+		nexp_bin[nexp_bin < 0] = 0
+		#smooth with a Gaussian kernel
+		nexp_bin = hp.smoothing(nexp_bin, np.radians(cf.r_smooth), nest=True)
+		#identify valid pixels below 0.6
+		vpix_noexp = np.where(nexp_bin[vpix] < 0.6)[0]
+		mask[vpix[vpix_noexp]] = hp.UNSEEN
+
+
 
 	return mask
 
