@@ -589,59 +589,25 @@ class MaskData:
 
 	def __init__(
 			self, 
-			hsp_file, 
-			mask_thresh=0., 
-			smooth=False, 
-			fwhm_arcmin=0., 
-			smoothed_thresh=0., 
-			smooth_file=None,
-			overwrite_smoothed=False
+			hsp_file
 			):
 		#load the HealSparse map and retrieve the high and low NSIDEs
 		self.filename = hsp_file
-		self.mask = hsp.HealSparseMap.read(self.filename)
+		self.mask_hsp = hsp.HealSparseMap.read(self.filename)
 		self.nside = self.mask.nside_sparse
 		self.nside_cover = self.mask.nside_coverage
-		#now replace the mask with the full-sky version
-		self.mask = self.mask.generate_healpix_map(nest=False)
-		#smooth the mask if told to
-		if smooth:
-			self.smooth_fwhm_arcmin = fwhm_arcmin
-			self._apply_smoothing(fwhm=fwhm_arcmin * np.pi / (180. * 60.), mapfile=smooth_file, overwrite=overwrite_smoothed)
-			smooth_mask = self.mask_smoothed <= smoothed_thresh
-		else:
-			self.smooth_fwhm_arcmin = None
-			self.mask_smoothed = None
-			smooth_mask = False
-		#apply the mask threshold
-		self.mask[(self.mask <= mask_thresh) + smooth_mask] = 0.
-		#get the IDs of all pixels above the threshold
-		self.vpix = np.argwhere(self.mask > 0.).flatten()
-		#convert these to NEST ordering
-		self.vpix_nest = hp.ring2nest(self.nside, self.vpix)
+		#get the valid pixels in RING and NEST ordering
+		self.vpix_nest = self.mask_hsp.valid_pixels
+		self.vpix_ring = hp.nest2ring(self.nside, self.vpix_nest)
+		#now make a full-sky version (RING ordering), replacing any UNSEENs with 0
+		self.mask_full = self.mask_hsp.generate_healpix_map(nest=False)
+		self.mask_full[self.mask_full < 0.] = 0.
+
 		#get the RA and Dec. of each unmasked pixel
-		theta, phi = hp.pix2ang(self.nside, self.vpix)
-		self.ra_vpix = phi * 180. / np.pi
-		self.dec_vpix = -(theta - np.pi / 2.) * (180. / np.pi)
+		self.ra_vpix, self.dec_vpix = hp.pix2ang(self.nside, self.vpix_ring, lonlat=True)
 
 		#compute the sum, mean, and mean squared of the mask
-		self.sum = np.sum(self.mask)
-		self.mean = np.mean(self.mask)
-		self.meansq = np.mean(self.mask ** 2.)
+		self.sum = np.sum(self.mask_full)
+		self.mean = np.mean(self.mask_full)
+		self.meansq = np.mean(self.mask_full ** 2.)
 	
-	def _apply_smoothing(self, fwhm=0., mapfile=None, overwrite=False):
-		import os
-		#if no mapfile provided, default to original filename with smoothing fwhm added
-		if mapfile is None:
-			mapfile = f'{self.filename[:-4]}_smoothed{int(self.smooth_fwhm_arcmin)}.hsp'
-		#see if a smoothed HealSparse map already exists
-		if os.path.exists(mapfile) and not overwrite:
-			#load the smoothed mask from the file
-			self.mask_smoothed = hsp.HealSparseMap.read(mapfile).generate_healpix_map(nest=False)
-		else:
-			#apply smoothing to the existing mask
-			self.mask_smoothed = hp.smoothing(self.mask, fwhm, nest=False)
-			#write out to the file
-			hsp.HealSparseMap(nside_coverage=self.nside_cover, healpix_map=self.mask_smoothed, nest=False).write(mapfile, clobber=True)
-			
-
