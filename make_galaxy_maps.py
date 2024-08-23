@@ -33,7 +33,7 @@ def makeNgalMaps(cat, mask, group=''):
 	group: str
 		Group within which the relevant data are expected to reside.
 
-	mask: HealSparseMap or None
+	mask: MaskData object or None
 		If provided, will use the mask to determine the positions of valid pixels rather than
 		the RAs and Decs from the catalogue.
 
@@ -69,7 +69,7 @@ def makeDensityMaps(ngal_maps, mask):
 	ngal_maps: recarray
 		recarray for which each entry is a galaxy counts map in each of the specified bands.
 
-	mask: HealSparseMap
+	mask: MaskData object
 		Survey mask, in which each pixel is assumed to effectively be the detection fraction.
 
 	Returns
@@ -83,13 +83,6 @@ def makeDensityMaps(ngal_maps, mask):
 	### NOTE: due to the way in which the maps and masks are constructed, they should all
 	### have the same valid_pixels
 
-	'''vpix_mask, ra, dec = mask.valid_pixels_pos(return_pixels=True)
-	keep = mask[vpix_mask] > cf.weight_thresh
-	#pix_remove = vpix_mask[mask[vpix_mask] <= cf.weight_thresh]
-	ra = ra[keep]
-	dec = dec[keep]
-	pix_keep = vpix_mask[keep]'''
-
 	#initialise a recarray to contain the maps for each band
 	labels = [f'delta_{i}' for i in range(len(cf.zbins)-1)]
 	#make a copy of the inputted recarray
@@ -100,9 +93,9 @@ def makeDensityMaps(ngal_maps, mask):
 		ngal_key = key.replace('delta', 'ngal')
 		#deltag_maps[key][pix_remove] = 0.
 		mu_n = np.mean(ngal_maps[ngal_key][mask.vpix_nest])
-		mu_w = np.mean(mask.mask[mask.vpix])
+		mu_w = np.mean(mask.mask_hsp[mask.vpix_nest])
 		#update the density map with delta_g values
-		deltag_maps[key][mask.vpix_nest] = (ngal_maps[ngal_key][mask.vpix_nest] / (mask.mask[mask.vpix] * mu_n / mu_w)) - 1.
+		deltag_maps[key][mask.vpix_nest] = (ngal_maps[ngal_key][mask.vpix_nest] / (mask.mask_hsp[mask.vpix_nest] * mu_n / mu_w)) - 1.
 
 	return deltag_maps
 
@@ -123,12 +116,7 @@ for fd in cf.get_global_fields():
 	#load the fully cleaned galaxy catalogue for this field
 	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
 	#load the survey mask
-	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}', 
-							mask_thresh=cf.weight_thresh,
-							smooth=cf.smooth_mask,
-							fwhm_arcmin=cf.smooth_fwhm,
-							smoothed_thresh=cf.smooth_thresh,
-							smooth_file=f'{OUT}/{cf.survey_mask[:-4]}_smoothed{int(cf.smooth_fwhm)}.hsp')
+	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
 	ngal_maps = makeNgalMaps(cat_main, mask=survey_mask, group='photometry')
