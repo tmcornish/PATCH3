@@ -308,6 +308,7 @@ def makeSurveyMask(cat, depth_map=None):
 		mask[vpix_empty] = 0.
 		#degrade the mask to the final resolution
 		mask = mask.degrade(cf.nside_hi)
+		vpix = mask.valid_pixels
 	else:
 		#otherwise, define the mask simply as 1-masked_fraction
 		mask = makeMaskedFrac(cat, cf.nside_hi)
