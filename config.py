@@ -94,6 +94,7 @@ class cf_global:
 		return [f'dustmaps_{b}_{nside_hi}.hsp' for b in bands]
 	#basenames for the various maps
 	dustmaps = dustmap_names(bands, nside_hi)
+	footprint = f'footprint_{nside_hi}.hsp'
 	bo_mask = f'bo_mask_{nside_hi}.hsp'
 	masked_frac = f'masked_fraction_{nside_hi}.hsp'
 	survey_mask = f'survey_mask_{nside_hi}.hsp'
@@ -234,30 +235,6 @@ class cleanCats(cf_global):
 		return f_in_g
 
 
-
-##################################
-#### make_maps_from_catalogue ####
-##################################
-
-class makeMapsFromCat(cf_global):
-
-	name = 'makeMapsFromCat'
-
-	#whether or not to initially make the map at high resolution and degrade
-	highres_first = False
-	#NSIDE for the upgraded-resolution version of the bright object mask
-	nside_mask = 16384
-	
-	#types of flag to include in the mask (see flags.py for definitions)
-	flags_to_mask = [
-		'brightstar',
-		#'main',
-		#'strict'
-	]
-	#whether or not to include the y-band channel stop in the brightstar flags
-	incl_channelstop = False
-
-
 #################################
 #### make_maps_from_metadata ####
 #################################
@@ -271,6 +248,39 @@ class makeMapsFromMetadata(splitMetadata):
 	#number of cores to use if running locally (if running on glamdring need to specify that elsewhere)
 	ncores = 18
 	
+
+##################################
+#### make_maps_from_catalogue ####
+##################################
+
+class makeMapsFromCat(cf_global):
+
+	name = 'makeMapsFromCat'
+
+	#whether or not to initially make the map at high resolution and degrade
+	highres_first = False
+	#NSIDE for the upgraded-resolution version of the bright object mask
+	nside_mask = 8192
+
+	#types of flag to include in the mask (see flags.py for definitions)
+	flags_to_mask = [
+		'brightstar',
+		#'main',
+		#'strict'
+	]
+	#whether or not to include the y-band channel stop in the brightstar flags
+	incl_channelstop = False
+
+	#if only stars should be used for creating depth map
+	stars_for_depth = True
+	#minimum number of sources required to calculate depth in a pixel
+	min_sources = 4
+
+	#radius (in deg) of the Guassian kernel used to smooth certain maps
+	r_smooth = 2.
+
+	#use N_exp maps to define an extra cut?
+	use_nexp_maps = True
 
 ##########################
 #### make_galaxy_maps ####
@@ -335,7 +345,7 @@ class theoryPredictions(cf_global):
 #### compute_power_spectra ####
 ###############################
 
-class computePowerSpectra(cf_global):
+class computePowerSpectra(theoryPredictions):
 
 	name = 'computePowerSpectra'
 
@@ -359,13 +369,13 @@ class computePowerSpectra(cf_global):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_nodegrade_smoothedmask.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}_new.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
-	wsp_file = f'workspace_{cf_global.nside_hi}_nodegrade_smoothedmask.fits'
-	covwsp_file = f'covworkspace_{cf_global.nside_hi}_nodegrade_smoothedmask.fits'
+	wsp_file = f'workspace_{cf_global.nside_hi}_new.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}_new.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
-	deproj_file = f'deprojected_{cf_global.nside_hi}_nodegrade_smoothedmask.txt'
+	deproj_file = f'deprojected_{cf_global.nside_hi}_new.txt'
 
 	#apply a multiplicative correction to delta_g due to star contamination
 	correct_for_stars = True

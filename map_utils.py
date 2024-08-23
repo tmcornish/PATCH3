@@ -165,14 +165,14 @@ def countsInPixels(ra, dec, nside_cover, nside_sparse, pix_ids, return_vals=Fals
 	#initialise a HealSparse integer map
 	counts_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.int32)
 	#convert the provided coordinates into pixel IDs
-	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	px_data = hp.ang2pix(nside_sparse, ra, dec, nest=True, lonlat=True)
 	#make an array of weights for counting galaxies in each pixel
 	weights = np.zeros_like(px_data)
 	#give specified pixels a weight of 1
 	weights[np.in1d(px_data, pix_ids)] = 1
 
 	#count the number of sources in each pixel (going from 0 to max(px_data))
-	N = np.bincount(px_data, weights=weights).astype(np.int32)
+	N = np.bincount(px_data, weights=weights, minlength=hp.nside2npix(nside_sparse)).astype(np.int32)
 	#fill the map at these positions with the number of sources in the pixel
 	counts_map[pix_ids] = N[pix_ids]
 
@@ -218,9 +218,9 @@ def pixelMeanStd(quant, pix, remove_zeros=True):
 		qmean = qsum[good] / N[good]
 		qmeansq = qmean ** 2.
 		qvar = (qsqsum[good] - (2 * qmean * qsum[good])) / N[good] + qmeansq
-		#identify pixels for which the variance is < a millionth of the squared mean (arises from rounding errors)
-		zero_var = np.isclose(np.zeros(len(qvar)), qvar, atol=1e-6*qmeansq)
-		qvar[zero_var] = 0.
+		#identify pixels for which the variance is negative (arises from rounding errors)
+		nve_var = qvar < 0.
+		qvar[nve_var] = 0.
 		qstd = np.sqrt(qvar)
 	else:
 		#suppress numpy DivideByZero warnings
@@ -253,6 +253,13 @@ def createMeanStdMap(ra, dec, quant, nside_cover, nside_sparse):
 	nside_sparse: int
 		NSIDE parameter definining the high-resolution regions of the map (where data exist).
 
+	Returns
+	-------
+	mean_map: HealSparseMap
+		Map containing the means of the specified quantity in each pixel.	
+
+	std_map: HealSparseMap
+		Map containing the standard deviations of the specified quantity in each pixel.	
 	'''
 
 	#set up two maps with the desired resolutions (one for mean and one for std)
@@ -260,7 +267,7 @@ def createMeanStdMap(ra, dec, quant, nside_cover, nside_sparse):
 	std_map = hsp.HealSparseMap.make_empty(nside_cover, nside_sparse, np.float64)
 
 	#convert the provided coordinates into pixel coordinates in the high-resolution map
-	px_data = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
+	px_data = hp.ang2pix(nside_sparse, ra, dec, nest=True, lonlat=True)
 	px_data_u = np.unique(px_data)
 
 	#calculate the mean and std of the quantity at each pixel and populate the maps
@@ -582,59 +589,25 @@ class MaskData:
 
 	def __init__(
 			self, 
-			hsp_file, 
-			mask_thresh=0., 
-			smooth=False, 
-			fwhm_arcmin=0., 
-			smoothed_thresh=0., 
-			smooth_file=None,
-			overwrite_smoothed=False
+			hsp_file
 			):
 		#load the HealSparse map and retrieve the high and low NSIDEs
 		self.filename = hsp_file
-		self.mask = hsp.HealSparseMap.read(self.filename)
-		self.nside = self.mask.nside_sparse
-		self.nside_cover = self.mask.nside_coverage
-		#now replace the mask with the full-sky version
-		self.mask = self.mask.generate_healpix_map(nest=False)
-		#smooth the mask if told to
-		if smooth:
-			self.smooth_fwhm_arcmin = fwhm_arcmin
-			self._apply_smoothing(fwhm=fwhm_arcmin * np.pi / (180. * 60.), mapfile=smooth_file, overwrite=overwrite_smoothed)
-			smooth_mask = self.mask_smoothed <= smoothed_thresh
-		else:
-			self.smooth_fwhm_arcmin = None
-			self.mask_smoothed = None
-			smooth_mask = False
-		#apply the mask threshold
-		self.mask[(self.mask <= mask_thresh) + smooth_mask] = 0.
-		#get the IDs of all pixels above the threshold
-		self.vpix = np.argwhere(self.mask > 0.).flatten()
-		#convert these to NEST ordering
-		self.vpix_nest = hp.ring2nest(self.nside, self.vpix)
+		self.mask_hsp = hsp.HealSparseMap.read(self.filename)
+		self.nside = self.mask_hsp.nside_sparse
+		self.nside_cover = self.mask_hsp.nside_coverage
+		#get the valid pixels in RING and NEST ordering
+		self.vpix_nest = self.mask_hsp.valid_pixels
+		self.vpix_ring = hp.nest2ring(self.nside, self.vpix_nest)
+		#now make a full-sky version (RING ordering), replacing any UNSEENs with 0
+		self.mask_full = self.mask_hsp.generate_healpix_map(nest=False)
+		self.mask_full[self.mask_full < 0.] = 0.
+
 		#get the RA and Dec. of each unmasked pixel
-		theta, phi = hp.pix2ang(self.nside, self.vpix)
-		self.ra_vpix = phi * 180. / np.pi
-		self.dec_vpix = -(theta - np.pi / 2.) * (180. / np.pi)
+		self.ra_vpix, self.dec_vpix = hp.pix2ang(self.nside, self.vpix_ring, lonlat=True)
 
 		#compute the sum, mean, and mean squared of the mask
-		self.sum = np.sum(self.mask)
-		self.mean = np.mean(self.mask)
-		self.meansq = np.mean(self.mask ** 2.)
+		self.sum = np.sum(self.mask_full)
+		self.mean = np.mean(self.mask_full)
+		self.meansq = np.mean(self.mask_full ** 2.)
 	
-	def _apply_smoothing(self, fwhm=0., mapfile=None, overwrite=False):
-		import os
-		#if no mapfile provided, default to original filename with smoothing fwhm added
-		if mapfile is None:
-			mapfile = f'{self.filename[:-4]}_smoothed{int(self.smooth_fwhm_arcmin)}.hsp'
-		#see if a smoothed HealSparse map already exists
-		if os.path.exists(mapfile) and not overwrite:
-			#load the smoothed mask from the file
-			self.mask_smoothed = hsp.HealSparseMap.read(mapfile).generate_healpix_map(nest=False)
-		else:
-			#apply smoothing to the existing mask
-			self.mask_smoothed = hp.smoothing(self.mask, fwhm, nest=False)
-			#write out to the file
-			hsp.HealSparseMap(nside_coverage=self.nside_cover, healpix_map=self.mask_smoothed, nest=False).write(mapfile, clobber=True)
-			
-
