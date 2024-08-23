@@ -594,8 +594,8 @@ class MaskData:
 		#load the HealSparse map and retrieve the high and low NSIDEs
 		self.filename = hsp_file
 		self.mask_hsp = hsp.HealSparseMap.read(self.filename)
-		self.nside = self.mask.nside_sparse
-		self.nside_cover = self.mask.nside_coverage
+		self.nside = self.mask_hsp.nside_sparse
+		self.nside_cover = self.mask_hsp.nside_coverage
 		#get the valid pixels in RING and NEST ordering
 		self.vpix_nest = self.mask_hsp.valid_pixels
 		self.vpix_ring = hp.nest2ring(self.nside, self.vpix_nest)
