@@ -20,7 +20,7 @@ cf = config.makeGalaxyMaps
 #### FUNCTIONS ####
 ###################
 
-def makeNgalMaps(cat, mask, group=''):
+def makeNgalMaps(cat, footprint, group=''):
 	'''
 	Creates galaxy count maps for each tomographic bin.
 
@@ -33,9 +33,8 @@ def makeNgalMaps(cat, mask, group=''):
 	group: str
 		Group within which the relevant data are expected to reside.
 
-	mask: MaskData object or None
-		If provided, will use the mask to determine the positions of valid pixels rather than
-		the RAs and Decs from the catalogue.
+	footprint: HealSparseMap
+		HealSparse map identifying the pixels in which sources reside.
 
 	Returns
 	-------
@@ -46,15 +45,15 @@ def makeNgalMaps(cat, mask, group=''):
 	print('Creating galaxy count maps...')
 	#initialise a recarray to contain the maps for each band
 	labels = [f'ngal_{i}' for i in range(len(cf.zbins)-1)]
-	ngal_maps, _, _ = initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=mask.vpix_nest, dtypes='f8')
+	ngal_maps, _, _ = initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=footprint.valid_pixels, dtypes='f8')
 
 	#cycle through the tomographic bins and count the galaxies in each pixel
 	for b in range(len(cf.zbins)-1):
 		zmin, zmax = cf.zbins[b:b+2]
 		zmask = (cat[f'{group}/{cf.zcol}'][:] >= zmin) * (cat[f'{group}/{cf.zcol}'][:] < zmax)
-		_, ngal = countsInPixels(cat[f'{group}/ra'][zmask], cat[f'{group}/dec'][zmask], cf.nside_lo, cf.nside_hi, mask.vpix_nest, return_vals=True)
+		_, ngal = countsInPixels(cat[f'{group}/ra'][zmask], cat[f'{group}/dec'][zmask], cf.nside_lo, cf.nside_hi, footprint.valid_pixels, return_vals=True)
 
-		ngal_maps[labels[b]][mask.vpix_nest] = np.asarray(ngal, dtype='f8')
+		ngal_maps[labels[b]][footprint.valid_pixels] = np.asarray(ngal, dtype='f8')
 
 	return ngal_maps
 
@@ -115,11 +114,12 @@ for fd in cf.get_global_fields():
 	OUT = cf.PATH_OUT + fd
 	#load the fully cleaned galaxy catalogue for this field
 	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')
-	#load the survey mask
+	#load the survey footprint and mask
+	footprint = hsp.HealSparseMap.read(f'{OUT}/footprint_{cf.nside_hi}.hsp')
 	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
-	ngal_maps = makeNgalMaps(cat_main, mask=survey_mask, group='photometry')
+	ngal_maps = makeNgalMaps(cat_main, footprint, group='photometry')
 	#write to a file
 	ngal_maps.write(f'{OUT}/{cf.ngal_maps}', clobber=True)
 
