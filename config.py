@@ -388,15 +388,6 @@ class computePowerSpectra(theoryPredictions):
 
 
 ###############################
-#### amend_power_spectra ####
-###############################
-
-class amendPowerSpectra(computePowerSpectra):
-
-	name = 'amendPowerSpectra'
-
-
-###############################
 #### plot_power_spectra ####
 ###############################
 
