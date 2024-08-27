@@ -372,6 +372,7 @@ class computePowerSpectra(theoryPredictions):
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}_new.hdf5'
+	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
 	wsp_file = f'workspace_{cf_global.nside_hi}_new.fits'

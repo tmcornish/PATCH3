@@ -228,7 +228,7 @@ for fd in cf.get_global_fields():
 		#add tracers to the Sacc object (one for each redshift bin)
 		for i in range(len(cf.zbins)-1):
 			s.add_tracer('NZ',	#n(z)-type tracer
-						'gc0',	#tracer name
+						f'gc_{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=hf['z'][:],
@@ -377,6 +377,13 @@ for fd in cf.get_global_fields():
 		# FILLING THE SACC #
 		####################
 
+		#get the bandpower window functions (same for all tomo. bins)
+		if i == j == 0:
+			wins = w.get_bandpower_windows()[0, :, 0, :].T
+			wins = sacc.BandpowerWindow(np.arange(ell_max), wins)
+		#add the relevant C_ell
+		s.add_ell_cl(f'galaxy_density_cl', f'gc_{i}', f'gc_{j}', ell_effs, cl_decoupled_debiased[0], window=wins)
 
-
+	#save the SACC file
+	s.save_fits(f'{PATH_MAPS}{cf.outsacc}', overwrite=True)
 
