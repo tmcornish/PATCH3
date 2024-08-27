@@ -75,7 +75,7 @@ run_str = [
 	'python -u pca_systematics.py',
 	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
-	'python -u make_sacc_file.py',
+	'python -u make_sacc_files.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
 	]
