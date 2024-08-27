@@ -399,6 +399,16 @@ class amendPowerSpectra(computePowerSpectra):
 	name = 'amendPowerSpectra'
 
 
+
+#########################
+#### make_sacc_files ####
+#########################
+
+class makeSaccFiles(computePowerSpectra):
+
+	name = 'makeSaccFiles'
+	
+
 ###############################
 #### plot_power_spectra ####
 ###############################
