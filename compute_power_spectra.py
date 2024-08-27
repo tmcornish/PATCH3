@@ -14,6 +14,7 @@ from output_utils import colour_string
 import os
 import sys
 import glob
+import sacc
 
 import faulthandler
 faulthandler.enable()
@@ -153,7 +154,7 @@ b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 ell_effs = b.get_effective_ells()
 
 
-#cycle through the fields being analysed (TODO: later change to global fields)
+#cycle through the fields being analysed
 for fd in cf.get_global_fields():
 	print(colour_string(fd.upper(), 'orange'))
 
@@ -218,6 +219,21 @@ for fd in cf.get_global_fields():
 		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
+	
+	#set up a Sacc object for outputs
+	s = sacc.Sacc()
+	#get the n(z) distributions
+	nofz_info = f'{PATH_MAPS}{cf.nofz_file}'
+	with h5py.File(nofz_info, 'r') as hf:
+		#add tracers to the Sacc object (one for each redshift bin)
+		for i in range(len(cf.zbins)-1):
+			s.add_tracer('NZ',	#n(z)-type tracer
+						'gc0',	#tracer name
+						quantity='galaxy_density', #quantity
+						spin=0,
+						z=hf['z'][:],
+						nz=hf[f'bin{i}'][:]
+						 )
 
 	#full path to the output file
 	outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'	
@@ -356,5 +372,11 @@ for fd in cf.get_global_fields():
 			if theory_exists and (f'bin{i}-bin{j}' in theory_keys):
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
+
+		####################
+		# FILLING THE SACC #
+		####################
+
+
 
 

@@ -19,12 +19,12 @@ get_data = False		#run data acquisition script
 split_meta = False		#splits metadata by global field
 clean_cats = False		#apply various cuts to clean the catalogues
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
-catbased_maps = True	#make maps for various quantities using the catalogue
+catbased_maps = False	#make maps for various quantities using the catalogue
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
 theory_cells = False		#compute theoretical angular power spectra
-power_spectra = False	#compute power spectra
+power_spectra = True	#compute power spectra
 plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
