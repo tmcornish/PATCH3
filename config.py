@@ -210,7 +210,7 @@ class cleanCats(cf_global):
 
 	#types of flag to apply during basic cleaning (can be empty)
 	remove_if_flagged = [
-		#'main',
+		'main',
 		#'strict'
 	]
 
