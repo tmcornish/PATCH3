@@ -88,6 +88,11 @@ a_arr = 1. / (1. + np.linspace(0, 6, 100)[::-1])
 for fd in cf.get_global_fields():
 	#retrieve estimates of the n(z) distributions in each bin
 	nofz = get_nofz(fd)
+	#save the n(z) info to a file
+	outfile = f'{cf.PATH_OUT}{fd}/{cf.nofz_file}'
+	with h5py.File(outfile, 'w') as hf:
+		for k in nofz.keys():
+			hf.create_dataset(k, data=nofz[k])
 	
 	#create a dictionary containing the tracers in each redshift bin
 	tracers = {

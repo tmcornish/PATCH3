@@ -338,6 +338,8 @@ class theoryPredictions(cf_global):
 		'n_s'     : 0.96
 	}
 
+	#name of the file to which the nofz info will be saved
+	nofz_file = 'nofz_info.hdf5'
 	#base name of the files to which theory power spectra will be saved
 	theory_out = 'theory_cells.hdf5'
 
