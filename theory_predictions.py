@@ -16,7 +16,7 @@ cf = config.theoryPredictions
 #### FUNCTIONS ####
 ###################
 
-def get_nofz(fd, group='', zlims=None):
+def get_nofz(fd, zlims=None):
 	'''
 	Computes estimates of the n(z) distributions in each redshift bin for a given
 	field and returns them in a dictionary.
@@ -25,9 +25,6 @@ def get_nofz(fd, group='', zlims=None):
 	----------
 	fd: str
 		Name of the field being analysed.
-	
-	group: str
-		Group within which the relevant data are expected to reside.
 	
 	Returns
 	-------
@@ -42,12 +39,14 @@ def get_nofz(fd, group='', zlims=None):
 	if fd == 'combined':
 		for f in ['hectomap', 'equatora', 'equatorb']:
 			with h5py.File(cf.PATH_OUT + f + '/' + cf.cat_main, 'r') as hf:
-				z_best.append(hf[f'{group}/{cf.zcol}'][:])
-				z_mc.append(hf[f'{group}/{cf.z_mc_col}'][:])
+				gr = hf['photometry']
+				z_best.append(gr[f'{cf.zcol}'][:])
+				z_mc.append(gr[f'{cf.z_mc_col}'][:])
 	else:
 		with h5py.File(cf.PATH_OUT + fd + '/' + cf.cat_main, 'r') as hf:
-			z_best.append(hf[f'{group}/{cf.zcol}'][:])
-			z_mc.append(hf[f'{group}/{cf.z_mc_col}'][:])
+			gr = hf['photometry']
+			z_best.append(gr[f'{cf.zcol}'][:])
+			z_mc.append(gr[f'{cf.z_mc_col}'][:])
 	
 	#concatenate the lists of arrays
 	z_best = np.concatenate(z_best)
@@ -88,7 +87,7 @@ a_arr = 1. / (1. + np.linspace(0, 6, 100)[::-1])
 #cycle through the specified fields
 for fd in cf.get_global_fields():
 	#retrieve estimates of the n(z) distributions in each bin
-	nofz = get_nofz(fd, group='photometry')
+	nofz = get_nofz(fd)
 	
 	#create a dictionary containing the tracers in each redshift bin
 	tracers = {
