@@ -388,7 +388,22 @@ class computePowerSpectra(theoryPredictions):
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
 
+	@classmethod
+	def get_bpw_edges(cls):
+		import numpy as np
 
+		ell_max = 3 * cls.nside_hi
+		if cls.use_N19_bps:
+			#retrieve bandpower edges from config
+			bpw_edges = np.array(cls.bpw_edges).astype(int)
+			#only include bandpowers < 3 * NSIDE
+			bpw_edges = bpw_edges[bpw_edges <= ell_max]
+		else:
+			if cls.log_spacing:
+				bpw_edges = np.geomspace(cls.ell_min, ell_max, cls.nbpws).astype(int)
+			else:
+				bpw_edges = np.linspace(cls.ell_min, ell_max, cls.nbpws).astype(int)
+		return bpw_edges
 
 ###############################
 #### amend_power_spectra ####
@@ -407,7 +422,7 @@ class amendPowerSpectra(computePowerSpectra):
 class makeSaccFiles(computePowerSpectra):
 
 	name = 'makeSaccFiles'
-	
+
 
 ###############################
 #### plot_power_spectra ####
