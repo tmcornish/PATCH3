@@ -24,7 +24,8 @@ galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
 theory_cells = False		#compute theoretical angular power spectra
-power_spectra = True	#compute power spectra
+power_spectra = False	#compute power spectra
+make_sacc = True		#consolidate c_ell info into a SACC file
 plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
@@ -42,6 +43,7 @@ settings = [
 	pca_systs,
 	theory_cells,
 	power_spectra,
+	make_sacc,
 	plot_cells,
 	txpipe_inputs
 	]
@@ -57,6 +59,7 @@ proc = [
 	'Performing PCA',
 	'Computing theoretical power spectra',
 	'Computing power spectra',
+	'Creating SACC file',
 	'Plotting power spectra',
 	'Making TXPipe-compatible inputs'
 	]
@@ -72,6 +75,7 @@ run_str = [
 	'python -u pca_systematics.py',
 	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
+	'python -u make_sacc_file.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
 	]
