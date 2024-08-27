@@ -16,7 +16,7 @@ cf = config.theoryPredictions
 #### FUNCTIONS ####
 ###################
 
-def get_nofz(fd, zlims=None):
+def get_nofz(fd):
 	'''
 	Computes estimates of the n(z) distributions in each redshift bin for a given
 	field and returns them in a dictionary.
@@ -53,10 +53,7 @@ def get_nofz(fd, zlims=None):
 	z_mc = np.concatenate(z_mc)
 
 	#determine the bin edges and centres to use for the n(z) histograms
-	if zlims is None:
-		bins = np.linspace(z_best.min(), z_best.max(), (cf.nbins_nofz + 1))
-	else:
-		bins = np.linspace(*zlims, (cf.nbins_nofz + 1))
+	bins = np.arange(0., z_mc.max()+cf.dz, cf.dz)
 	bin_centres = (bins[1:] + bins[:-1]) / 2
 	
 	#set up a dictionary for containing the n(z)s for the different bins

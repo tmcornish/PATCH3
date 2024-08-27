@@ -326,8 +326,8 @@ class theoryPredictions(cf_global):
 
 	#column in the catalogues containing the random MC draws from the redshift distribution
 	z_mc_col = 'pz_mc_dnnz'
-	#number of bins to use in the n(z) histograms
-	nbins_nofz = 50
+	#width of the redshift bins
+	dz = 0.03
 
 	#fiducial cosmology parameters
 	cosmo_fiducial = {
