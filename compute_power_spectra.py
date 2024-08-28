@@ -14,7 +14,6 @@ from output_utils import colour_string
 import os
 import sys
 import glob
-import sacc
 
 import faulthandler
 faulthandler.enable()
@@ -219,21 +218,6 @@ for fd in cf.get_global_fields():
 		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
-	
-	#set up a Sacc object for outputs
-	s = sacc.Sacc()
-	#get the n(z) distributions
-	nofz_info = f'{PATH_MAPS}{cf.nofz_file}'
-	with h5py.File(nofz_info, 'r') as hf:
-		#add tracers to the Sacc object (one for each redshift bin)
-		for i in range(len(cf.zbins)-1):
-			s.add_tracer('NZ',	#n(z)-type tracer
-						f'gc_{i}',	#tracer name
-						quantity='galaxy_density', #quantity
-						spin=0,
-						z=hf['z'][:],
-						nz=hf[f'bin{i}'][:]
-						 )
 
 	#full path to the output file
 	outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'	
@@ -373,17 +357,4 @@ for fd in cf.get_global_fields():
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 
-		####################
-		# FILLING THE SACC #
-		####################
-
-		#get the bandpower window functions (same for all tomo. bins)
-		if i == j == 0:
-			wins = w.get_bandpower_windows()[0, :, 0, :].T
-			wins = sacc.BandpowerWindow(np.arange(ell_max), wins)
-		#add the relevant C_ell
-		s.add_ell_cl(f'galaxy_density_cl', f'gc_{i}', f'gc_{j}', ell_effs, cl_decoupled_debiased[0], window=wins)
-
-	#save the SACC file
-	s.save_fits(f'{PATH_MAPS}{cf.outsacc}', overwrite=True)
 
