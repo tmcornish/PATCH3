@@ -83,32 +83,40 @@ def make_density_fields(deproj_file, systs, idx=None):
 	return density_fields, density_fields_nd, nsyst
 
 
-def compute_covariance(f_i, f_j, w, cw, return_cl_coupled=False, return_cl_guess=False):
+def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_coupled=False, return_cl_guess=False):
+	#see if additional fields have been provided for the second power spectrum
+	if f_j1 is None:
+		f_j1 = f_i1
+	if f_j2 is None:
+		f_j2 = f_i2
+	
 	#compute coupled c_ells for each possible combination of i and j
-	cl_coupled_ii = nmt.compute_coupled_cell(f_i, f_i)
-	cl_coupled_ij = nmt.compute_coupled_cell(f_i, f_j)
-	cl_coupled_jj = nmt.compute_coupled_cell(f_j, f_j)
-
+	cl_coupled_i1j1 = nmt.compute_coupled_cell(f_i1, f_j1)
+	cl_coupled_i1j2 = nmt.compute_coupled_cell(f_i1, f_j2)
+	cl_coupled_i2j1 = nmt.compute_coupled_cell(f_i2, f_j1)
+	cl_coupled_i2i2 = nmt.compute_coupled_cell(f_i2, f_i2)
 	#use these along with the mask to get a guess of the true C_ell
-	cl_guess_ii = cl_coupled_ii / mu_w2
-	cl_guess_ij = cl_coupled_ij / mu_w2
-	cl_guess_jj = cl_coupled_jj / mu_w2
+	cl_guess_i1j1 = cl_coupled_i1j1 / mu_w2
+	cl_guess_i1j2 = cl_coupled_i1j2 / mu_w2
+	cl_guess_i2j1 = cl_coupled_i2j1 / mu_w2
+	cl_guess_i2i2 = cl_coupled_i2i2 / mu_w2
+
 
 	covar = nmt.gaussian_covariance(cw, 
 									0, 0, 0, 0,			#spin of each field
-									[cl_guess_ii[0]],	
-									[cl_guess_ij[0]],
-									[cl_guess_ij[0]],
-									[cl_guess_jj[0]],
+									[cl_guess_i1j1[0]],	
+									[cl_guess_i1j2[0]],
+									[cl_guess_i2j1[0]],
+									[cl_guess_i2i2[0]],
 									w)
 	#errorbars for each bandpower
 	err_cell = np.diag(covar) ** 0.5
 
 	to_return = [covar, err_cell]
 	if return_cl_coupled:
-		to_return.append([cl_coupled_ii, cl_coupled_ij, cl_coupled_jj])
+		to_return.append([cl_coupled_i1j1, cl_coupled_i1j2, cl_coupled_i2j1, cl_coupled_i2i2])
 	if return_cl_guess:
-		to_return.append([cl_guess_ii, cl_guess_ij, cl_guess_jj])
+		to_return.append([cl_guess_i1j1, cl_guess_i1j2, cl_guess_i2j1, cl_guess_i2i2])
 
 
 	return (*to_return,)
@@ -262,14 +270,14 @@ for fd in cf.get_global_fields():
 			print('Using coupling matrix and coefficients from cache.')
 		
 		print('Calculating covariance matrix (without deprojection)...')
-		covar_nd, err_cell_nd, (_, cl_coupled_ij_nd, _), (_, cl_guess_ij_nd, _) = compute_covariance(f_i_nd, f_j_nd, w, cw, 
+		covar_nd, err_cell_nd, (_, cl_coupled_ij_nd, _, _), (_, cl_guess_ij_nd, _, _) = compute_covariance(w, cw, f_i_nd, f_j_nd,
 																					return_cl_coupled=True,
 																					return_cl_guess=True)
 		print('Done!')
 
 		print('Calculating covariance matrix...')
 		if nsyst > 0:
-			covar, err_cell, (_, cl_coupled_ij, _), (_, cl_guess_ij, _) = compute_covariance(f_i, f_j, w, cw, 
+			covar, err_cell, (_, cl_coupled_ij, _, _), (_, cl_guess_ij, _, _) = compute_covariance(w, cw, f_i, f_j,
 																					return_cl_coupled=True,
 																					return_cl_guess=True)
 		else:
@@ -356,5 +364,4 @@ for fd in cf.get_global_fields():
 			if theory_exists and (f'bin{i}-bin{j}' in theory_keys):
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
-
 
