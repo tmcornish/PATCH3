@@ -18,12 +18,15 @@ cf = config.makeSaccFiles
 
 #get the possible bin pairings
 pairings, _ = cf.get_bin_pairings()
+nbins = len(cf.zbins) - 1
+ncross = len(pairings)
 #bandpower edges and maximum ell at which the c_ells are defined
 bpw_edges = cf.get_bpw_edges()
 ell_max = bpw_edges[-1]
 #get the effective ells
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 ell_effs = b.get_effective_ells()
+n_ells = len(ell_effs)
 
 
 #cycle through the fields being analysed
@@ -75,4 +78,25 @@ for fd in cf.get_global_fields():
 					cell_final,
 					window=wins
 					)
+	
+	#set up an array for the covariance matrices
+	covar_all = np.zeros((ncross, n_ells, ncross, n_ells))
+	#open the file containing all the covariance matrices
+	with h5py.File(f'{PATH_INFO}{cf.covar_file}', 'r') as hf:
+		#cycle through the possible combinations of pairs of fields
+		id_i = 0
+		for i1 in range(nbins):
+			for i2 in range(i1, nbins):
+				id_j = 0
+				for j1 in range(nbins):
+					for j2 in range(j1, nbins):
+						covar_all[id_i, :, id_j, :] = hf[f'{i1}{i2}-{j1}{j2}/final'][:]
+						id_j += 1
+				id_i += 1
+
+	#reshape the covariance matrix
+	covar_all = covar_all.reshape((ncross * n_ells, ncross * n_ells))
+	#add the covariance matrix to the Sacc
+	s_main.add_covariance(covar_all)
+
 	s_main.save_fits(f'{PATH_INFO}{cf.outsacc}', overwrite=True)
