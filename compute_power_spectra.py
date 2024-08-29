@@ -366,7 +366,7 @@ for fd in cf.get_global_fields():
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 
 	if not cf.var_only:
-		print('Computing all covarainces...')
+		print('Computing all covariances...')
 		#file for containing the covariance matrices
 		covar_file = f'{PATH_MAPS}covariance_matrices_{cf.nside_hi}.hdf5'
 		#number of different fields
