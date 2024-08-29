@@ -39,11 +39,11 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	fields = ['hectomap']
+	#fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
 	#fields = ['combined']
-	#fields = ['hectomap'] + equatora + equatorb
+	fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
 
@@ -387,6 +387,11 @@ class computePowerSpectra(theoryPredictions):
 
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
+
+	#whether to only calculate 'variance' matrices as opposed to all possible covariances
+	var_only = False
+	#base filename for the file containing all covariance matrices (if calculated)
+	covar_file = f'covariance_matrices_{cf_global.nside_hi}.hdf5'
 
 	@classmethod
 	def get_bpw_edges(cls):

@@ -368,7 +368,7 @@ for fd in cf.get_global_fields():
 	if not cf.var_only:
 		print('Computing all covariances...')
 		#file for containing the covariance matrices
-		covar_file = f'{PATH_MAPS}covariance_matrices_{cf.nside_hi}.hdf5'
+		covar_file = f'{PATH_MAPS}{cf.covar_file}'
 		#number of different fields
 		nfields = len(cf.zbins) - 1
 		with h5py.File(covar_file, 'w') as cvfile:
