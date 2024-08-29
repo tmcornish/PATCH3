@@ -228,7 +228,7 @@ for fd in cf.get_global_fields():
 			continue
 
 	#full path to the output file
-	outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'	
+	outfile_main = f'{PATH_MAPS}{cf.outfile}'	
 	for p in pairings:
 		i,j = [int(x) for x in p.strip('()').split(',')]
 		outfile_now = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
@@ -365,3 +365,36 @@ for fd in cf.get_global_fields():
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 
+	if not cf.var_only:
+		print('Computing all covarainces...')
+		#file for containing the covariance matrices
+		covar_file = f'{PATH_MAPS}covariance_matrices_{cf.nside_hi}.hdf5'
+		#number of different fields
+		nfields = len(cf.zbins) - 1
+		with h5py.File(covar_file, 'w') as cvfile:
+			#cycle through all possible combinations of pairs of fields
+			for i1 in range(nfields):
+				for i2 in range(i1, nfields):
+					for j1 in range(nfields):
+						for j2 in range(j1, nfields):
+							#create group in the hdf5 file for this pairing
+							gp = cvfile.create_group(f'{i1}{i2}-{j1}{j2}')
+							#compute the covariance
+							covar_now, *_ = compute_covariance(w, cw, 
+										  density_fields[i1],
+										  density_fields[i2],
+										  density_fields[j1],
+										  density_fields[j2]
+										  )
+							if nsyst > 0:
+								covar_nd_now, *_ = compute_covariance(w, cw, 
+										  density_fields_nd[i1],
+										  density_fields_nd[i2],
+										  density_fields_nd[j1],
+										  density_fields_nd[j2]
+										  )
+							else:
+								covar_nd_now = covar_now
+							#create datasets for the covariance matrices
+							_ = gp.create_dataset('final', data=covar_now)
+							_ = gp.create_dataset('no_deproj', data=covar_nd_now)
