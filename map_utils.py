@@ -475,14 +475,14 @@ def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
 
 	if is_systmap:
 		if mask is not None:
-			mu = np.sum(fs_map[mask.vpix] * mask.mask[mask.vpix]) / mask.sum
-			fs_map[mask.vpix] -= mu
+			mu = np.sum(fs_map[mask.vpix_ring] * mask.mask_full[mask.vpix_ring]) / mask.sum
+			fs_map[mask.vpix_ring] -= mu
 		else:
 			print('Could not correct systematics map; no MaskData provided.')
 	
 	if apply_mask:
 		if mask is not None:
-			fs_map *= mask.mask
+			fs_map *= mask.mask_full
 		else:
 			print('Could not apply mask to map; no MaskData provided.')
 		
