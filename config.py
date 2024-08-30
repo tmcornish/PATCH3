@@ -39,11 +39,11 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	#fields = ['aegis']
-	#fields = ['hectomap']
+	fields = ['hectomap']
 	#fields = equatora
 	#fields = equatorb
 	#fields = ['combined']
-	fields = ['hectomap'] + equatora + equatorb
+	#fields = ['hectomap'] + equatora + equatorb
 	#fields = ['combined', 'hectomap'] + equatora + equatorb
 
 
@@ -372,7 +372,6 @@ class computePowerSpectra(theoryPredictions):
 	
 	#output file for power spectrum information
 	outfile = f'power_spectra_info_{cf_global.nside_hi}_new.hdf5'
-	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
 	wsp_file = f'workspace_{cf_global.nside_hi}_new.fits'
@@ -427,6 +426,9 @@ class amendPowerSpectra(computePowerSpectra):
 class makeSaccFiles(computePowerSpectra):
 
 	name = 'makeSaccFiles'
+
+	#name for the main output Sacc file
+	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 
 ###############################
