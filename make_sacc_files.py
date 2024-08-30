@@ -50,6 +50,7 @@ for fd in cf.get_global_fields():
 	s_main = sacc.Sacc()		# main results (i.e. w/ deprojection)
 	s_nodeproj = sacc.Sacc()	# results w/o deprojection
 	s_noise = sacc.Sacc()		# noise power spectra
+	s_bias = sacc.Sacc()		# deprojection bias
 
 	#get the n(z) distributions
 	nofz_info = f'{PATH_INFO}{cf.nofz_file}'
@@ -81,6 +82,13 @@ for fd in cf.get_global_fields():
 						z=z,
 						nz=nz
 						)
+			s_bias.add_tracer('NZ',	#n(z)-type tracer
+						f'cl{i}',	#tracer name
+						quantity='galaxy_density', #quantity
+						spin=0,
+						z=z,
+						nz=nz
+						)
 	
 	#cycle through the bin pairings
 	for i,j in pairings:
@@ -92,6 +100,7 @@ for fd in cf.get_global_fields():
 			cell_nodeproj = gp['cl_decoupled_no_deproj'][0]
 			cell_debiased = gp['cl_decoupled_debiased'][0]
 			nell = gp['N_ell_decoupled'][0]
+			bias = gp['cl_bias_decoupled'][0]
 			cell_final = cell_debiased - nell
 			cell_final_nodeproj = cell_nodeproj - nell
 		#add the relevant c_ell info to the Sacc
@@ -105,6 +114,12 @@ for fd in cf.get_global_fields():
 						f'cl{i}', f'cl{j}',
 						ell_effs,
 						cell_final_nodeproj,
+						window=wins
+						)
+		s_bias.add_ell_cl('cl_00',
+						f'cl{i}', f'cl{j}',
+						ell_effs,
+						bias,
 						window=wins
 						)
 		if i == j:
@@ -141,3 +156,4 @@ for fd in cf.get_global_fields():
 	s_main.save_fits(f'{PATH_INFO}{cf.outsacc}', overwrite=True)
 	s_nodeproj.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_nodeproj.fits', overwrite=True)
 	s_noise.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_noise.fits', overwrite=True)
+	s_bias.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_deprojbias.fits', overwrite=True)
