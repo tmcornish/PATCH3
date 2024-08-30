@@ -61,21 +61,21 @@ for fd in cf.get_global_fields():
 			#get the n(z) distribution for this bin
 			nz = hf[f'bin{i}'][:]
 			s_main.add_tracer('NZ',	#n(z)-type tracer
-						f'gc_{i}',	#tracer name
+						f'cl{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
 						nz=nz
 						)
 			s_nodeproj.add_tracer('NZ',	#n(z)-type tracer
-						f'gc_{i}',	#tracer name
+						f'cl{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
 						nz=nz
 						)
 			s_noise.add_tracer('NZ',	#n(z)-type tracer
-						f'gc_{i}',	#tracer name
+						f'cl{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
@@ -95,21 +95,21 @@ for fd in cf.get_global_fields():
 			cell_final = cell_debiased - nell
 			cell_final_nodeproj = cell_nodeproj - nell
 		#add the relevant c_ell info to the Sacc
-		s_main.add_ell_cl('galaxy_density_cl',
-					f'gc_{i}', f'gc_{j}',
+		s_main.add_ell_cl('cl_00',
+					f'cl{i}', f'cl{j}',
 					ell_effs,
 					cell_final,
 					window=wins
 					)
-		s_nodeproj.add_ell_cl('galaxy_density_cl',
-						f'gc_{i}', f'gc_{j}',
+		s_nodeproj.add_ell_cl('cl_00',
+						f'cl{i}', f'cl{j}',
 						ell_effs,
 						cell_final_nodeproj,
 						window=wins
 						)
 		if i == j:
-			s_noise.add_ell_cl('galaxy_density_cl',
-						f'gc_{i}', f'gc_{i}',
+			s_noise.add_ell_cl('cl_00',
+						f'cl{i}', f'cl{i}',
 						ell_effs,
 						nell,
 						window=wins)
