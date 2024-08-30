@@ -49,25 +49,37 @@ for fd in cf.get_global_fields():
 	#set up the various SACC files
 	s_main = sacc.Sacc()		# main results (i.e. w/ deprojection)
 	s_nodeproj = sacc.Sacc()	# results w/o deprojection
+	s_noise = sacc.Sacc()		# noise power spectra
 
 	#get the n(z) distributions
 	nofz_info = f'{PATH_INFO}{cf.nofz_file}'
 	with h5py.File(nofz_info, 'r') as hf:
+		#get the redshifts at which n(z) distributions are defined
+		z = hf['z'][:]
 		#add tracers to the Sacc object (one for each redshift bin)
 		for i in range(len(cf.zbins)-1):
+			#get the n(z) distribution for this bin
+			nz = hf[f'bin{i}'][:]
 			s_main.add_tracer('NZ',	#n(z)-type tracer
 						f'gc_{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
-						z=hf['z'][:],
-						nz=hf[f'bin{i}'][:]
+						z=z,
+						nz=nz
 						)
 			s_nodeproj.add_tracer('NZ',	#n(z)-type tracer
 						f'gc_{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
-						z=hf['z'][:],
-						nz=hf[f'bin{i}'][:]
+						z=z,
+						nz=nz
+						)
+			s_noise.add_tracer('NZ',	#n(z)-type tracer
+						f'gc_{i}',	#tracer name
+						quantity='galaxy_density', #quantity
+						spin=0,
+						z=z,
+						nz=nz
 						)
 	
 	#cycle through the bin pairings
@@ -95,7 +107,13 @@ for fd in cf.get_global_fields():
 						cell_final_nodeproj,
 						window=wins
 						)
-	
+		if i == j:
+			s_noise.add_ell_cl('galaxy_density_cl',
+						f'gc_{i}', f'gc_{i}',
+						ell_effs,
+						nell,
+						window=wins)
+		
 	#set up an array for the covariance matrices
 	covar_all = np.zeros((ncross, n_ells, ncross, n_ells))
 	covar_all_nodeproj = np.zeros((ncross, n_ells, ncross, n_ells))
@@ -122,3 +140,4 @@ for fd in cf.get_global_fields():
 
 	s_main.save_fits(f'{PATH_INFO}{cf.outsacc}', overwrite=True)
 	s_nodeproj.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_nodeproj.fits', overwrite=True)
+	s_noise.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_noise.fits', overwrite=True)
