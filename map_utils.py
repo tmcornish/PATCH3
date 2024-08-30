@@ -565,13 +565,13 @@ def load_tomographic_maps(map_path, fullsky=True, apply_mask=False, mask=None, i
 		if apply_mask:
 			if mask is not None:
 				if fullsky:
-					map_now *= mask.mask
+					map_now *= mask.mask_full
 				else:
 					vpix_map = map_now.valid_pixels
 					vpix_mask = mask.vpix_nest
 					vpix_diff = np.array(list(set(vpix_mask) - set(vpix_map)))
 					map_now[vpix_diff] = 0
-					map_now[vpix_mask] *= mask.mask[mask.vpix]
+					map_now[vpix_mask] *= mask.mask_hsp[vpix_mask]
 			else:
 				print('Could not apply mask to map; no MaskData provided.')
 		
