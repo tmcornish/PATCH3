@@ -46,14 +46,23 @@ for fd in cf.get_global_fields():
 	wins = w.get_bandpower_windows()[0, :, 0, :].T
 	wins = sacc.BandpowerWindow(np.arange(1, ell_max+1), wins)
 
-	#set up the main SACC file
-	s_main = sacc.Sacc()
+	#set up the various SACC files
+	s_main = sacc.Sacc()		# main results (i.e. w/ deprojection)
+	s_nodeproj = sacc.Sacc()	# results w/o deprojection
+
 	#get the n(z) distributions
 	nofz_info = f'{PATH_INFO}{cf.nofz_file}'
 	with h5py.File(nofz_info, 'r') as hf:
 		#add tracers to the Sacc object (one for each redshift bin)
 		for i in range(len(cf.zbins)-1):
 			s_main.add_tracer('NZ',	#n(z)-type tracer
+						f'gc_{i}',	#tracer name
+						quantity='galaxy_density', #quantity
+						spin=0,
+						z=hf['z'][:],
+						nz=hf[f'bin{i}'][:]
+						)
+			s_nodeproj.add_tracer('NZ',	#n(z)-type tracer
 						f'gc_{i}',	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
@@ -68,9 +77,11 @@ for fd in cf.get_global_fields():
 		with h5py.File(cell_info, 'r') as hf:
 			gp = hf[f'{i},{j}']
 			#retrieve the relevant c_ell info
+			cell_nodeproj = gp['cl_decoupled_no_deproj'][0]
 			cell_debiased = gp['cl_decoupled_debiased'][0]
 			nell = gp['N_ell_decoupled'][0]
 			cell_final = cell_debiased - nell
+			cell_final_nodeproj = cell_nodeproj - nell
 		#add the relevant c_ell info to the Sacc
 		s_main.add_ell_cl('galaxy_density_cl',
 					f'gc_{i}', f'gc_{j}',
@@ -78,9 +89,16 @@ for fd in cf.get_global_fields():
 					cell_final,
 					window=wins
 					)
+		s_nodeproj.add_ell_cl('galaxy_density_cl',
+						f'gc_{i}', f'gc_{j}',
+						ell_effs,
+						cell_final_nodeproj,
+						window=wins
+						)
 	
 	#set up an array for the covariance matrices
 	covar_all = np.zeros((ncross, n_ells, ncross, n_ells))
+	covar_all_nodeproj = np.zeros((ncross, n_ells, ncross, n_ells))
 	#open the file containing all the covariance matrices
 	with h5py.File(f'{PATH_INFO}{cf.covar_file}', 'r') as hf:
 		#cycle through the possible combinations of pairs of fields
@@ -91,12 +109,16 @@ for fd in cf.get_global_fields():
 				for j1 in range(nbins):
 					for j2 in range(j1, nbins):
 						covar_all[id_i, :, id_j, :] = hf[f'{i1}{i2}-{j1}{j2}/final'][:]
+						covar_all_nodeproj[id_i, :, id_j, :] = hf[f'{i1}{i2}-{j1}{j2}/no_deproj'][:]
 						id_j += 1
 				id_i += 1
 
 	#reshape the covariance matrix
 	covar_all = covar_all.reshape((ncross * n_ells, ncross * n_ells))
+	covar_all_nodeproj = covar_all_nodeproj.reshape((ncross * n_ells, ncross * n_ells))
 	#add the covariance matrix to the Sacc
 	s_main.add_covariance(covar_all)
+	s_nodeproj.add_covariance(covar_all_nodeproj)
 
 	s_main.save_fits(f'{PATH_INFO}{cf.outsacc}', overwrite=True)
+	s_nodeproj.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_nodeproj.fits', overwrite=True)
