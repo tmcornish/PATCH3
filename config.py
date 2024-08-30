@@ -210,7 +210,7 @@ class cleanCats(cf_global):
 
 	#types of flag to apply during basic cleaning (can be empty)
 	remove_if_flagged = [
-		#'main',
+		'main',
 		#'strict'
 	]
 
@@ -408,15 +408,6 @@ class computePowerSpectra(theoryPredictions):
 			else:
 				bpw_edges = np.linspace(cls.ell_min, ell_max, cls.nbpws).astype(int)
 		return bpw_edges
-
-###############################
-#### amend_power_spectra ####
-###############################
-
-class amendPowerSpectra(computePowerSpectra):
-
-	name = 'amendPowerSpectra'
-
 
 
 #########################

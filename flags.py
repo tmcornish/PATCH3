@@ -15,16 +15,16 @@ flag_channelstop = 'y_mask_brightstar_channel_stop'
 
 #flags associated with the primary photometric band
 flags_main = [
-	'_cmodel_flag_badcentroid',
+	#'_cmodel_flag_badcentroid',
 	'_sdsscentroid_flag',
-	'_pixelflags_edge',
-	'_pixelflags_interpolatedcenter',
-	'_pixelflags_saturatedcenter',
-	'_pixelflags_crcenter',
-	'_pixelflags_bad',
-	'_pixelflags_suspectcenter',
-	'_pixelflags_clipped',
-	'_deblend_skipped'
+	#'_pixelflags_edge',
+	#'_pixelflags_interpolatedcenter',
+	#'_pixelflags_saturatedcenter',
+	#'_pixelflags_crcenter',
+	#'_pixelflags_bad',
+	#'_pixelflags_suspectcenter',
+	#'_pixelflags_clipped',
+	#'_deblend_skipped'
 ]
 
 #flags associated with all photometric bands (considered 'strict' cuts)
