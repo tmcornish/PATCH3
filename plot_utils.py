@@ -2,7 +2,6 @@
 # Module containing functions and variables for formatting plots.
 ###########################################################################################################
 
-import colorsys
 
 def check_for_latex():
 	'''
@@ -21,8 +20,6 @@ def check_for_latex():
 		installed = False
 	
 	return installed
-
-#see if LaTeX installed; if so, enable its use in figures
 
 
 #dictionary containing custom formatting for plots
@@ -140,6 +137,7 @@ def scale_RGB_colour(rgb, scale_l=1., scale_s=1.):
 	rgb: array-like
 		The RGB colour specifications of the scaled colour.
 	'''
+	import colorsys
 	#convert the rgb to hls (hue, lightness, saturation)
 	h, l, s = colorsys.rgb_to_hls(*rgb)
 	#scale the lightness ad saturation and ensure the results are between 0 and 1
@@ -147,7 +145,6 @@ def scale_RGB_colour(rgb, scale_l=1., scale_s=1.):
 	s_new = max(0, min(1, s * scale_s))
 	#convert back to rgb and return the result
 	return colorsys.hls_to_rgb(h, l_new, s_new)
-
 
 
 
