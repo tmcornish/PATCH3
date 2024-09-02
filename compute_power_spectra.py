@@ -365,7 +365,8 @@ for fd in cf.get_global_fields():
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 
-	if not cf.var_only:
+	#compute all covariances if told to AND if density fields have been made 
+	if not cf.var_only and density_fields:
 		print('Computing all covariances...')
 		#file for containing the covariance matrices
 		covar_file = f'{PATH_MAPS}{cf.covar_file}'
