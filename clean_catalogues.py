@@ -309,7 +309,10 @@ for g in f_in_g:
 
 		#also produce a tomgraphy catalogue
 		hdf_tomo = f'{OUT}/{cf.cat_tomo}'
-		make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
+		try:
+			make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
+		except KeyError:
+			print(f'Desired redshift column ({cf.zcol}) not found; no tomography catalogue produced.')
 
 
 
