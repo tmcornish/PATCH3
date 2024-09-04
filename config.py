@@ -33,18 +33,19 @@ class cf_global:
 	#data release
 	dr = 'pdr3_wide'
 
-	#lists detailing which sub-fields belong to which equatorial field
+	#lists detailing which sub-fields belong to which field
+	hectomap = ['hectomap']
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
+	combined = ['combined']
 	
 	#fields for which the pipeline is to be run
-	#fields = ['aegis']
-	fields = ['hectomap']
-	#fields = equatora
-	#fields = equatorb
-	#fields = ['combined']
-	#fields = ['hectomap'] + equatora + equatorb
-	#fields = ['combined', 'hectomap'] + equatora + equatorb
+	fields = [
+		*hectomap,
+		#*equatora,
+		#*equatorb,
+		#*combined
+	]
 
 
 	#file containing the metadata
