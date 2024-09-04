@@ -148,3 +148,60 @@ def scale_RGB_colour(rgb, scale_l=1., scale_s=1.):
 
 
 
+def plot_correlation_matrix(S, **kwargs):
+	'''
+	Given a Sacc object, computes the correlation matrix from the covariance
+	matrix and creates a figure displaying it.
+
+	Parameters
+	----------
+	S: sacc.sacc.Sacc object or str
+		The Sacc object containing the covariance matrix to be converted into
+		a correlation matrix. If a string, must be the path to a Sacc file.
+	
+	Returns
+	-------
+	fig: matplotlib.figure.Figure
+		Figure in which the correlation matrix is displayed.
+	
+	ax: matplotlib.axes._axes.Axes
+		Axes on which the correlation matrix is displayed.
+	'''
+
+	import matplotlib as mpl
+	import matplotlib.pyplot as plt
+	import sacc
+	import numpy as np
+
+	plt.style.use(styledict)
+	#check if input is a string
+	if type(S) == str:
+		S = sacc.Sacc.load_fits(S)
+	#retrieve the covariance matrix
+	cov = S.covariance.covmat
+	#convert to correlation matrix
+	Dinv = np.diag((1. / np.sqrt(np.diag(cov))))
+	corr = Dinv @ cov @ Dinv
+
+	#display the correlation matrix on a figure
+	f, ax = plt.subplots()
+	im = ax.imshow(corr, origin='upper', **kwargs)
+	cbar = f.colorbar(im, ax=ax)
+	cbar.set_label(r'$\rho$')
+
+	#adjust the axis labels so that they display the power spectra pairings
+	#(assumes the last character in each C_ell label describes the bin)
+	pairs = [f'{i[-1]}{j[-1]}' for i,j in S.get_tracer_combinations()]
+	npairs = len(pairs)
+	#determine the width of each sub-grid in the correlation matrix
+	wsg = corr.shape[0] / npairs
+	#tick positions
+	tick_pos = np.arange(0.5 * wsg, (npairs+0.5)*wsg, wsg)
+	#set the positions and labels
+	ax.set_xticks(tick_pos, labels=pairs)
+	ax.set_yticks(tick_pos, labels=pairs)
+	ax.minorticks_off()
+	ax.tick_params(direction='out')
+
+	#return the figure and axes
+	return f, ax
