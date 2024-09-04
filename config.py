@@ -31,20 +31,23 @@ class cf_global:
 	
 
 	#data release
-	dr = 'pdr3_wide'
+	dr = 'pdr3_dud' #'pdr3_wide'
 
 	#lists detailing which sub-fields belong to which field
 	hectomap = ['hectomap']
 	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
 	combined = ['combined']
+	#deep/ultra-deep fields
+	cosmos = ['cosmos']
 	
 	#fields for which the pipeline is to be run
 	fields = [
-		*hectomap,
+		#*hectomap,
 		#*equatora,
 		#*equatorb,
-		#*combined
+		#*combined,
+		*cosmos
 	]
 
 
@@ -125,7 +128,8 @@ class cf_global:
 			fields_global.append('equatorb')
 		if 'combined' in cls.fields:
 			fields_global.append('combined')
-
+		if 'cosmos' in cls.fields:
+			fields_global.append('cosmos')
 		return fields_global
 
 
