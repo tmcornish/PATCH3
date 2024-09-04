@@ -94,12 +94,12 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_couple
 	cl_coupled_i1j1 = nmt.compute_coupled_cell(f_i1, f_j1)
 	cl_coupled_i1j2 = nmt.compute_coupled_cell(f_i1, f_j2)
 	cl_coupled_i2j1 = nmt.compute_coupled_cell(f_i2, f_j1)
-	cl_coupled_i2i2 = nmt.compute_coupled_cell(f_i2, f_i2)
+	cl_coupled_i2j2 = nmt.compute_coupled_cell(f_i2, f_j2)
 	#use these along with the mask to get a guess of the true C_ell
 	cl_guess_i1j1 = cl_coupled_i1j1 / mu_w2
 	cl_guess_i1j2 = cl_coupled_i1j2 / mu_w2
 	cl_guess_i2j1 = cl_coupled_i2j1 / mu_w2
-	cl_guess_i2i2 = cl_coupled_i2i2 / mu_w2
+	cl_guess_i2j2 = cl_coupled_i2j2 / mu_w2
 
 
 	covar = nmt.gaussian_covariance(cw, 
@@ -107,16 +107,16 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_couple
 									[cl_guess_i1j1[0]],	
 									[cl_guess_i1j2[0]],
 									[cl_guess_i2j1[0]],
-									[cl_guess_i2i2[0]],
+									[cl_guess_i2j2[0]],
 									w)
 	#errorbars for each bandpower
 	err_cell = np.diag(covar) ** 0.5
 
 	to_return = [covar, err_cell]
 	if return_cl_coupled:
-		to_return.append([cl_coupled_i1j1, cl_coupled_i1j2, cl_coupled_i2j1, cl_coupled_i2i2])
+		to_return.append([cl_coupled_i1j1, cl_coupled_i1j2, cl_coupled_i2j1, cl_coupled_i2j2])
 	if return_cl_guess:
-		to_return.append([cl_guess_i1j1, cl_guess_i1j2, cl_guess_i2j1, cl_guess_i2i2])
+		to_return.append([cl_guess_i1j1, cl_guess_i1j2, cl_guess_i2j1, cl_guess_i2j2])
 
 
 	return (*to_return,)
