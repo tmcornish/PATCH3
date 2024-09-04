@@ -309,16 +309,18 @@ for g in f_in_g:
 
 		#also produce a tomgraphy catalogue
 		hdf_tomo = f'{OUT}/{cf.cat_tomo}'
-		try:
+		if cf.dr == 'pdr3_wide':
 			make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
-		except KeyError:
-			print(f'Desired redshift column ({cf.zcol}) not found; no tomography catalogue produced.')
+		else:
+			print(f'Can only create tomographic catalogues for the WIDE data; skipping...')
 
 
 
 
 print('Consolidating catalogues from subfields...')
-cats = [cf.cat_basic, cf.cat_main, cf.cat_stars, cf.cat_tomo]
+cats = [cf.cat_basic, cf.cat_main, cf.cat_stars]
+if cf.dr == 'pdr3_wide':
+	cats += cf.cat_tomo
 for g in f_in_g:
 	print(colour_string(g.upper(), 'orange'))
 	#cycle through the catalogue types
