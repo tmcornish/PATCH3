@@ -47,8 +47,8 @@ def basic_clean(t):
 			sel[t[key]] = 0
 			isnull_names.append(key)
 		else:
-			#want to remove NaNs UNLESS they are photo-zs
-			if not key.startswith('pz_'):
+			#want to remove NaNs UNLESS they are photo-zs or r/i-band magnitude corrections
+			if not key.startswith('pz_') and not key.startswith('corr_'):
 				sel[np.isnan(t[key])] = 0
 	
 	#also remove any sources that are not primary detections
@@ -70,6 +70,11 @@ def basic_clean(t):
 
 	t.remove_columns(isnull_names)
 	t = t[sel]
+
+	#correct the r/i-band magnitudes to using the appropriate corrections
+	for b in ['r', 'i']:
+		corr_mask = ~np.isnan(t[f'corr_{b}mag'])
+		t[f'{b}_cmodel_mag'][corr_mask] += t[f'corr_{b}mag'][corr_mask]
 
 	return t
 
