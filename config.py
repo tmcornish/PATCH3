@@ -35,15 +35,15 @@ class cf_global:
 
 	#lists detailing which sub-fields belong to which field
 	hectomap = ['hectomap']
-	equatora = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
-	equatorb = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
+	spring = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
+	autumn = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
 	combined = ['combined']
 	
 	#fields for which the pipeline is to be run
 	fields = [
 		*hectomap,
-		#*equatora,
-		#*equatorb,
+		*spring,
+		*autumn,
 		#*combined
 	]
 
@@ -119,10 +119,10 @@ class cf_global:
 			fields_global.append('hectomap')
 		if 'aegis' in cls.fields:
 			fields_global.append('aegis')
-		if any(x in cls.equatora for x in cls.fields):
-			fields_global.append('equatora')
-		if any(x in cls.equatorb for x in cls.fields):
-			fields_global.append('equatorb')
+		if any(x in cls.spring for x in cls.fields):
+			fields_global.append('spring')
+		if any(x in cls.autumn for x in cls.fields):
+			fields_global.append('autumn')
 		if 'combined' in cls.fields:
 			fields_global.append('combined')
 
@@ -192,8 +192,8 @@ class splitMetadata(cf_global):
 	#boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
 	bounds = {
 		'aegis' : [212., 216., 51.6, 53.6],
-		'equatora' : [326.25, 41.25, -8., 8.],
-		'equatorb' : [125., 227.5, -4., 7.],
+		'spring' : [326.25, 41.25, -8., 8.],
+		'autumn' : [125., 227.5, -4., 7.],
 		'hectomap' : [195., 255., 41.5, 45.]
 	}
 
@@ -227,10 +227,10 @@ class cleanCats(cf_global):
 		fields_global = cls.get_global_fields()
 		f_in_g = {}
 		for g in fields_global:
-			if g == 'equatora':
-				f_in_g[g] = [f for f in cls.equatora if f in cls.fields]
-			elif g == 'equatorb':
-				f_in_g[g] = [f for f in cls.equatorb if f in cls.fields]
+			if g == 'spring':
+				f_in_g[g] = [f for f in cls.spring if f in cls.fields]
+			elif g == 'autumn':
+				f_in_g[g] = [f for f in cls.autumn if f in cls.fields]
 			else:
 				f_in_g[g] = [g]
 		return f_in_g
