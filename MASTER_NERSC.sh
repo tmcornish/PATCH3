@@ -14,6 +14,7 @@ jobs=(
     #'make_maps_from_metadata'
     #'pca_systematics'
     #'make_galaxy_maps'
+    #'combine_fields'
     #'compute_power_spectra'
     #'plot_power_spectra'
     #'make_txpipe_inputs'
