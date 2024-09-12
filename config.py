@@ -372,13 +372,15 @@ class computePowerSpectra(theoryPredictions):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_new.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
-	wsp_file = f'workspace_{cf_global.nside_hi}_new.fits'
-	covwsp_file = f'covworkspace_{cf_global.nside_hi}_new.fits'
+	wsp_file = f'workspace_{cf_global.nside_hi}.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
-	deproj_file = f'deprojected_{cf_global.nside_hi}_new.txt'
+	deproj_file = f'deprojected_{cf_global.nside_hi}.txt'
+	#basename for cache file for storing the best-fit coefficients from linear deprojection
+	alphas_file = f'alphas_deproj_{cf_global.nside_hi}.txt'
 
 	#apply a multiplicative correction to delta_g due to star contamination
 	correct_for_stars = True
