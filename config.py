@@ -42,8 +42,8 @@ class cf_global:
 	#fields for which the pipeline is to be run
 	fields = [
 		*hectomap,
-		*spring,
-		*autumn,
+		#*spring,
+		#*autumn,
 		#*combined
 	]
 
@@ -388,11 +388,6 @@ class computePowerSpectra(theoryPredictions):
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
 
-	#whether to only calculate 'variance' matrices as opposed to all possible covariances
-	var_only = False
-	#base filename for the file containing all covariance matrices (if calculated)
-	covar_file = f'covariance_matrices_{cf_global.nside_hi}.hdf5'
-
 	@classmethod
 	def get_bpw_edges(cls):
 		import numpy as np
@@ -411,11 +406,22 @@ class computePowerSpectra(theoryPredictions):
 		return bpw_edges
 
 
+#############################
+#### compute_covariances ####
+#############################
+
+class computeCovariances(computePowerSpectra):
+
+	name = 'computeCovariances'
+
+	#base filename for the file containing all covariance matrices (if calculated)
+	covar_file = f'covariance_matrices_{cf_global.nside_hi}.hdf5'
+
 #########################
 #### make_sacc_files ####
 #########################
 
-class makeSaccFiles(computePowerSpectra):
+class makeSaccFiles(computeCovariances):
 
 	name = 'makeSaccFiles'
 

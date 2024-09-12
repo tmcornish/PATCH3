@@ -22,8 +22,9 @@ combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
 theory_cells = False		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
+compute_covs = True		#compute covariance matrices for all power spectra combinations
 make_sacc = False		#consolidate c_ell info into a SACC file
-plot_cells = True		#plot the power spectra
+plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
 
@@ -40,6 +41,7 @@ settings = [
 	pca_systs,
 	theory_cells,
 	power_spectra,
+	compute_covs,
 	make_sacc,
 	plot_cells,
 	txpipe_inputs
@@ -56,6 +58,7 @@ proc = [
 	'Performing PCA',
 	'Computing theoretical power spectra',
 	'Computing power spectra',
+	'Computing covariance matrices',
 	'Creating SACC file',
 	'Plotting power spectra',
 	'Making TXPipe-compatible inputs'
@@ -72,6 +75,7 @@ run_str = [
 	'python -u pca_systematics.py',
 	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
+	'python -u compute_covariances.py',
 	'python -u make_sacc_files.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
