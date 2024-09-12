@@ -367,7 +367,7 @@ for fd in cf.get_global_fields():
 
 	#save the best-fit coefficients from linear deprojection for each field
 	for i,f_i in enumerate(density_fields):
-		alpha_file = PATH_CACHE + f'deproj_alphas_bin{i}.txt'
+		alpha_file = PATH_CACHE + f'{cf.alphas_file[:-4]}_bin{i}.txt'
 		alphas = f_i.alphas
 		alphas_str = '\n'.join(str(alpha) for alpha in alphas)
 		with open(alpha_file, 'w') as af:
