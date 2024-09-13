@@ -130,3 +130,6 @@ submit_pyjob "-q cmb -m 40" combine_fields.py
 ###     3: name of the python script to run
 #power_spectra_job 24 7 compute_power_spectra.py
 
+### computing covariance matrices
+submit_pyjob "-q cmb -m 180" compute_covariances.py
+
