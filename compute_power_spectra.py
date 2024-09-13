@@ -366,7 +366,8 @@ for fd in cf.get_global_fields():
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 
 	#save the best-fit coefficients from linear deprojection for each field
-	for i,j in pairings:
+	for p in pairings:
+		i,j = [int(x) for x in p.strip('()').split(',')]
 		f_i = density_fields[i]
 		alpha_file = PATH_CACHE + f'{cf.alphas_file[:-4]}_bin{i}.txt'
 		alphas = f_i.alphas
