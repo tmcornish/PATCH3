@@ -122,7 +122,7 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py
 
 ### combining maps from all fields
-submit_pyjob "-q cmb -m 40" combine_fields.py
+#submit_pyjob "-q cmb -m 40" combine_fields.py
 
 ### computing power spectra; function takes as arguments...
 ###     1: number of cores to use
