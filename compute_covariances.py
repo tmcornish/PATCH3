@@ -127,14 +127,12 @@ for fd in cf.get_global_fields():
 
 	#file for containing the covariance matrices
 	covar_file = f'{PATH_MAPS}{cf.covar_file}'
-	#number of different fields
-	nfields = len(cf.zbins) - 1
 	with h5py.File(covar_file, 'w') as cvfile:
 		#cycle through all possible combinations of pairs of fields
-		for i1 in range(nfields):
-			for i2 in range(i1, nfields):
-				for j1 in range(nfields):
-					for j2 in range(j1, nfields):
+		for i1 in range(nbins):
+			for i2 in range(i1, nbins):
+				for j1 in range(nbins):
+					for j2 in range(j1, nbins):
 						#create group in the hdf5 file for this pairing
 						gp = cvfile.create_group(f'{i1}{i2}-{j1}{j2}')
 						#compute the covariance
