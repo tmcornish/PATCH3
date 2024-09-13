@@ -90,7 +90,7 @@ for fd in cf.get_global_fields():
 	#load the (non-deprojected) delta_g maps
 	deltag_maps = load_tomographic_maps(PATH_MAPS + cf.deltag_maps)
 	#load the systematics maps
-	deproj_file = PATH_CACHE + cf.deproj_file
+	deproj_file = PATH_CACHE + cf.deproj_file[:-4] + '_0_0.txt'
 	with open(deproj_file, 'r') as depfile:
 		deproj_done = depfile.read().split('\n')[:-1]
 	systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in deproj_done]
