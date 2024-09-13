@@ -95,7 +95,7 @@ for fd in cf.get_global_fields():
 		deproj_done = depfile.read().split('\n')[:-1]
 	systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in deproj_done]
 	nsyst = len(systmaps)
-	systmaps = systmaps.reshape(nsyst, 1, npix)
+	systmaps = np.array(systmaps).reshape(nsyst, 1, npix)
 	#mask the systmaps
 	systmaps *= mask.mask_full
 	#construct density fields with and w/o deprojection
