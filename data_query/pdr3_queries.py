@@ -110,6 +110,8 @@ def write_fieldsearch(
 		'forced.i_pixelflags_bright_objectcenter',
 		'forced.i_pixelflags_bright_object',
 		'forced.i_extendedness_value',
+		'mag_corr.corr_rmag',
+		'mag_corr.corr_imag',
 		'meas2.i_blendedness_abs as i_blendedness_abs',
 		add_filters('a_', behind=True),
 		add_filters('_psfflux_flux', cat='forced2'),
@@ -172,6 +174,7 @@ def write_fieldsearch(
 		f'{tablename}.forced as forced',
 		f'LEFT JOIN {tablename}.forced2 USING (object_id)',
 		f'LEFT JOIN {tablename}.forced3 USING (object_id)',
+		f'LEFT JOIN {tablename}.mag_corr USING (object_id)',
 		f'LEFT JOIN {tablename}.meas meas USING (object_id)',
 		f'LEFT JOIN {tablename}.meas2 meas2 USING (object_id)',
 		f'LEFT JOIN {tablename}.masks masks USING (object_id)'

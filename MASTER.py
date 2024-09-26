@@ -1,8 +1,5 @@
 #####################################################################################################
 # Master script for running different stages of the HSC-SSP DR3 analysis.
-# If running on glamdring, run 'source /mnt/zfsusers/tcornish/venvs/lsst/bin/activate' before this.
-#
-# TODO: incorporate option to run via SLURM somehow
 #####################################################################################################
 
 # Import necessary packages/modules
@@ -16,7 +13,7 @@ import output_utils as opu
 
 #toggle `switches' for determining which scripts to run
 get_data = False		#run data acquisition script
-split_meta = False		#splits metadata by global field
+split_meta = False		#splits metadata by field
 clean_cats = False		#apply various cuts to clean the catalogues
 metadata_maps = False	#make maps for various quantities using the frame metadata (uses decasu)
 catbased_maps = False	#make maps for various quantities using the catalogue
@@ -25,8 +22,8 @@ combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
 theory_cells = False		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
-make_sacc = True		#consolidate c_ell info into a SACC file
-plot_cells = False		#plot the power spectra
+make_sacc = False		#consolidate c_ell info into a SACC file
+plot_cells = True		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
 

@@ -37,7 +37,7 @@ def get_nofz(fd):
 
 	#if provided field is 'combined', need to load data from all fields
 	if fd == 'combined':
-		for f in ['hectomap', 'equatora', 'equatorb']:
+		for f in ['hectomap', 'spring', 'autumn']:
 			with h5py.File(cf.PATH_OUT + f + '/' + cf.cat_main, 'r') as hf:
 				gr = hf['photometry']
 				z_best.append(gr[f'{cf.zcol}'][:])

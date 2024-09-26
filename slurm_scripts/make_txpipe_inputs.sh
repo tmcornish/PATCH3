@@ -1,9 +1,12 @@
 #!/bin/bash
-#SBATCH --nodes=1
+#SBATCH -N 1
+#SBATCH -C cpu
+#SBATCH -q regular
 #SBATCH --time=01:00:00
-#SBATCH --constraint=cpu
-#SBATCH --qos=regular
-#SBATCH --account=m1727
+#SBATCH -J makeTXPipeInputs
+#SBATCH --mail-user=thomas.cornish@physics.ox.ac.uk
+#SBATCH --mail-type=ALL
+#SBATCH -A m1727
 
 cd ..
 srun python -u make_txpipe_inputs.py

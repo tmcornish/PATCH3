@@ -205,3 +205,76 @@ def plot_correlation_matrix(S, **kwargs):
 
 	#return the figure and axes
 	return f, ax
+
+
+def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='', **kwargs):
+	'''
+	Given a map (HealPIX or HealSparse format), will return a figure displaying
+	that map. 
+
+	Parameters
+	----------
+	mp: numpy.ndarray or healsparse.HealSparseMap.HealSparseMap
+		The map to be displayed.
+	
+	field: str
+		name of the HSC field being mapped. Must be either "hectomap",
+		"spring" or "autumn".
+	
+	vals_unseen: list or None
+		List of values to be treated as equivalent to hp.UNSEEN for display purposes.
+		If None, all pixels will be displayed with their exact value.
+	
+	unseen_thresh: float or None
+		Value below which pixels will be counted as UNSEEN. If None, all pixels will 
+		be displayed with their exact value.
+	
+	Returns
+	-------
+	fig: matplotlib.figure.Figure
+		Figure in which the map is displayed.
+	'''
+	import healpy as hp
+	import healsparse as hsp
+	import matplotlib.pyplot as plt
+	plt.style.use(styledict)
+
+	#approximate field centers and corresponding suitable image dimensions
+	if field == 'hectomap':
+		ra_mean = 231.71
+		dec_mean = 43.34
+		xsize = 500
+		ysize = 100
+	elif field == 'spring':
+		ra_mean = 5
+		dec_mean = 0
+		xsize = 1500
+		ysize = 300
+	elif field == 'autumn':
+		ra_mean = 177.16
+		dec_mean = 1.05
+		xsize = 2500
+		ysize = 300
+	else:
+		raise ValueError("Argument 'field' must be one of {'hectomap', 'spring', 'autumn'}.")
+
+	#get the resolution of the map
+	if type(mp) == hsp.HealSparseMap:
+		nside = mp.nside_sparse
+		mp = mp.generate_healpix_map(nest=False)
+	else:
+		nside = hp.npix2nside(len(mp))
+	reso = hp.nside2resol(nside, arcmin=True)
+	#make a copy of the input map to avoid editing in place
+	mp = mp.copy()
+	
+	#create the figure
+	fig = plt.figure(figsize=(18, 5))
+	if vals_unseen is not None:
+		mp = mp.copy()
+		for val in vals_unseen:
+			mp[mp == val] = hp.UNSEEN
+	if unseen_thresh is not None:
+		mp = mp.copy()
+		mp[mp <= unseen_thresh] = hp.UNSEEN
+	hp.gnomview(mp, rot=[ra_mean, dec_mean, 0], xsize=xsize, ysize=ysize, reso=reso, notext=True, fig=fig, title=title, **kwargs)
