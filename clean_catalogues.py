@@ -314,12 +314,7 @@ for g in f_in_g:
 
 		#also produce a tomgraphy catalogue
 		hdf_tomo = f'{OUT}/{cf.cat_tomo}'
-		if cf.dr == 'pdr3_wide':
-			make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
-		else:
-			print(f'Can only create tomographic catalogues for the WIDE data; skipping...')
-
-
+		make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
 
 
 print('Consolidating catalogues from subfields...')
