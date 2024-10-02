@@ -17,10 +17,10 @@ cf = config.theoryPredictions
 #### FUNCTIONS ####
 ###################
 
-def get_nofz(fd):
+def compute_nofz(fd):
 	'''
 	Computes estimates of the n(z) distributions in each redshift bin for a given
-	field and returns them in a dictionary. If told to use 
+	field and returns them in a dictionary.
 
 	Parameters
 	----------
@@ -70,6 +70,85 @@ def get_nofz(fd):
 	return nofz
 
 
+def get_tracers(nofz, cosmo):
+	'''
+	Creates and returns a dictionary of NumberCountsTracer objects for
+	each tomographic bin.
+
+	Parameters
+	----------
+	nofz: dict
+		Dictionary containing n(z) distributions for each bin and the
+		redshifts at which they are defined.
+	
+	cosmo: ccl.Cosmology
+		Fiducial cosmology object.
+	
+	Returns
+	-------
+	tracers: dict
+		Dictionary containing tracer information for each bin.
+	'''
+
+	#create a dictionary containing the tracers in each redshift bin
+	tracers = {
+		f'bin{i}' : ccl.NumberCountsTracer(
+											cosmo, 
+											has_rsd=False, 
+											dndz=(nofz['z'], nofz[f'nz_{i}']), 
+											bias=(nofz['z'], np.ones_like(nofz['z']))
+											)
+		for i in range(cf.nbins)
+	}
+
+	return tracers
+
+
+def get_theory_cells(tracers, pairings, ells, cosmo, pk):
+	'''
+	Computes theoretical predictions for the angular power spectra for the 
+	specified pairs of tomographic bins.
+
+	Parameters
+	----------
+	tracers: dict
+		Dictionary containing NumberCountsTracer objects for each tomographic
+		bin.
+	
+	pairings: list
+		List of tuples, with each tuple containing the indices of the bins
+		being paired.
+	
+	ells: array-like
+		Multipoles at which the theory C_ells will be defined.
+	
+	cosmo: ccl.Cosmology
+		Fiducial cosmology.
+	
+	pk: ccl.halos.halomod_Pk2D
+		Galaxy halo-model power spectrum.
+	
+	Returns
+	-------
+	theory_cells: dict
+		Dictionary containing the theoretical angular power spectra for each
+		bin pair, as well as the multipoles at which they are defined.
+
+	'''
+	theory_cells = {'ells' : ells}
+	for i,j in pairings:
+		c_ell = ccl.angular_cl(
+							cosmo,
+							tracers[f'bin{i}'],
+							tracers[f'bin{j}'],
+							ells,
+							p_of_k_a=pk
+						)
+		theory_cells[f'bin{i}-bin{j}'] = c_ell
+	
+	return theory_cells
+
+
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
@@ -115,40 +194,40 @@ pk = ccl.halos.halomod_Pk2D(
 	lk_arr=lk_arr
 )
 
-
+#if using DIR outputs, load them now
+if cf.use_dir:
+	print('Retrieving DIR n(z) distributions...')
+	with h5py.File(cf.nz_dir_file, 'r') as hf:
+		nofz = {k : hf[k][:] for k in hf.keys()}
+	#create a dictionary containing the tracers in each redshift bin
+	tracers = get_tracers(nofz, cosmo)
+	print('Computing theory C_ells...')
+	#compute theory C_ells
+	theory_cells = get_theory_cells(tracers, pairings, ells, cosmo, pk)
+	
 #cycle through the specified fields
 for fd in cf.get_global_fields():
-	#retrieve estimates of the n(z) distributions in each bin
-	nofz = get_nofz(fd)
-	#save the n(z) info to a file
-	outfile = f'{cf.PATH_OUT}{fd}/{cf.nz_file}'
-	with h5py.File(outfile, 'w') as hf:
-		for k in nofz.keys():
-			hf.create_dataset(k, data=nofz[k])
-	
-	#create a dictionary containing the tracers in each redshift bin
-	tracers = {
-		f'bin{i}' : ccl.NumberCountsTracer(
-											cosmo, 
-											has_rsd=False, 
-											dndz=(nofz['z'], nofz[f'nz_{i}']), 
-											bias=(nofz['z'], np.ones_like(nofz['z']))
-											)
-		for i in range(cf.nbins)
-	}
+	print(colour_string(fd.upper(), 'orange'))
+	if not cf.use_dir:
+		print('Computing n(z) distributions from Monte-Carlo draws...')
+		#compute estimates of the n(z) distributions in each bin
+		nofz = compute_nofz(fd)
+		#save the n(z) info to a file
+		outfile = f'{cf.PATH_OUT}{fd}/{cf.nz_file}'
+		with h5py.File(outfile, 'w') as hf:
+			for k in nofz.keys():
+				hf.create_dataset(k, data=nofz[k])
+		#create a dictionary containing the tracers in each redshift bin
+		tracers = get_tracers(nofz, cosmo)
+		print('Computing theory C_ells...')
+		#compute theory C_ells
+		theory_cells = get_theory_cells(tracers, pairings, ells, cosmo, pk)
 
+	print('Saving theory C_ells...')
 	#open the output file, compute and save the theory cells
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.theory_out}' 
 	with h5py.File(outfile, 'w') as psfile:
-		_ = psfile.create_dataset('ells', data=ells)
-		for i, j in pairings:
-			c_ells = ccl.angular_cl(
-				cosmo,
-				tracers[f'bin{i}'],
-				tracers[f'bin{j}'],
-				ells,
-				p_of_k_a=pk
-			)
-			_ = psfile.create_dataset(f'bin{i}-bin{j}', data=c_ells)
+		for k in theory_cells.keys():
+			psfile.create_dataset(k, data=theory_cells[k])
 	
 
