@@ -113,6 +113,7 @@ class cf_global:
 	zcol = 'pz_best_dnnz'
 	#redshift bin edges
 	zbins = [0.3, 0.6, 0.9, 1.2, 1.5]
+	nbins = len(zbins) - 1
 
 
 	@classmethod
