@@ -142,8 +142,7 @@ class cf_global:
 		'''
 		import itertools
 
-		nbins = len(cls.zbins) - 1
-		l = list(range(nbins))
+		l = list(range(cls.nbins))
 		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
 		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
 		return pairings, pairings_s
