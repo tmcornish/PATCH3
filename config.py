@@ -367,7 +367,7 @@ class theoryPredictions(dirPhotozs):
 	theory_out = 'theory_cells.hdf5'
 
 	#whether to use the n(z) distributions caculated using DIR
-	use_dir = True
+	use_dir = False
 
 	### The following are only relevant if use_dir == False
 	#column in the catalogues containing the random MC draws from the redshift distribution
@@ -375,7 +375,7 @@ class theoryPredictions(dirPhotozs):
 	#width of the redshift bins
 	dz = 0.03
 	#name of the file to which the nofz info will be saved
-	nz_file = 'nz_dists.hdf5'
+	nz_mc_file = 'nz_dists_mc.hdf5'
 	
 
 ###############################

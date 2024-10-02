@@ -213,7 +213,7 @@ for fd in cf.get_global_fields():
 		#compute estimates of the n(z) distributions in each bin
 		nofz = compute_nofz(fd)
 		#save the n(z) info to a file
-		outfile = f'{cf.PATH_OUT}{fd}/{cf.nz_file}'
+		outfile = f'{cf.PATH_OUT}{fd}/{cf.nz_mc_file}'
 		with h5py.File(outfile, 'w') as hf:
 			for k in nofz.keys():
 				hf.create_dataset(k, data=nofz[k])
