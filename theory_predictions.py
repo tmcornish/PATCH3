@@ -6,6 +6,7 @@
 import pyccl as ccl
 import h5py
 import numpy as np
+from output_utils import colour_string
 import config
 
 ### SETTINGS ###
@@ -64,7 +65,7 @@ def get_nofz(fd):
 	#generate the histograms and store them in the dictionary
 	for i in range(len(cf.zbins) - 1):
 		zmask = (z_best >= cf.zbins[i]) * (z_best < cf.zbins[i+1])
-		nofz[f'bin{i}'] = np.histogram(z_mc[zmask], bins=bins, density=True)[0]
+		nofz[f'nz_{i}'] = np.histogram(z_mc[zmask], bins=bins, density=True)[0]
 	
 	return nofz
 
@@ -98,7 +99,7 @@ for fd in cf.get_global_fields():
 		f'bin{i}' : ccl.NumberCountsTracer(
 											cosmo, 
 											has_rsd=False, 
-											dndz=(nofz['z'], nofz[f'bin{i}']), 
+											dndz=(nofz['z'], nofz[f'nz_{i}']), 
 											bias=(nofz['z'], np.ones_like(nofz['z']))
 											)
 		for i in range(len(cf.zbins) - 1)
