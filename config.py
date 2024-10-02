@@ -329,6 +329,22 @@ class dirPhotozs(cf_global):
 
 	name = 'dirPhotozs'
 
+	#catalogue containing the HSC photometry for galaxies in the COSMOS field
+	hsc_cosmos_cat = '/home/cornisht/LSST_clustering/pHSC3/out/cosmos/clean_catalogue.hdf5'
+	#COSMOS2020 catalogue
+	cosmos_cat = '/home/cornisht/LSST_clustering/Data/COSMOS/COSMOS2020_CLASSIC_R1_v2.0.fits'
+
+	#maximum separation (in arcsec) for cross-matching
+	cross_tol = 1.
+
+	#furthest neighbour to use when computing weights in colour space
+	kNN = 20
+
+	#name of the output file containing the n(z) distributions
+	nz_out = f'{cf_global.PATH_OUT}nz_dists.hdf5'
+	#width of the redshift bins
+	dz = 0.03
+
 
 ############################
 #### theory_predictions ####
