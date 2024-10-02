@@ -354,11 +354,6 @@ class theoryPredictions(dirPhotozs):
 
 	name = 'theoryPredictions'
 
-	#column in the catalogues containing the random MC draws from the redshift distribution
-	z_mc_col = 'pz_mc_dnnz'
-	#width of the redshift bins
-	dz = 0.03
-
 	#fiducial cosmology parameters
 	cosmo_fiducial = {
 		'Omega_c' : 0.27,
@@ -368,10 +363,20 @@ class theoryPredictions(dirPhotozs):
 		'n_s'     : 0.96
 	}
 
-	#name of the file to which the nofz info will be saved
-	nz_file = 'nofz_info.hdf5'
 	#base name of the files to which theory power spectra will be saved
 	theory_out = 'theory_cells.hdf5'
+
+	#whether to use the n(z) distributions caculated using DIR
+	use_dir = True
+
+	### The following are only relevant if use_dir == False
+	#column in the catalogues containing the random MC draws from the redshift distribution
+	z_mc_col = 'pz_mc_dnnz'
+	#width of the redshift bins
+	dz = 0.03
+	#name of the file to which the nofz info will be saved
+	nz_file = 'nz_dists.hdf5'
+	
 
 ###############################
 #### compute_power_spectra ####
