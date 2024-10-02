@@ -350,7 +350,7 @@ class dirPhotozs(cf_global):
 #### theory_predictions ####
 ############################
 
-class theoryPredictions(cf_global):
+class theoryPredictions(dirPhotozs):
 
 	name = 'theoryPredictions'
 
@@ -369,7 +369,7 @@ class theoryPredictions(cf_global):
 	}
 
 	#name of the file to which the nofz info will be saved
-	nofz_file = 'nofz_info.hdf5'
+	nz_file = 'nofz_info.hdf5'
 	#base name of the files to which theory power spectra will be saved
 	theory_out = 'theory_cells.hdf5'
 

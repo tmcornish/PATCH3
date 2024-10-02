@@ -19,7 +19,7 @@ cf = config.theoryPredictions
 def get_nofz(fd):
 	'''
 	Computes estimates of the n(z) distributions in each redshift bin for a given
-	field and returns them in a dictionary.
+	field and returns them in a dictionary. If told to use 
 
 	Parameters
 	----------
@@ -32,6 +32,8 @@ def get_nofz(fd):
 		Dictionary containing the redshift bin centres and the n(z) values in each
 		of those bins for each tomographic bin.
 	'''
+
+
 	#define lists to contain the best z estimates and the random MC draws
 	z_best, z_mc = [], []
 
@@ -86,7 +88,7 @@ for fd in cf.get_global_fields():
 	#retrieve estimates of the n(z) distributions in each bin
 	nofz = get_nofz(fd)
 	#save the n(z) info to a file
-	outfile = f'{cf.PATH_OUT}{fd}/{cf.nofz_file}'
+	outfile = f'{cf.PATH_OUT}{fd}/{cf.nz_file}'
 	with h5py.File(outfile, 'w') as hf:
 		for k in nofz.keys():
 			hf.create_dataset(k, data=nofz[k])
