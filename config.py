@@ -341,7 +341,7 @@ class dirPhotozs(cf_global):
 	kNN = 20
 
 	#name of the output file containing the n(z) distributions
-	nz_dir_file = f'{cf_global.PATH_OUT}nz_dists.hdf5'
+	nz_dir_file = f'{cf_global.PATH_OUT}nz_dists_dir.hdf5'
 	#width of the redshift bins
 	dz = 0.03
 
