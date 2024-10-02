@@ -84,6 +84,38 @@ cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
 lk_arr = np.log(np.geomspace(1E-4, 100, 256))
 a_arr = 1. / (1. + np.linspace(0, 6, 100)[::-1])
 
+#theory c_ell settings
+lmax = 3. * cf.nside_hi - 1
+ells = np.unique(np.geomspace(1, lmax, 128).astype(int)).astype(float)
+
+#create a halo model
+m200def = ccl.halos.MassDef200m							#halo mass definition
+hmf = ccl.halos.MassFuncTinker08(mass_def=m200def)		#halo mass function
+hbf = ccl.halos.HaloBiasTinker10(mass_def=m200def)		#halo bias function
+conc = ccl.halos.ConcentrationDuffy08(mass_def=m200def)	#halo concentration function
+#feed this information to a HaloMassCalculator
+hmc = ccl.halos.HMCalculator(
+	mass_function=hmf,
+	halo_bias=hbf,
+	mass_def=m200def
+	)
+#create halo profile
+prof = ccl.halos.HaloProfileHOD(mass_def=m200def, concentration=conc)
+#2pt correlator
+prof2pt = ccl.halos.Profile2ptHOD()
+
+#halo-model power spectrum for galaxies
+pk = ccl.halos.halomod_Pk2D(
+	cosmo,
+	hmc,
+	prof,
+	prof_2pt=prof2pt,
+	prof2=prof,
+	a_arr=a_arr,
+	lk_arr=lk_arr
+)
+
+
 #cycle through the specified fields
 for fd in cf.get_global_fields():
 	#retrieve estimates of the n(z) distributions in each bin
@@ -105,36 +137,6 @@ for fd in cf.get_global_fields():
 		for i in range(cf.nbins)
 	}
 
-	#create a halo model
-	m200def = ccl.halos.MassDef200m							#halo mass definition
-	hmf = ccl.halos.MassFuncTinker08(mass_def=m200def)		#halo mass function
-	hbf = ccl.halos.HaloBiasTinker10(mass_def=m200def)		#halo bias function
-	conc = ccl.halos.ConcentrationDuffy08(mass_def=m200def)	#halo concentration function
-	#feed this information to a HaloMassCalculator
-	hmc = ccl.halos.HMCalculator(
-		mass_function=hmf,
-		halo_bias=hbf,
-		mass_def=m200def
-		)
-	#create halo profile
-	prof = ccl.halos.HaloProfileHOD(mass_def=m200def, concentration=conc)
-	#2pt correlator
-	prof2pt = ccl.halos.Profile2ptHOD()
-
-	#halo-model power spectrum for galaxies
-	pk = ccl.halos.halomod_Pk2D(
-		cosmo,
-		hmc,
-		prof,
-		prof_2pt=prof2pt,
-		prof2=prof,
-		a_arr=a_arr,
-		lk_arr=lk_arr
-	)
-
-	#compute the theory c_ells
-	lmax = 3. * cf.nside_hi - 1
-	ells = np.unique(np.geomspace(1, lmax, 128).astype(int)).astype(float)
 	#open the output file, compute and save the theory cells
 	outfile = f'{cf.PATH_OUT}{fd}/{cf.theory_out}' 
 	with h5py.File(outfile, 'w') as psfile:
