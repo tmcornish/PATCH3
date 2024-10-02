@@ -63,7 +63,7 @@ def get_nofz(fd):
 	nofz = {'z' : bin_centres}
 
 	#generate the histograms and store them in the dictionary
-	for i in range(len(cf.zbins) - 1):
+	for i in range(cf.nbins):
 		zmask = (z_best >= cf.zbins[i]) * (z_best < cf.zbins[i+1])
 		nofz[f'nz_{i}'] = np.histogram(z_mc[zmask], bins=bins, density=True)[0]
 	
@@ -102,7 +102,7 @@ for fd in cf.get_global_fields():
 											dndz=(nofz['z'], nofz[f'nz_{i}']), 
 											bias=(nofz['z'], np.ones_like(nofz['z']))
 											)
-		for i in range(len(cf.zbins) - 1)
+		for i in range(cf.nbins)
 	}
 
 	#create a halo model
