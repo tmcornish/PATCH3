@@ -40,7 +40,7 @@ prof2pt = ccl.halos.Profile2ptHOD()
 ######### FUNCTIONS #########
 #############################
 
-def get_data(s : sacc.sacc.Sacc) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def get_data(s):
 	'''
 	Retrieves the relevant covariance informaiton, which depends on the
 	user settings in config.py.
@@ -108,7 +108,7 @@ def get_data(s : sacc.sacc.Sacc) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 	return ells, cells, icov, pairings
 
 
-def log_prior(theta : tuple[float, float]) -> float:
+def log_prior(theta):
 	'''
 	Defines the priors on the free parameters in the HOD model
 	(in this case, logM0 and logM1).
