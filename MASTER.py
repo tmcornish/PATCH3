@@ -23,7 +23,8 @@ pca_systs = False		#perform PCA to potentially reduce the number of maps being d
 theory_cells = False		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
 make_sacc = False		#consolidate c_ell info into a SACC file
-plot_cells = True		#plot the power spectra
+fit_hods = True			#fit halo occupation distributions to the computed angular power spectra
+plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
 
@@ -41,6 +42,7 @@ settings = [
 	theory_cells,
 	power_spectra,
 	make_sacc,
+	fit_hods,
 	plot_cells,
 	txpipe_inputs
 	]
@@ -57,6 +59,7 @@ proc = [
 	'Computing theoretical power spectra',
 	'Computing power spectra',
 	'Creating SACC file',
+	'Fitting HOD model',
 	'Plotting power spectra',
 	'Making TXPipe-compatible inputs'
 	]
@@ -73,6 +76,7 @@ run_str = [
 	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
 	'python -u make_sacc_files.py',
+	'python -u fit_hods.py',
 	'python -u plot_power_spectra.py',
 	'python -u make_txpipe_inputs.py'
 	]

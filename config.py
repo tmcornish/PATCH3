@@ -423,6 +423,16 @@ class makeSaccFiles(computePowerSpectra):
 	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 
+##################
+#### fit_hods ####
+##################
+
+class fitHods(makeSaccFiles):
+
+	name = 'fitHods'
+
+
+
 ###############################
 #### plot_power_spectra ####
 ###############################
