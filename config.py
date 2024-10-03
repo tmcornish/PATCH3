@@ -41,10 +41,10 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	fields = [
-		*hectomap,
-		*spring,
-		*autumn,
-		#*combined
+		#*hectomap,
+		#*spring,
+		#*autumn,
+		*combined
 	]
 
 
@@ -436,9 +436,12 @@ class fitHods(makeSaccFiles):
 	auto_only = True
 	
 	#number of walkers and iterations for the sampler
-	nwalkers = 40
+	nwalkers = 10
 	nburn = 50
 	niter = 100
+	#maximum distances the initial walker positions can be from the initial best fit for each parameter
+	dlogM0 = 1.
+	dlogM1 = 1.
 	#name of the file in which sampler chains will be stored
 	chains_file = 'hod_mcmc_chains.hdf5'
 
