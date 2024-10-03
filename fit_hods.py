@@ -7,7 +7,6 @@ import emcee
 import sacc
 import numpy as np
 import itertools
-import sys
 import pyccl as ccl
 import h5py
 from scipy.optimize import minimize
