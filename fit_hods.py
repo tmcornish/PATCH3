@@ -278,4 +278,6 @@ for fd in cf.get_global_fields():
 	#save the sampler outputs to the file
 	with h5py.File(PATH_FD + cf.chains_file, 'w') as hf:
 		for i in range(cf.nwalkers):
-			hf.create_dataset(f'{i}', data=sampler.chain[i])
+			gp = hf.create_group(f'{i}')
+			gp.create_dataset('chain', data=sampler.chain[i])
+			gp.create_dataset('lnprob', data=sampler.lnprobability[i])
