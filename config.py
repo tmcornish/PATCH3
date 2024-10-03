@@ -435,6 +435,10 @@ class fitHods(makeSaccFiles):
 	#whether to fit for auto-correlations only
 	auto_only = True
 	
+	#number of walkers and iterations for the sampler
+	nwalkers = 40
+	nburn = 50
+	niter = 100
 	#name of the file in which sampler chains will be stored
 	chains_file = 'hod_mcmc_chains.hdf5'
 
