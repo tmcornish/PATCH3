@@ -434,6 +434,9 @@ class fitHods(makeSaccFiles):
 
 	#whether to fit for auto-correlations only
 	auto_only = True
+	
+	#name of the file in which sampler chains will be stored
+	chains_file = 'hod_mcmc_chains.hdf5'
 
 
 ###############################
