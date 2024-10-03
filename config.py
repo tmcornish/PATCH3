@@ -431,6 +431,8 @@ class fitHods(makeSaccFiles):
 
 	name = 'fitHods'
 
+	#whether to fit for auto-correlations only
+	auto_only = True
 
 
 ###############################
