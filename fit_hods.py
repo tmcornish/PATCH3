@@ -275,7 +275,21 @@ if __name__ == '__main__':
 			sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability, pool=pool, backend=backend)
 			#run again with N steps
 			print('Running main samples...')
-			sampler.run_mcmc(p0, cf.niter, progress=True)
+			old_tau = np.inf
+			for sample in sampler.sample(p0, iterations=cf.niter, progress=True):
+				#check convergence time every 20 steps
+				if sampler.iteration % 20:
+					continue
+				tau = sampler.get_autocorr_time(tol=0)
+				#"convergence" reached if: 
+				# - autocorrelation time < 1/100th the current iteration
+				# - fractional change in autocorrelation time < 0.01
+				converged = np.all(tau * 100 < sampler.iteration) \
+							& np.all(np.abs(old_tau - tau) / tau < 0.01)
+				if converged:
+					break
+				old_tau = tau
+
 
 			#print best-fit values
 			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
