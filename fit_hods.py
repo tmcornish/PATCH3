@@ -252,9 +252,7 @@ if __name__ == '__main__':
 		######################################
 		initial = [10, 10]
 		ndim = len(initial)
-		#soln = minimize(nll, initial)
-		class soln():
-			x = np.array([12.5, 14.2])
+		soln = minimize(nll, initial)
 
 		print('Setting up the MCMC...')
 		###############################
