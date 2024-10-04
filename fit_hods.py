@@ -9,6 +9,7 @@ import numpy as np
 import itertools
 import pyccl as ccl
 import h5py
+import multiprocessing as mp
 from scipy.optimize import minimize
 from output_utils import colour_string
 
@@ -223,68 +224,72 @@ def nll(*args):
 ###############    START OF SCRIPT    #################
 #######################################################
 
+if __name__ == '__main__':
+	#cycle through the fields being analysed
+	for fd in cf.get_global_fields():
+		print(colour_string(fd.upper(), 'orange'))
+		PATH_FD = cf.PATH_OUT + fd + '/'
 
-#cycle through the fields being analysed
-for fd in cf.get_global_fields():
-	print(colour_string(fd.upper(), 'orange'))
-	PATH_FD = cf.PATH_OUT + fd + '/'
+		#load the Sacc file containing the power spectrum info
+		s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
 
-	#load the Sacc file containing the power spectrum info
-	s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
+		#get the relevant data
+		ells, cells, icov, pairings = get_data(s)
 
-	#get the relevant data
-	ells, cells, icov, pairings = get_data(s)
+		#construct NumberCountsTracer objects from the saved n(z) info
+		tracers = [s.tracers[i] for i in s.tracers.keys()]
+		NCT = [
+			ccl.NumberCountsTracer(
+				cosmo,
+				has_rsd=False,
+				dndz=(t.z, t.nz),
+				bias=(t.z, np.ones_like(t.z))
+			) for t in tracers
+		]
 
-	#construct NumberCountsTracer objects from the saved n(z) info
-	tracers = [s.tracers[i] for i in s.tracers.keys()]
-	NCT = [
-		ccl.NumberCountsTracer(
-			cosmo,
-			has_rsd=False,
-			dndz=(t.z, t.nz),
-			bias=(t.z, np.ones_like(t.z))
-		) for t in tracers
-	]
+		
+		print('Estimating intial best fit...')
+		######################################
+		initial = [10, 10]
+		ndim = len(initial)
+		#soln = minimize(nll, initial)
+		class soln():
+			x = np.array([12.5, 14.2])
 
-	print('Estimating intial best fit...')
-	######################################
-	initial = [10, 10]
-	soln = minimize(nll, initial)
+		print('Setting up the MCMC...')
+		###############################
+		#initial positions for the walkers
+		p0 = [soln.x + np.array([cf.dlogM0 * np.random.rand(),
+								cf.dlogM1 * np.random.rand()])
+								for _ in range(cf.nwalkers)]
+		p0 = np.array(p0)
+		p0 -= np.array([cf.dlogM0/2., cf.dlogM1/2.])
 
-	print('Setting up the MCMC...')
-	###############################
-	#initial positions for the walkers
-	p0 = [soln.x + np.array([cf.dlogM0 * np.random.rand(),
-						     cf.dlogM1 * np.random.rand()])
-							 for _ in range(cf.nwalkers)]
-	p0 = np.array(p0)
-	p0 -= np.array([cf.dlogM0/2., cf.dlogM1/2.])
+		
+		################################
+		with mp.get_context('fork').Pool(20) as pool:
+			#initialise the sampler
+			sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability, pool=pool)
+			#burn-in
+			print('Running burn-in...')
+			pos, prob, state = sampler.run_mcmc(p0, cf.nburn, progress=True)
+			#reset sampler
+			sampler.reset()
+			#run again with N steps
+			print('Running main samples...')
+			sampler.run_mcmc(pos, cf.niter, rstate0=state, progress=True)
 
-	
-	################################
-	#initialise the sampler
-	ndim = len(initial)
-	sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability)
-	#burn-in
-	print('Running burn-in...')
-	pos, prob, state = sampler.run_mcmc(p0, cf.nburn, progress=True)
-	#reset sampler
-	sampler.reset()
-	#run again with N steps
-	print('Running main samples...')
-	sampler.run_mcmc(pos, cf.niter, rstate0=state, progress=True)
+			#print best-fit values
+			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
+			print(f'''Best-fit values:
+				logM0: {theta0[0]:.3f}
+				logM1: {theta0[1]:.3f}'''
+				)
+		
 
-	#print best-fit values
-	theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
-	print(f'''Best-fit values:
-	       logM0: {theta0[0]:.3f}
-		   logM1: {theta0[1]:.3f}'''
-		   )
-	
-
-	#save the sampler outputs to the file
-	with h5py.File(PATH_FD + cf.chains_file, 'w') as hf:
-		for i in range(cf.nwalkers):
-			gp = hf.create_group(f'{i}')
-			gp.create_dataset('chain', data=sampler.chain[i])
-			gp.create_dataset('lnprob', data=sampler.lnprobability[i])
+		#save the sampler outputs to the file
+		with h5py.File(PATH_FD + cf.chains_file, 'w') as hf:
+			for i in range(cf.nwalkers):
+				gp = hf.create_group(f'{i}')
+				gp.create_dataset('chain', data=sampler.chain[i])
+				gp.create_dataset('lnprob', data=sampler.lnprobability[i])
