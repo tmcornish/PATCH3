@@ -281,10 +281,11 @@ if __name__ == '__main__':
 			#run the sampler
 			print('Running sampler...')
 			old_tau = np.inf
-			for sample in sampler.sample(p0, iterations=cf.niter_max, progress=True):
+			for sample in sampler.sample(p0, iterations=cf.niter_max):
 				#check convergence time every 20 steps
 				if sampler.iteration % 20:
 					continue
+				print(f'{sampler.iteration}/{cf.niter_max}')
 				tau = sampler.get_autocorr_time(tol=0)
 				#"convergence" reached if: 
 				# - autocorrelation time < 1/100th the current iteration
@@ -292,6 +293,7 @@ if __name__ == '__main__':
 				converged = np.all(tau * 100 < sampler.iteration) \
 							& np.all(np.abs(old_tau - tau) / tau < 0.01)
 				if converged:
+					print('Chains have converged!')
 					break
 				old_tau = tau
 
