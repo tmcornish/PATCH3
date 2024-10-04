@@ -272,6 +272,8 @@ if __name__ == '__main__':
 		#set the number of walkers equal to twice this
 		nwalkers = 2 * ncores
 
+		print(f'Using {ncores} cores and {nwalkers} walkers.')
+
 		################################
 		with mp.get_context('fork').Pool(ncores) as pool:
 			#initialise the sampler
