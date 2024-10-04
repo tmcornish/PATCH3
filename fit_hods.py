@@ -274,6 +274,14 @@ for fd in cf.get_global_fields():
 	print('Running main samples...')
 	sampler.run_mcmc(pos, cf.niter, rstate0=state, progress=True)
 
+	#print best-fit values
+	theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
+	print(f'''Best-fit values:
+	       logM0: {theta0[0]:.3f}
+		   logM1: {theta0[1]:.3f}'''
+		   )
+	
+
 	#save the sampler outputs to the file
 	with h5py.File(PATH_FD + cf.chains_file, 'w') as hf:
 		for i in range(cf.nwalkers):
