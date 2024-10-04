@@ -276,7 +276,7 @@ if __name__ == '__main__':
 			#run again with N steps
 			print('Running main samples...')
 			old_tau = np.inf
-			for sample in sampler.sample(p0, iterations=cf.niter, progress=True):
+			for sample in sampler.sample(p0, iterations=cf.niter_max, progress=True):
 				#check convergence time every 20 steps
 				if sampler.iteration % 20:
 					continue

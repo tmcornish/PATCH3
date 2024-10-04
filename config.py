@@ -435,9 +435,8 @@ class fitHods(makeSaccFiles):
 	#whether to fit for auto-correlations only
 	auto_only = True
 	
-	#number of walkers and iterations for the sampler
-	nwalkers = 40
-	niter = 1000
+	#maximum number of iterations for the sampler
+	niter_max = 100000
 	#maximum distances the initial walker positions can be from the initial best fit for each parameter
 	dlogM0 = 1.
 	dlogM1 = 1.
