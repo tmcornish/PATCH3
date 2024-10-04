@@ -270,14 +270,9 @@ if __name__ == '__main__':
 		with mp.get_context('fork').Pool(20) as pool:
 			#initialise the sampler
 			sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability, pool=pool)
-			#burn-in
-			print('Running burn-in...')
-			pos, prob, state = sampler.run_mcmc(p0, cf.nburn, progress=True)
-			#reset sampler
-			sampler.reset()
 			#run again with N steps
 			print('Running main samples...')
-			sampler.run_mcmc(pos, cf.niter, rstate0=state, progress=True)
+			sampler.run_mcmc(p0, cf.niter, progress=True)
 
 			#print best-fit values
 			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
