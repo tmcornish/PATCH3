@@ -267,10 +267,15 @@ if __name__ == '__main__':
 		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
 		backend.reset(cf.nwalkers, ndim)
 		
+		#number of cores to use for multiprocessing
+		ncores = mp.cpu_count()
+		#set the number of walkers equal to twice this
+		nwalkers = 2 * ncores
+
 		################################
-		with mp.get_context('fork').Pool(20) as pool:
+		with mp.get_context('fork').Pool(ncores) as pool:
 			#initialise the sampler
-			sampler = emcee.EnsembleSampler(40, ndim, log_probability, pool=pool, backend=backend)
+			sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, pool=pool, backend=backend)
 			#run the sampler
 			print('Running sampler...')
 			old_tau = np.inf
