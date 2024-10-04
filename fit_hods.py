@@ -272,7 +272,7 @@ if __name__ == '__main__':
 		################################
 		with mp.get_context('fork').Pool(20) as pool:
 			#initialise the sampler
-			sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability, pool=pool, backend=backend)
+			sampler = emcee.EnsembleSampler(40, ndim, log_probability, pool=pool, backend=backend)
 			#run again with N steps
 			print('Running main samples...')
 			old_tau = np.inf
