@@ -436,14 +436,15 @@ class fitHods(makeSaccFiles):
 	auto_only = True
 	
 	#number of walkers and iterations for the sampler
-	nwalkers = 10
-	nburn = 50
-	niter = 100
+	nwalkers = 40
+	niter = 1000
 	#maximum distances the initial walker positions can be from the initial best fit for each parameter
 	dlogM0 = 1.
 	dlogM1 = 1.
 	#name of the file in which sampler chains will be stored
 	chains_file = 'hod_mcmc_chains.hdf5'
+	#name of the emcee backend
+	backend_file = 'hod_mcmc_backend.hdf5'
 
 
 ###############################

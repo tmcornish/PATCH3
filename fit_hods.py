@@ -265,11 +265,14 @@ if __name__ == '__main__':
 		p0 = np.array(p0)
 		p0 -= np.array([cf.dlogM0/2., cf.dlogM1/2.])
 
+		#set up an HDF5 backend
+		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
+		backend.reset(cf.nwalkers, ndim)
 		
 		################################
 		with mp.get_context('fork').Pool(20) as pool:
 			#initialise the sampler
-			sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability, pool=pool)
+			sampler = emcee.EnsembleSampler(cf.nwalkers, ndim, log_probability, pool=pool, backend=backend)
 			#run again with N steps
 			print('Running main samples...')
 			sampler.run_mcmc(p0, cf.niter, progress=True)
