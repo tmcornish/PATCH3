@@ -273,8 +273,8 @@ if __name__ == '__main__':
 		with mp.get_context('fork').Pool(20) as pool:
 			#initialise the sampler
 			sampler = emcee.EnsembleSampler(40, ndim, log_probability, pool=pool, backend=backend)
-			#run again with N steps
-			print('Running main samples...')
+			#run the sampler
+			print('Running sampler...')
 			old_tau = np.inf
 			for sample in sampler.sample(p0, iterations=cf.niter_max, progress=True):
 				#check convergence time every 20 steps
@@ -290,6 +290,9 @@ if __name__ == '__main__':
 					break
 				old_tau = tau
 
+			#raise alert if convergence not reached
+			if sampler.iteration == cf.niter_max - 1:
+				print('WARNING: chains have not converged. Best-fit values may be inaccurate.')
 
 			#print best-fit values
 			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
