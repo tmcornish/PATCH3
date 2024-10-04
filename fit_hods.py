@@ -297,11 +297,3 @@ if __name__ == '__main__':
 				logM0: {theta0[0]:.3f}
 				logM1: {theta0[1]:.3f}'''
 				)
-		
-
-		#save the sampler outputs to the file
-		with h5py.File(PATH_FD + cf.chains_file, 'w') as hf:
-			for i in range(cf.nwalkers):
-				gp = hf.create_group(f'{i}')
-				gp.create_dataset('chain', data=sampler.chain[i])
-				gp.create_dataset('lnprob', data=sampler.lnprobability[i])
