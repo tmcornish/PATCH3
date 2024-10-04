@@ -20,7 +20,8 @@ faulthandler.enable()
 ### SETTINGS ###
 cf = config.computePowerSpectra
 
-
+if not cf.LOCAL and cf.NERSC:
+	os.system(f'taskset -pc 0-255 {os.getpid()}')
 
 #############################
 ######### FUNCTIONS #########
