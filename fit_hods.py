@@ -256,21 +256,24 @@ if __name__ == '__main__':
 
 		print('Setting up the MCMC...')
 		###############################
-		#initial positions for the walkers
-		p0 = [soln.x + np.array([cf.dlogM0 * np.random.rand(),
-								cf.dlogM1 * np.random.rand()])
-								for _ in range(cf.nwalkers)]
-		p0 = np.array(p0)
-		p0 -= np.array([cf.dlogM0/2., cf.dlogM1/2.])
-
-		#set up an HDF5 backend
-		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
-		backend.reset(cf.nwalkers, ndim)
-		
 		#number of cores to use for multiprocessing
 		ncores = mp.cpu_count()
 		#set the number of walkers equal to twice this
 		nwalkers = 2 * ncores
+
+		#initial positions for the walkers
+		p0 = [soln.x + np.array([cf.dlogM0 * np.random.rand(),
+								cf.dlogM1 * np.random.rand()])
+								for _ in range(nwalkers)]
+		p0 = np.array(p0)
+		p0 -= np.array([cf.dlogM0/2., cf.dlogM1/2.])
+
+		
+
+		#set up an HDF5 backend
+		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
+		backend.reset(nwalkers, ndim)
+		
 
 		print(f'Using {ncores} cores and {nwalkers} walkers.')
 
