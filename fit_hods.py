@@ -253,6 +253,7 @@ if __name__ == '__main__':
 		initial = [10, 10]
 		ndim = len(initial)
 		soln = minimize(nll, initial)
+		print(f'Initial best-fit values:\nlogM0 = {soln.x[0]:.3f}\nlogM1 = {soln.x[1]:.3f}')
 
 		print('Setting up the MCMC...')
 		###############################
@@ -306,7 +307,4 @@ if __name__ == '__main__':
 
 			#print best-fit values
 			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
-			print(f'''Best-fit values:
-				logM0: {theta0[0]:.3f}
-				logM1: {theta0[1]:.3f}'''
-				)
+			print(f'Best-fit values:\nlogM0: {theta0[0]:.3f}\nlogM1: {theta0[1]:.3f}')
