@@ -224,33 +224,34 @@ def nll(*args):
 ###############    START OF SCRIPT    #################
 #######################################################
 
-if __name__ == '__main__':
-	#cycle through the fields being analysed
-	for fd in cf.get_global_fields():
+
+#cycle through the fields being analysed
+for fd in cf.get_global_fields():
+	
+	PATH_FD = cf.PATH_OUT + fd + '/'
+
+	#load the Sacc file containing the power spectrum info
+	s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
+
+	#get the relevant data
+	ells, cells, icov, pairings = get_data(s)
+
+	#construct NumberCountsTracer objects from the saved n(z) info
+	tracers = [s.tracers[i] for i in s.tracers.keys()]
+	NCT = [
+		ccl.NumberCountsTracer(
+			cosmo,
+			has_rsd=False,
+			dndz=(t.z, t.nz),
+			bias=(t.z, np.ones_like(t.z))
+		) for t in tracers
+	]
+
+	if __name__ == '__main__':	
 		print(colour_string(fd.upper(), 'orange'))
-		PATH_FD = cf.PATH_OUT + fd + '/'
-
-		#load the Sacc file containing the power spectrum info
-		s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
-
-		#get the relevant data
-		ells, cells, icov, pairings = get_data(s)
-
-		#construct NumberCountsTracer objects from the saved n(z) info
-		tracers = [s.tracers[i] for i in s.tracers.keys()]
-		NCT = [
-			ccl.NumberCountsTracer(
-				cosmo,
-				has_rsd=False,
-				dndz=(t.z, t.nz),
-				bias=(t.z, np.ones_like(t.z))
-			) for t in tracers
-		]
-
-		
 		print('Estimating intial best fit...')
 		######################################
-		initial = [10, 10]
+		initial = [12, 12]
 		ndim = len(initial)
 		soln = minimize(nll, initial)
 		print(f'Initial best-fit values:\nlogM0 = {soln.x[0]:.3f}\nlogM1 = {soln.x[1]:.3f}')
@@ -278,8 +279,9 @@ if __name__ == '__main__':
 
 		print(f'Using {ncores} cores and {nwalkers} walkers.')
 
+	
 		################################
-		with mp.get_context('fork').Pool(ncores) as pool:
+		with mp.get_context('spawn').Pool(ncores) as pool:
 			#initialise the sampler
 			sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, pool=pool, backend=backend)
 			#run the sampler
