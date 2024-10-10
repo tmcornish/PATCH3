@@ -71,6 +71,7 @@ def write_fieldsearch(
 	ra_range=None,
 	dec_range=None,
 	do_photoz=False,
+	mizuki_mstar_sfrs=False,
 	apply_cuts=False,
 	strict_cuts=False,
 	do_download=False,
@@ -166,6 +167,15 @@ def write_fieldsearch(
 	if do_photoz:
 		pzcodes = ['demp', 'dnnz', 'mizu']
 		stout += [add_photoz(mt) for mt in pzcodes]
+	if mizuki_mstar_sfrs:
+		stout += [
+			'pmizu.stellar_mass as mstar_mizu',
+			'pmizu.stellar_mass_err68_min as mstar_err68_min_mizu',
+			'pmizu.stellar_mass_err68_max as mstar_err68_max_mizu',
+			'pmizu.sfr as sfr_mizu',
+			'pmizu.sfr_err68_min as sfr_err68_min_mizu',
+			'pmizu.sfr_err68_max as sfr_err68_max_mizu',
+		]
 	stout = ',\n\t'.join(stout)
 	stout_final += stout
 
@@ -182,6 +192,8 @@ def write_fieldsearch(
 	if do_photoz:
 		pzcodes_full = ['demp', 'dnnz', 'mizuki']
 		stout2 += [f'LEFT JOIN {tablename}.photoz_{mt_full} p{mt} USING (object_id)' for mt,mt_full in zip(pzcodes,pzcodes_full)]
+	elif mizuki_mstar_sfrs:
+		stout2 += [f'LEFT JOIN {tablename}.photoz_mizuki pmizu USING (object_id)' for mt,mt_full in zip(pzcodes,pzcodes_full)]
 	stout2 = '\n\t'.join(stout2)
 	stout_final += stout2
 
