@@ -62,8 +62,6 @@ class cf_global:
 		'i' : ['i2'],
 		'r' : ['r2']
 	}
-	#whether to correct recorded r/i photometry to equivalent in r2/i2
-	correct_ri = False
 
 	#S/N thresholds in primary band and other bands
 	sn_pri = 10.
@@ -223,6 +221,9 @@ class cleanCats(cf_global):
 
 	#blending cut (maximum allowed flux estimated to be from blending)
 	blend_cut = 10. ** (-0.375)
+
+	#whether to correct recorded r/i photometry to equivalent in r2/i2
+	correct_ri = False
 
 	@classmethod
 	def fields_in_global(cls):
