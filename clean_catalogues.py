@@ -156,7 +156,6 @@ def gal_cut(t):
 
 
 
-
 def flag_stars(t):
 	'''
 	Adds a column to the provided table flagging all stars.
@@ -172,6 +171,31 @@ def flag_stars(t):
 	star_mask = t[f'{cf.band}_extendedness_value'] == 0.
 	#add this as a column to the Table
 	t['is_star'] = star_mask
+
+
+def flag_tomo_bins(t):
+	'''
+	Adds a column flagging which tomographic bin a galaxy belongs to, using the 
+	bin edges specified in the config file. If the galaxy does not belong to any
+	bin it is flagged as -1.
+
+	Parameters
+	----------
+	t: astropy.table.Table
+		Input catalogue.
+	'''
+	#set up the column
+	t['zbin'] = np.full(len(t), -1, dtype=int)
+	#cycle through the redshift bin edges
+	for i in range(len(cf.zbins)-1):
+		zmin, zmax = cf.zbins[i:i+2]
+		#remove galaxies whose best-fit redshifts are not in this bin
+		zmask = (t[cf.zcol] >= zmin) * (t[cf.zcol] < zmax)
+		#optionally remove galaxies with secondary solutions at high redshift
+		if cf.remove_pz_outliers:
+			zmask *= ((t['pz_err95_max_dnnz'] - t['pz_err95_min_dnnz'] < 2.7)
+			 		* (t['pz_err95_max_mizu'] - t['pz_err95_min_mizu'] < 2.7))
+		t['zbin'][zmask] = i
 
 #######################################################
 ###############    START OF SCRIPT    #################
@@ -259,6 +283,8 @@ for g in f_in_g:
 
 		#split catalogue into stars and galaxies
 		data_gals, data_stars = gal_cut(data_all)
+		#flag the tomographic bins in the galaxy catalogue
+		flag_tomo_bins(data_gals)
 		print(colour_string(f'{len(data_gals)} galaxies; {len(data_stars)} stars.', 'green'))
 
 		#write the catalogues to output files
