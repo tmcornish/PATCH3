@@ -71,10 +71,11 @@ def basic_clean(t):
 	t.remove_columns(isnull_names)
 	t = t[sel]
 
-	#correct the r/i-band magnitudes to using the appropriate corrections
-	for b in ['r', 'i']:
-		corr_mask = ~np.isnan(t[f'corr_{b}mag'])
-		t[f'{b}_cmodel_mag'][corr_mask] += t[f'corr_{b}mag'][corr_mask]
+	#correct the r/i-band magnitudes to r2/i2 using the appropriate corrections
+	if cf.correct_ri:
+		for b in ['r', 'i']:
+			corr_mask = ~np.isnan(t[f'corr_{b}mag'])
+			t[f'{b}_cmodel_mag'][corr_mask] += t[f'corr_{b}mag'][corr_mask]
 
 	return t
 
