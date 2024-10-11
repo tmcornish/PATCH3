@@ -225,6 +225,9 @@ class cleanCats(cf_global):
 	#whether to correct recorded r/i photometry to equivalent in r2/i2
 	correct_ri = False
 
+	#whether to remove galaxies likely to have secondary redshift solutions at high-z
+	remove_pz_outliers = False
+
 	@classmethod
 	def fields_in_global(cls):
 		fields_global = cls.get_global_fields()
