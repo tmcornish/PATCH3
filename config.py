@@ -62,6 +62,8 @@ class cf_global:
 		'i' : ['i2'],
 		'r' : ['r2']
 	}
+	#whether to correct recorded r/i photometry to equivalent in r2/i2
+	correct_ri = False
 
 	#S/N thresholds in primary band and other bands
 	sn_pri = 10.
