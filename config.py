@@ -164,6 +164,8 @@ class getData(cf_global):
 	download = True
 	#include photo-z information
 	photoz = True
+	#include stellar masses and SFRs from MIZUKI
+	mizuki_mstar_sfrs = True
 	#apply cuts based on existing flags in the catalogues
 	apply_cuts = False
 	strict_cuts = False
