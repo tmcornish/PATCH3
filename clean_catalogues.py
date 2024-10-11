@@ -157,52 +157,6 @@ def gal_cut(t):
 
 
 
-def make_tomography_cat(z, fname):
-	'''
-	Makes an HDF file containing the information required by TXPipe's TXLensMaps stage.
-	NOTE: This information includes data described as 'lens_weight', which is not relevant
-	for this study. It is therefore assumed here that this quantity is 1 for all sources.
-
-	Parameters
-	----------
-	z: array-like
-		Redshifts for each object.
-
-	fname: str
-		Filename to be given to the output file. If the file already exists, will try
-		to append to existing data in the file.
-	'''
-
-	#create a column for labeling sources according to their tomographic bin (set -1 by default)
-	labels = np.full(len(z), -1, dtype='i1')
-	#create an array to contain the counts in each bin
-	counts = np.zeros(len(cf.zbins)-1, dtype='i8')
-
-
-	#cycle through the redshift bins
-	for i in range(len(cf.zbins)-1):
-		zmask = (z >= cf.zbins[i]) * (z < cf.zbins[i+1])
-		labels[zmask] = i
-		counts[i] = zmask.sum()
-
-	#create an array for containing the total counts in all bins
-	counts_2d = np.array([counts.sum()])
-
-	#create a column for 'lens_weight' and simply assign a value of 1 for every source
-	lens_weight = np.ones(len(z), dtype='f8')
-
-	#compile the relevant data into a list and assign them names
-	data = [labels, counts, counts_2d, lens_weight]
-	names = ['bin', 'counts', 'counts_2d', 'lens_weight']
-
-	#write to the output file
-	with h5py.File(fname, 'w') as hf:
-		g = hf.create_group('tomography')
-		g.attrs['nbin'] = len(cf.zbins) - 1
-		for d, n in zip(data, names):
-			dset = g.create_dataset(n, data=d, shape=(len(d),), dtype=d.dtype)
-
-
 def flag_stars(t):
 	'''
 	Adds a column to the provided table flagging all stars.
@@ -313,15 +267,12 @@ for g in f_in_g:
 		write_output_hdf(data_gals, hdf_full, mode='w', group='photometry')
 		write_output_hdf(data_stars, hdf_stars, mode='w', group='photometry')
 
-		#also produce a tomgraphy catalogue
-		hdf_tomo = f'{OUT}/{cf.cat_tomo}'
-		make_tomography_cat(data_gals[cf.zcol], hdf_tomo)
 
 
 
 
 print('Consolidating catalogues from subfields...')
-cats = [cf.cat_basic, cf.cat_main, cf.cat_stars, cf.cat_tomo]
+cats = [cf.cat_basic, cf.cat_main, cf.cat_stars]
 for g in f_in_g:
 	print(colour_string(g.upper(), 'orange'))
 	#cycle through the catalogue types
@@ -345,9 +296,6 @@ for g in f_in_g:
 							dset_main[-N:] = dset[:]
 						else:
 							dset = fmain.create_dataset(path, shape=(N,), data=dset[:], maxshape=(None,), dtype=dt)
-			#if the tomography catalogue, need to ensure that the nbin attribute is available for TXPipe
-			if cat == cf.cat_tomo:
-				fmain['tomography'].attrs['nbin'] = len(cf.zbins) - 1
 
 
 
