@@ -12,6 +12,7 @@ import h5py
 import multiprocessing as mp
 from scipy.optimize import minimize
 from output_utils import colour_string
+import os
 
 ### SETTINGS ###
 cf = config.fitHods
@@ -259,7 +260,10 @@ for fd in cf.get_global_fields():
 		print('Setting up the MCMC...')
 		###############################
 		#number of cores to use for multiprocessing
-		ncores = mp.cpu_count()
+		if not cf.LOCAL and not cf.NERSC:
+			ncores = int(os.getenv('SLURM_NTASKS_PER_NODE'))
+		else:
+			ncores = mp.cpu_count()
 		#set the number of walkers equal to twice this
 		nwalkers = 2 * ncores
 
