@@ -73,7 +73,6 @@ class cf_global:
 	cat_basic = 'basicclean_catalogue.hdf5'
 	cat_main = 'clean_catalogue.hdf5'
 	cat_stars = 'star_catalogue.hdf5'
-	cat_tomo = 'tomography_catalogue.hdf5'
 
 	#NSIDE parameter for the low- and high-resolution components of the maps
 	nside_lo = 32
@@ -462,4 +461,6 @@ class makeTXPipeInputs(cf_global):
 
 	name = 'makeTXPipeInputs'
 
+	#name to give the tomography catalogue
+	cat_tomo = 'tomography_catalogue.hdf5'
 
