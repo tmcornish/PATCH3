@@ -124,11 +124,14 @@ function power_spectra_job () {
 ### combining maps from all fields
 #submit_pyjob "-q cmb -m 40" combine_fields.py
 
+### compute theory predictions of the power spectra
+submit_pyjob "-q cmb -m 40" theory_predictions.py
+
 ### computing power spectra; function takes as arguments...
 ###     1: number of cores to use
 ###     2: memory per CPU
 ###     3: name of the python script to run
 #power_spectra_job 24 7 compute_power_spectra.py
 
- ### fitting HOD models to data
- submit_pyjob "-q cmb -n 1x24 -m 7 -s" fit_hods.py
+### fitting HOD models to data
+#submit_pyjob "-q cmb -n 1x24 -m 7 -s" fit_hods.py
