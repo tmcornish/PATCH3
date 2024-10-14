@@ -8,7 +8,7 @@
 #uncomment any stages you want to run
 jobs=(
     #'get_data'
-    'split_metadata'
+    #'split_metadata'
     #'clean_catalogues'
     #'make_maps_from_catalogue'
     #'make_maps_from_metadata'
@@ -16,6 +16,7 @@ jobs=(
     #'make_galaxy_maps'
     #'combine_fields'
     #'compute_power_spectra'
+    'fit_hods'
     #'plot_power_spectra'
     #'make_txpipe_inputs'
 )

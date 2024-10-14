@@ -41,10 +41,10 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	fields = [
-		*hectomap,
-		*spring,
-		*autumn,
-		#*combined
+		#*hectomap,
+		#*spring,
+		#*autumn,
+		*combined
 	]
 
 
@@ -429,6 +429,26 @@ class makeSaccFiles(computePowerSpectra):
 
 	#name for the main output Sacc file
 	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
+
+
+##################
+#### fit_hods ####
+##################
+
+class fitHods(makeSaccFiles):
+
+	name = 'fitHods'
+
+	#whether to fit for auto-correlations only
+	auto_only = True
+	
+	#maximum number of iterations for the sampler
+	niter_max = 100000
+	#maximum distances the initial walker positions can be from the initial best fit for each parameter
+	dlogM0 = 1.
+	dlogM1 = 1.
+	#name of the emcee backend
+	backend_file = 'hod_mcmc_backend.hdf5'
 
 
 ###############################
