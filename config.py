@@ -483,8 +483,9 @@ class fitHods(makeSaccFiles):
 	#name of the emcee backend
 	backend_file = 'hod_mcmc_backend.hdf5'
 
-	#whether to compute scale cuts based on redshift
+	#whether to compute scale cuts based on redshift and a maximum k
 	compute_scale_cuts = True
+	kmax = 1 #Mpc^{-1}
 	#hard-coded ell_max to use if compute_scale_cuts is False
 	hard_lmax = 2000
 
