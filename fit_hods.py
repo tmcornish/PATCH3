@@ -110,6 +110,55 @@ def get_data(s):
 	return ells, cells, icov, pairings
 
 
+def scale_cuts(pairings):
+	'''
+	Computes a suitable scale cut to apply prior to fitting, depending on the effective
+	redshifts of the tomographic bins.
+
+	Parameters
+	----------
+	pairings: list[tuple]
+		List of bin pairings involved in the fitting.
+	
+	fd: str
+		Name of the field currently being analysed.
+	
+	Returns
+	-------
+	cuts: dict
+		Dictionary of scale cuts to use for each bin pairing.
+	'''
+	#set up dictionary for the scale cuts
+	ell_max = {}
+	#file containing DIR-based n(z) distributions
+	if cf.use_dir:
+		nofz_file = cf.nz_dir_file
+	else:
+		nofz_file = PATH_FD + cf.nz_mc_file
+	#open the n(z) file
+	with h5py.File(nofz_file, 'r') as hf:
+		#compute comoving distance for each tomographic bin included in pairings
+		for i in np.unique(pairings):
+			z = hf['z'][:]
+			nz = hf[f'nz_{i}'][:]
+			#effective redshift of bin
+			zeff = np.sum(z * nz) / np.sum(nz)
+			#comoving distance (Mpc)
+			chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
+			#ell corresponding to kmax (Mpc^{-1}) at zeff
+			ell_max = cf.kmax * chi
+			ell_max[i] = ell_max
+	#now cycle through each bin pairing
+	cuts = {}
+	for p in pairings:
+		i, j = p
+		#take the minimum lmax for each bin pairing
+		cuts[p] = min(ell_max[i], ell_max[j])
+	return cuts
+
+
+		
+
 def log_prior(theta):
 	'''
 	Defines the priors on the free parameters in the HOD model
