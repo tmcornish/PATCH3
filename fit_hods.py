@@ -127,7 +127,7 @@ def scale_cuts(pairings):
 		Dictionary of scale cuts to use for each bin pairing.
 	'''
 	#set up dictionary for the scale cuts
-	ell_max = {}
+	ell_max_dict = {}
 	#file containing DIR-based n(z) distributions
 	if cf.use_dir:
 		nofz_file = cf.nz_dir_file
@@ -145,13 +145,13 @@ def scale_cuts(pairings):
 			chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
 			#ell corresponding to kmax (Mpc^{-1}) at zeff
 			ell_max = cf.kmax * chi
-			ell_max[i] = ell_max
+			ell_max_dict[i] = ell_max
 	#now cycle through each bin pairing
 	cuts = {}
 	for p in pairings:
 		i, j = p
 		#take the minimum lmax for each bin pairing
-		cuts[p] = min(ell_max[i], ell_max[j])
+		cuts[p] = min(ell_max_dict[i], ell_max_dict[j])
 	return cuts
 
 
@@ -284,6 +284,12 @@ for fd in cf.get_global_fields():
 	#invert the covariance matrix
 	icov = np.linalg.inv(cov)
 
+	#decide on scale cuts to use
+	if cf.compute_scale_cuts:
+		ell_cuts = scale_cuts(pairings)
+	else:
+		ell_cuts = {p : cf.hard_lmax for p in pairings}
+	
 	#construct NumberCountsTracer objects from the saved n(z) info
 	tracers = [s.tracers[i] for i in s.tracers.keys()]
 	NCT = [
