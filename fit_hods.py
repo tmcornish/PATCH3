@@ -103,11 +103,9 @@ def get_data(s):
 	ells = ell_cl[0,0]
 	#flatten the C_ells into one array
 	cells = ell_cl[:,1,:].flatten()
-	#invert the covariance matrix
-	icov = np.linalg.inv(cov)
 
-	#return the ells, C_ells and inverted covariance matrix, along with the bin pairings
-	return ells, cells, icov, pairings
+	#return the ells, C_ells and covariance matrix, along with the bin pairings
+	return ells, cells, cov, pairings
 
 
 def scale_cuts(pairings):
@@ -156,8 +154,6 @@ def scale_cuts(pairings):
 		cuts[p] = min(ell_max[i], ell_max[j])
 	return cuts
 
-
-		
 
 def log_prior(theta):
 	'''
@@ -284,7 +280,9 @@ for fd in cf.get_global_fields():
 	s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
 
 	#get the relevant data
-	ells, cells, icov, pairings = get_data(s)
+	ells, cells, cov, pairings = get_data(s)
+	#invert the covariance matrix
+	icov = np.linalg.inv(cov)
 
 	#construct NumberCountsTracer objects from the saved n(z) info
 	tracers = [s.tracers[i] for i in s.tracers.keys()]
