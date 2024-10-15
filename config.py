@@ -31,20 +31,23 @@ class cf_global:
 	
 
 	#data release
-	dr = 'pdr3_wide'
+	dr = 'pdr3_dud' #'pdr3_wide'
 
 	#lists detailing which sub-fields belong to which field
 	hectomap = ['hectomap']
 	spring = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	autumn = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
 	combined = ['combined']
+	#deep/ultra-deep fields
+	cosmos = ['cosmos']
 	
 	#fields for which the pipeline is to be run
 	fields = [
 		#*hectomap,
 		#*spring,
 		#*autumn,
-		*combined
+		*combined,
+		#*cosmos
 	]
 
 
@@ -125,7 +128,8 @@ class cf_global:
 			fields_global.append('autumn')
 		if 'combined' in cls.fields:
 			fields_global.append('combined')
-
+		if 'cosmos' in cls.fields:
+			fields_global.append('cosmos')
 		return fields_global
 
 
@@ -137,8 +141,7 @@ class cf_global:
 		'''
 		import itertools
 
-		nbins = len(cls.zbins) - 1
-		l = list(range(nbins))
+		l = list(range(cls.nbins))
 		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
 		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
 		return pairings, pairings_s
@@ -325,18 +328,38 @@ class pcaSystematics(cf_global):
 	var_thresh = 0.98
 
 
+#####################
+#### dir_photozs ####
+#####################
+
+class dirPhotozs(cf_global):
+
+	name = 'dirPhotozs'
+
+	#catalogue containing the HSC photometry for galaxies in the COSMOS field
+	hsc_cosmos_cat = '/home/cornisht/LSST_clustering/pHSC3/out/cosmos/clean_catalogue.hdf5'
+	#COSMOS2020 catalogue
+	cosmos_cat = '/home/cornisht/LSST_clustering/Data/COSMOS/COSMOS2020_CLASSIC_R1_v2.0.fits'
+
+	#maximum separation (in arcsec) for cross-matching
+	cross_tol = 1.
+
+	#furthest neighbour to use when computing weights in colour space
+	kNN = 20
+
+	#name of the output file containing the n(z) distributions
+	nz_dir_file = f'{cf_global.PATH_OUT}nz_dists_dir.hdf5'
+	#width of the redshift bins
+	dz = 0.03
+
+
 ############################
 #### theory_predictions ####
 ############################
 
-class theoryPredictions(cf_global):
+class theoryPredictions(dirPhotozs):
 
 	name = 'theoryPredictions'
-
-	#column in the catalogues containing the random MC draws from the redshift distribution
-	z_mc_col = 'pz_mc_dnnz'
-	#width of the redshift bins
-	dz = 0.03
 
 	#fiducial cosmology parameters
 	cosmo_fiducial = {
@@ -347,10 +370,20 @@ class theoryPredictions(cf_global):
 		'n_s'     : 0.96
 	}
 
-	#name of the file to which the nofz info will be saved
-	nofz_file = 'nofz_info.hdf5'
 	#base name of the files to which theory power spectra will be saved
 	theory_out = 'theory_cells.hdf5'
+
+	#whether to use the n(z) distributions caculated using DIR
+	use_dir = False
+
+	### The following are only relevant if use_dir == False
+	#column in the catalogues containing the random MC draws from the redshift distribution
+	z_mc_col = 'pz_mc_dnnz'
+	#width of the redshift bins
+	dz = 0.03
+	#name of the file to which the nofz info will be saved
+	nz_mc_file = 'nz_dists_mc.hdf5'
+	
 
 ###############################
 #### compute_power_spectra ####
@@ -380,13 +413,13 @@ class computePowerSpectra(theoryPredictions):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_new.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
-	wsp_file = f'workspace_{cf_global.nside_hi}_new.fits'
-	covwsp_file = f'covworkspace_{cf_global.nside_hi}_new.fits'
+	wsp_file = f'workspace_{cf_global.nside_hi}.fits'
+	covwsp_file = f'covworkspace_{cf_global.nside_hi}.fits'
 	#cache file for keeping track of which systematics have been deprojected previously
-	deproj_file = f'deprojected_{cf_global.nside_hi}_new.txt'
+	deproj_file = f'deprojected_{cf_global.nside_hi}.txt'
 
 	#apply a multiplicative correction to delta_g due to star contamination
 	correct_for_stars = True
@@ -431,29 +464,9 @@ class makeSaccFiles(computePowerSpectra):
 	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 
-##################
-#### fit_hods ####
-##################
-
-class fitHods(makeSaccFiles):
-
-	name = 'fitHods'
-
-	#whether to fit for auto-correlations only
-	auto_only = True
-	
-	#maximum number of iterations for the sampler
-	niter_max = 100000
-	#maximum distances the initial walker positions can be from the initial best fit for each parameter
-	dlogM0 = 1.
-	dlogM1 = 1.
-	#name of the emcee backend
-	backend_file = 'hod_mcmc_backend.hdf5'
-
-
-###############################
+############################
 #### plot_power_spectra ####
-###############################
+############################
 
 class plotPowerSpectra(computePowerSpectra):
 

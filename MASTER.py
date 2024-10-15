@@ -20,6 +20,7 @@ catbased_maps = False	#make maps for various quantities using the catalogue
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
+dir_photozs = True		#use DIR to compute n(z) distributions
 theory_cells = False		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
 make_sacc = False		#consolidate c_ell info into a SACC file
@@ -39,6 +40,7 @@ settings = [
 	galaxy_maps,
 	combine_fields,
 	pca_systs,
+	dir_photozs,
 	theory_cells,
 	power_spectra,
 	make_sacc,
@@ -56,6 +58,7 @@ proc = [
 	'Making galaxy count and density maps in z bins',
 	'Combining maps from all fields',
 	'Performing PCA',
+	'Computing n(z) distributions using DIR',
 	'Computing theoretical power spectra',
 	'Computing power spectra',
 	'Creating SACC file',
@@ -73,6 +76,7 @@ run_str = [
 	'python -u make_galaxy_maps.py',
 	'python -u combine_fields.py',
 	'python -u pca_systematics.py',
+	'python -u dir_photozs.py',
 	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
 	'python -u make_sacc_files.py',

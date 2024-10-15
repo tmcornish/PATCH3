@@ -296,7 +296,6 @@ for g in f_in_g:
 
 
 
-
 print('Consolidating catalogues from subfields...')
 cats = [cf.cat_basic, cf.cat_main, cf.cat_stars]
 for g in f_in_g:
