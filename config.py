@@ -464,6 +464,27 @@ class makeSaccFiles(computePowerSpectra):
 	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 
+##################
+#### fit_hods ####
+##################
+
+class fitHods(makeSaccFiles):
+
+	name = 'fitHods'
+
+	#whether to fit for auto-correlations only
+	auto_only = True
+	
+	#maximum number of iterations for the sampler
+	niter_max = 100000
+	#maximum distances the initial walker positions can be from the initial best fit for each parameter
+	dlogM0 = 1.
+	dlogM1 = 1.
+	#name of the emcee backend
+	backend_file = 'hod_mcmc_backend.hdf5'
+
+
+
 ############################
 #### plot_power_spectra ####
 ############################
