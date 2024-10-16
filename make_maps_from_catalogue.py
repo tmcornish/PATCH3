@@ -329,7 +329,7 @@ def makeSurveyMask(cat, depth_map=None):
 		#smooth it with a Guassian kernel
 		depth_bin = hp.smoothing(depth_bin, np.radians(cf.r_smooth), nest=True)
 		#identify valid pixels below 0.5 in the smoothed version
-		vpix_shallow = np.where(depth_bin[vpix] < 0.5)[0]
+		vpix_shallow = np.where(depth_bin[vpix] < 0.7)[0]
 		mask[vpix[vpix_shallow]] = hp.UNSEEN
 
 	if cf.use_nexp_maps:
@@ -349,7 +349,7 @@ def makeSurveyMask(cat, depth_map=None):
 		#smooth with a Gaussian kernel
 		nexp_bin = hp.smoothing(nexp_bin, np.radians(cf.r_smooth), nest=True)
 		#identify valid pixels below 0.6
-		vpix_noexp = np.where(nexp_bin[vpix] < 0.6)[0]
+		vpix_noexp = np.where(nexp_bin[vpix] < 0.7)[0]
 		mask[vpix[vpix_noexp]] = hp.UNSEEN
 
 
