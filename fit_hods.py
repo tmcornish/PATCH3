@@ -19,6 +19,12 @@ cf = config.fitHods
 #fiducial comsology
 cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
 
+#determine the bin pairings
+if cf.auto_only:
+	pairings = [(i,i) for i in range(cf.nbins)]
+else:
+	pairings, _ = cf.get_bin_pairings()
+
 #range of wavenumbers and scale factors over which theory power spectra will be computed
 lk_arr = np.log(np.geomspace(1E-4, 100, 256))
 a_arr = 1. / (1. + np.linspace(0, 6, 100)[::-1])
@@ -42,73 +48,7 @@ prof2pt = ccl.halos.Profile2ptHOD()
 ######### FUNCTIONS #########
 #############################
 
-def get_data(s):
-	'''
-	Retrieves the relevant covariance informaiton, which depends on the
-	user settings in config.py.
-
-	Parameters
-	----------
-	s: sacc.sacc.Sacc
-		Sacc object containing the angular power spectrum information.
-	
-	Returns
-	-------
-	ells: np.ndarray
-		Array of multipoles at which the power spectra are defined (i.e. effective
-		multipoles of each bandpower).
-	
-	cells: np.ndarray
-		1D array containing the concatenation of all desired power spectra.
-	
-	icov: np.ndarray
-		Inverted matrix of the relevant convariances.
-	'''
-
-	#get the full covariance matrix from the Sacc
-	cov_full = s.covariance.covmat
-
-	if cf.auto_only:
-		#get data for the auto-correlations only
-		ell_cl = np.array([s.get_ell_cl('cl_00', f'cl{i}', f'cl{i}') for i in range(cf.nbins)])
-		#number of bandpowers (get from first ell-C_ell pair)
-		nbpws = len(ell_cl[0,0])
-		#length of the covariance matrix along each side
-		L_cov = nbpws * cf.nbins
-		cov = np.zeros((L_cov, L_cov))
-		#map indices in the full covariance matrix to indices in the covariance matrix for the
-		#auto power spectra
-		i_auto = np.array(range(cf.nbins))
-		i_full = np.array([np.sum(cf.nbins - i_auto[:j]) for j in i_auto])
-		ij_auto = list(itertools.product(i_auto, i_auto))
-		ij_full = list(itertools.product(i_full, i_full))
-		#use this to retrieve the covariance matrix information for the auto-power spectra only
-		for k in range(len(ij_auto)):
-			i_old, j_old = ij_full[k]
-			i_new, j_new = ij_auto[k]
-
-			cov[i_new*nbpws:(i_new+1)*nbpws, j_new*nbpws:(j_new+1)*nbpws] = \
-				cov_full[i_old*nbpws:(i_old+1)*nbpws, j_old*nbpws:(j_old+1)*nbpws]
-		#possible bin pairings
-		pairings = [(i,i) for i in range(cf.nbins)]
-	
-	else:
-		#get the possible bin pairings from the config
-		pairings, _ = cf.get_bin_pairings()
-		#get data for all power spectra
-		ell_cl = np.array([s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()])
-		cov = cov_full
-	
-	#same multipoles are used for all power spectra; retrieve these only
-	ells = ell_cl[0,0]
-	#flatten the C_ells into one array
-	cells = ell_cl[:,1,:].flatten()
-
-	#return the ells, C_ells and covariance matrix, along with the bin pairings
-	return ells, cells, cov, pairings
-
-
-def scale_cuts(pairings):
+def scale_cuts():
 	'''
 	Computes a suitable scale cut to apply prior to fitting, depending on the effective
 	redshifts of the tomographic bins.
@@ -154,6 +94,128 @@ def scale_cuts(pairings):
 		cuts[p] = min(ell_max_dict[i], ell_max_dict[j])
 	return cuts
 
+
+def apply_scale_cuts(ells, cells, cov):
+	'''
+	Applies scale cuts to the data involved in the fit.
+
+	Parameters
+	----------
+	cuts: dict
+		Dictionary of scale cuts for each bin pairing.
+	
+	pairings: list[tuple]
+		All bin pairings involved in the fit.
+	
+	ells: list[numpy.ndarray]
+		List of arrays containing the effective multipoles for each 
+		bin pairing.
+	
+	cells: list[numpy.ndarray]
+		List of arrays containing the angular power spectra for each 
+		bin pairing.
+	
+	cov: numpy.ndarray
+		Covariance matrix for the angular power spectra.
+	
+	Returns
+	-------
+
+	'''
+	#decide on scale cuts to use
+	if cf.compute_scale_cuts:
+		cuts = scale_cuts()
+	else:
+		cuts = {p : cf.hard_lmax for p in pairings}
+
+	#set up a list for containing the masks for each bin pairing
+	masks = []
+	#cycle through the bin pairings
+	for ip, p in enumerate(pairings):
+		#get the maximum multipole allowed for the fit
+		lmax = cuts[p]
+		#mask the higher multipoles
+		lmask = ells[ip] <= lmax
+		ells[ip] = ells[ip][lmask]
+		cells[ip] = cells[ip][lmask]
+		#append the mask to the list
+		masks.append(lmask)
+	#to mask the covariance matrix, combine and flatten all masks, then
+	#take the outer product with itself
+	masks = np.array(masks).flatten()
+	nkeep = int(masks.sum())
+	covmask = np.outer(masks, masks)
+	cov = cov[covmask].reshape((nkeep, nkeep))
+	
+	return ells, cells, cov
+
+
+
+
+def get_data(s):
+	'''
+	Retrieves the relevant covariance information, which depends on the
+	user settings in config.py.
+
+	Parameters
+	----------
+	s: sacc.sacc.Sacc
+		Sacc object containing the angular power spectrum information.
+	
+	Returns
+	-------
+	ells: np.ndarray
+		Array of multipoles at which the power spectra are defined (i.e. effective
+		multipoles of each bandpower).
+	
+	cells: np.ndarray
+		Array of arrays containing the desired power spectra.
+	
+	cov: np.ndarray
+		Matrix of the relevant convariances.
+	'''
+
+	#get the full covariance matrix from the Sacc
+	cov_full = s.covariance.covmat
+
+	if cf.auto_only:
+		#get data for the auto-correlations only
+		ell_cl = np.array([s.get_ell_cl('cl_00', f'cl{i}', f'cl{i}') for i in range(cf.nbins)])
+		#number of bandpowers (get from first ell-C_ell pair)
+		nbpws = len(ell_cl[0,0])
+		#length of the covariance matrix along each side
+		L_cov = nbpws * cf.nbins
+		cov = np.zeros((L_cov, L_cov))
+		#map indices in the full covariance matrix to indices in the covariance matrix for the
+		#auto power spectra
+		i_auto = np.array(range(cf.nbins))
+		i_full = np.array([np.sum(cf.nbins - i_auto[:j]) for j in i_auto])
+		ij_auto = list(itertools.product(i_auto, i_auto))
+		ij_full = list(itertools.product(i_full, i_full))
+		#use this to retrieve the covariance matrix information for the auto-power spectra only
+		for k in range(len(ij_auto)):
+			i_old, j_old = ij_full[k]
+			i_new, j_new = ij_auto[k]
+
+			cov[i_new*nbpws:(i_new+1)*nbpws, j_new*nbpws:(j_new+1)*nbpws] = \
+				cov_full[i_old*nbpws:(i_old+1)*nbpws, j_old*nbpws:(j_old+1)*nbpws]
+	
+	else:
+		#get data for all power spectra
+		ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()]
+		cov = cov_full
+	
+	#list the ells and cells for each pairing
+	ells = [ell_cl[i][0] for i in range(len(ell_cl))]
+	cells = [ell_cl[i][1] for i in range(len(ell_cl))]
+
+	#apply scale cuts
+	ells, cells, cov = apply_scale_cuts(ells, cells, cov)
+
+	#return the ells, C_ells and covariance matrix, along with the bin pairings
+	return ells, cells, cov
+
+	
 
 def log_prior(theta):
 	'''
@@ -215,20 +277,19 @@ def log_likelihood(theta):
 		lk_arr=lk_arr
 	)
 	#compute theory C_ells
-	theory_cells = np.array(
-		[
+	theory_cells = [
 		ccl.angular_cl(
 			cosmo,
 			NCT[i],
 			NCT[j],
-			ells,
+			ells[ip],
 			p_of_k_a=pk
 		)
-		for i,j in pairings
+		for ip, (i,j) in enumerate(pairings)
 		]
-		).flatten()
+		
 	#residuals
-	diff = cells - theory_cells
+	diff = np.concatenate(cells) - np.concatenate(theory_cells)
 	
 	logL = -np.dot(diff, np.dot(icov, diff)) / 2.
 	
@@ -280,15 +341,9 @@ for fd in cf.get_global_fields():
 	s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
 
 	#get the relevant data
-	ells, cells, cov, pairings = get_data(s)
+	ells, cells, cov = get_data(s)
 	#invert the covariance matrix
 	icov = np.linalg.inv(cov)
-
-	#decide on scale cuts to use
-	if cf.compute_scale_cuts:
-		ell_cuts = scale_cuts(pairings)
-	else:
-		ell_cuts = {p : cf.hard_lmax for p in pairings}
 	
 	#construct NumberCountsTracer objects from the saved n(z) info
 	tracers = [s.tracers[i] for i in s.tracers.keys()]
