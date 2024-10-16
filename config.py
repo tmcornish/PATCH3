@@ -337,9 +337,9 @@ class dirPhotozs(cf_global):
 	name = 'dirPhotozs'
 
 	#catalogue containing the HSC photometry for galaxies in the COSMOS field
-	hsc_cosmos_cat = '/home/cornisht/LSST_clustering/pHSC3/out/cosmos/clean_catalogue.hdf5'
+	hsc_cosmos_cat = cf_global.PATH_OUT + 'cosmos/clean_catalogue.hdf5'
 	#COSMOS2020 catalogue
-	cosmos_cat = '/home/cornisht/LSST_clustering/Data/COSMOS/COSMOS2020_CLASSIC_R1_v2.0.fits'
+	cosmos_cat = cf_global.PATH_DATA + '../COSMOS/COSMOS2020_CLASSIC_R1_v2.0.fits'
 
 	#maximum separation (in arcsec) for cross-matching
 	cross_tol = 1.
