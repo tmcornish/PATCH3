@@ -399,7 +399,7 @@ class computePowerSpectra(theoryPredictions):
 		'all'
 		]
 	#(optional) maximum number of systematics to deproject - uses all provided if set to None
-	Nsyst_max = 2
+	Nsyst_max = None
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
@@ -432,11 +432,6 @@ class computePowerSpectra(theoryPredictions):
 	#file for containing the best-fit coefficients for linear deprojection
 	alphas_file = f'deprojection_alphas_{cf_global.nside_hi}.txt'
 
-	#whether to only calculate 'variance' matrices as opposed to all possible covariances
-	var_only = False
-	#base filename for the file containing all covariance matrices (if calculated)
-	covar_file = f'covariance_matrices_{cf_global.nside_hi}.hdf5'
-
 	@classmethod
 	def get_bpw_edges(cls):
 		import numpy as np
@@ -455,11 +450,24 @@ class computePowerSpectra(theoryPredictions):
 		return bpw_edges
 
 
+
+###############################
+#### compute_power_spectra ####
+###############################
+
+class covariances(computePowerSpectra):
+
+	name = 'covariances'
+
+	#base filename for the file containing all covariance matrices
+	covar_file = f'covariance_matrices_{cf_global.nside_hi}.hdf5'
+
+
 #########################
 #### make_sacc_files ####
 #########################
 
-class makeSaccFiles(computePowerSpectra):
+class makeSaccFiles(covariances):
 
 	name = 'makeSaccFiles'
 
