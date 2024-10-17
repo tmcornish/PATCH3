@@ -20,11 +20,12 @@ catbased_maps = False	#make maps for various quantities using the catalogue
 galaxy_maps = False		#make galaxy count and density maps in tomographic bins
 combine_fields = False	#combine maps from all fields
 pca_systs = False		#perform PCA to potentially reduce the number of maps being deprojected
-dir_photozs = True		#use DIR to compute n(z) distributions
+dir_photozs = False		#use DIR to compute n(z) distributions
 theory_cells = False		#compute theoretical angular power spectra
 power_spectra = False	#compute power spectra
+covariances = True		#compute (Gaussian) covariances
 make_sacc = False		#consolidate c_ell info into a SACC file
-fit_hods = True			#fit halo occupation distributions to the computed angular power spectra
+fit_hods = False			#fit halo occupation distributions to the computed angular power spectra
 plot_cells = False		#plot the power spectra
 txpipe_inputs = False	#collects all relevant files and converts them into TXPipe-compatible formats
 
@@ -43,6 +44,7 @@ settings = [
 	dir_photozs,
 	theory_cells,
 	power_spectra,
+	covariances,
 	make_sacc,
 	fit_hods,
 	plot_cells,
@@ -61,6 +63,7 @@ proc = [
 	'Computing n(z) distributions using DIR',
 	'Computing theoretical power spectra',
 	'Computing power spectra',
+	'Computing covariances',
 	'Creating SACC file',
 	'Fitting HOD model',
 	'Plotting power spectra',
@@ -79,6 +82,7 @@ run_str = [
 	'python -u dir_photozs.py',
 	'python -u theory_predictions.py',
 	'python -u compute_power_spectra.py',
+	'python -u covariances.py',
 	'python -u make_sacc_files.py',
 	'python -u fit_hods.py',
 	'python -u plot_power_spectra.py',
