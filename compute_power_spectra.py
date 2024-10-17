@@ -373,6 +373,6 @@ for fd in cf.get_global_fields():
 			alphas = density_fields[i].alphas
 			#write to a file, with the name of each systematic
 			with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
-				alphas_file.write('#Sytematic\talpha\n')
+				alphas_file.write('Sytematic\talpha\n')
 				for j in range(nsyst):
 					alphas_file.write(f'{systs[j]}\t{alphas[j]}\n')
