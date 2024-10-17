@@ -413,7 +413,7 @@ class computePowerSpectra(theoryPredictions):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}_2systs.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
 	wsp_file = f'workspace_{cf_global.nside_hi}.fits'

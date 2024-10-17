@@ -227,6 +227,9 @@ for fd in cf.get_global_fields():
 		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
+	
+	#set up dictionary for recording whether deprojection coefficients have been saved
+	alphas_saved = {i : False for i in range(cf.nbins)}
 
 	#full path to the output file
 	outfile_main = f'{PATH_MAPS}{cf.outfile}'	
@@ -366,13 +369,22 @@ for fd in cf.get_global_fields():
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
 	
-	#save the best-fit coefficients for deprojection
-	if (nsyst > 0) and density_fields:
-		for i in range(len(density_fields)):
+		#save the best-fit coefficients for deprojection ()
+		if (nsyst > 0):
 			#get the coefficients
-			alphas = density_fields[i].alphas
-			#write to a file, with the name of each systematic
-			with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
-				alphas_file.write('Sytematic\talpha\n')
-				for j in range(nsyst):
-					alphas_file.write(f'{systs[j]}\t{alphas[j]}\n')
+			alphas_i = f_i.alphas
+			alphas_j = f_j.alphas
+			if not alphas_saved[i]:
+				#write to a file, with the name of each systematic
+				with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
+					alphas_file.write('Sytematic\talpha\n')
+					for k in range(nsyst):
+						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
+				alphas_saved[i] = True
+			if not alphas_saved[j]:
+				#write to a file, with the name of each systematic
+				with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{j}.txt', 'w') as alphas_file:
+					alphas_file.write('Sytematic\talpha\n')
+					for k in range(nsyst):
+						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
+				alphas_saved[j] = True
