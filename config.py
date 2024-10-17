@@ -396,10 +396,10 @@ class computePowerSpectra(theoryPredictions):
 	#systematics maps to deproject (add 'all' to the list of wanting to deproject all
 	#maps in the systematics directory)
 	systs = [
-		#'all'
+		'all'
 		]
 	#(optional) maximum number of systematics to deproject - uses all provided if set to None
-	Nsyst_max = None
+	Nsyst_max = 2
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
@@ -413,7 +413,7 @@ class computePowerSpectra(theoryPredictions):
 	log_spacing = False
 	
 	#output file for power spectrum information
-	outfile = f'power_spectra_info_{cf_global.nside_hi}.hdf5'
+	outfile = f'power_spectra_info_{cf_global.nside_hi}_2systs.hdf5'
 
 	#output files for the NmtWorkspace and NmtCovarianveWorkspace
 	wsp_file = f'workspace_{cf_global.nside_hi}.fits'
@@ -428,6 +428,9 @@ class computePowerSpectra(theoryPredictions):
 
 	#create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
 	lite = False
+
+	#file for containing the best-fit coefficients for linear deprojection
+	alphas_file = f'deprojection_alphas_{cf_global.nside_hi}.txt'
 
 	#whether to only calculate 'variance' matrices as opposed to all possible covariances
 	var_only = False

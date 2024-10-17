@@ -365,38 +365,14 @@ for fd in cf.get_global_fields():
 			if theory_exists and (f'bin{i}-bin{j}' in theory_keys):
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
 				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
-
-	#compute all covariances if told to AND if density fields have been made 
-	if not cf.var_only and density_fields:
-		print('Computing all covariances...')
-		#file for containing the covariance matrices
-		covar_file = f'{PATH_MAPS}{cf.covar_file}'
-		#number of different fields
-		nfields = len(cf.zbins) - 1
-		with h5py.File(covar_file, 'w') as cvfile:
-			#cycle through all possible combinations of pairs of fields
-			for i1 in range(nfields):
-				for i2 in range(i1, nfields):
-					for j1 in range(nfields):
-						for j2 in range(j1, nfields):
-							#create group in the hdf5 file for this pairing
-							gp = cvfile.create_group(f'{i1}{i2}-{j1}{j2}')
-							#compute the covariance
-							covar_now, *_ = compute_covariance(w, cw, 
-										  density_fields[i1],
-										  density_fields[i2],
-										  density_fields[j1],
-										  density_fields[j2]
-										  )
-							if nsyst > 0:
-								covar_nd_now, *_ = compute_covariance(w, cw, 
-										  density_fields_nd[i1],
-										  density_fields_nd[i2],
-										  density_fields_nd[j1],
-										  density_fields_nd[j2]
-										  )
-							else:
-								covar_nd_now = covar_now
-							#create datasets for the covariance matrices
-							_ = gp.create_dataset('final', data=covar_now)
-							_ = gp.create_dataset('no_deproj', data=covar_nd_now)
+	
+	#save the best-fit coefficients for deprojection
+	if (nsyst > 0) and density_fields:
+		for i in range(len(density_fields)):
+			#get the coefficients
+			alphas = density_fields[i].alphas
+			#write to a file, with the name of each systematic
+			with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
+				alphas_file.write('#Sytematic\talpha\n')
+				for j in range(nsyst):
+					alphas_file.write(f'{systs[j]}\t{alphas[j]}\n')
