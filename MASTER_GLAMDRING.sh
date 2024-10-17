@@ -136,5 +136,8 @@ function power_spectra_job () {
 ### calculating covariances
 submit_pyjob "-q cmb -n 1x24 -m 7 -s" covariances.py
 
+### calculating covariances
+submit_pyjob "-q cmb -n 1x24 -m 2 -s" make_sacc_files.py
+
 ### fitting HOD models to data
 #submit_pyjob "-q cmb -n 1x24 -m 7 -s" fit_hods.py
