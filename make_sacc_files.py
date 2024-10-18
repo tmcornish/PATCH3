@@ -63,7 +63,7 @@ for fd in cf.get_global_fields():
 		#add tracers to the Sacc object (one for each redshift bin)
 		for i in range(len(cf.zbins)-1):
 			#get the n(z) distribution for this bin
-			nz = hf[f'bin{i}'][:]
+			nz = hf[f'nz_{i}'][:]
 			s_main.add_tracer('NZ',	#n(z)-type tracer
 						f'cl{i}',	#tracer name
 						quantity='galaxy_density', #quantity
