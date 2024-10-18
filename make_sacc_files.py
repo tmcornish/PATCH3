@@ -53,7 +53,10 @@ for fd in cf.get_global_fields():
 	s_bias = sacc.Sacc()		# deprojection bias
 
 	#get the n(z) distributions
-	nofz_info = f'{PATH_INFO}{cf.nofz_file}'
+	if cf.use_dir:
+		nofz_info = cf.nz_dir_file
+	else:
+		nofz_info = f'{PATH_INFO}{cf.nz_mc_file}'
 	with h5py.File(nofz_info, 'r') as hf:
 		#get the redshifts at which n(z) distributions are defined
 		z = hf['z'][:]
