@@ -179,35 +179,23 @@ def get_data(s):
 	cov_full = s.covariance.covmat
 
 	if cf.auto_only:
-		#get data for the auto-correlations only
-		ell_cl = np.array([s.get_ell_cl('cl_00', f'cl{i}', f'cl{i}') for i in range(cf.nbins)])
-		#number of bandpowers (get from first ell-C_ell pair)
-		nbpws = len(ell_cl[0,0])
-		#length of the covariance matrix along each side
-		L_cov = nbpws * cf.nbins
-		cov = np.zeros((L_cov, L_cov))
-		#map indices in the full covariance matrix to indices in the covariance matrix for the
-		#auto power spectra
-		i_auto = np.array(range(cf.nbins))
-		i_full = np.array([np.sum(cf.nbins - i_auto[:j]) for j in i_auto])
-		ij_auto = list(itertools.product(i_auto, i_auto))
-		ij_full = list(itertools.product(i_full, i_full))
-		#use this to retrieve the covariance matrix information for the auto-power spectra only
-		for k in range(len(ij_auto)):
-			i_old, j_old = ij_full[k]
-			i_new, j_new = ij_auto[k]
-
-			cov[i_new*nbpws:(i_new+1)*nbpws, j_new*nbpws:(j_new+1)*nbpws] = \
-				cov_full[i_old*nbpws:(i_old+1)*nbpws, j_old*nbpws:(j_old+1)*nbpws]
+		#cycle through the redshift bins
+		ells, cells, inds = [], [], []
+		for i in range(cf.nbins):
+			ells_now, cells_now, inds_now = s.get_ell_cl('cl_00', f'cl{i}', f'cl{i}', return_ind=True)
+			ells.append(ells_now)
+			cells.append(cells_now)
+			inds.extend(list(inds_now))
+		#use the returned indices to retrieve the relevant covariance information
+		cov = cov_full[inds][:,inds]
 	
 	else:
 		#get data for all power spectra
 		ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()]
 		cov = cov_full
-	
-	#list the ells and cells for each pairing
-	ells = [ell_cl[i][0] for i in range(len(ell_cl))]
-	cells = [ell_cl[i][1] for i in range(len(ell_cl))]
+		#list the ells and cells for each pairing
+		ells = [ell_cl[i][0] for i in range(len(ell_cl))]
+		cells = [ell_cl[i][1] for i in range(len(ell_cl))]
 
 	#apply scale cuts
 	ells, cells, cov = apply_scale_cuts(ells, cells, cov)
