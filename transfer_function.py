@@ -440,7 +440,6 @@ cl_ratio = []		#ratio of measured cl to input cl
 print(f'Generating {nsim} synthetic maps...')
 #############################################
 for i in range(nsim):
-	print(f'Synthesising, masking and contaminating map {i}...')
 	#filename for outputs from this simulation
 	outfile = f'{PATH_SIMS}sim{i}_nside{cf.nside_hi}.hdf5'
 
@@ -452,6 +451,7 @@ for i in range(nsim):
 			cl_ratio.append(w.decouple_cell(hf['cl_meas_coupled'][:] / cl_in))
 		continue
 
+	print(f'Synthesising, masking and contaminating map {i}...')
 	#synthesise the map from the input C_ells
 	np.random.seed(i)
 	map_in = hp.synfast(cl_in, nside=cf.nside_hi) 
