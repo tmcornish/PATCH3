@@ -361,13 +361,13 @@ class theoryPredictions(dirPhotozs):
 
 	name = 'theoryPredictions'
 
-	#fiducial cosmology parameters
+	#fiducial cosmology parameters (Plank2018)
 	cosmo_fiducial = {
-		'Omega_c' : 0.27,
-		'Omega_b' : 0.045,
-		'h'       : 0.67,
-		'sigma8'  : 0.83,
-		'n_s'     : 0.96
+		'Omega_c' : 0.26066676,
+		'Omega_b' : 0.048974682,
+		'h'       : 0.6766,
+		'sigma8'  : 0.8102,
+		'n_s'     : 0.9665
 	}
 
 	#base name of the files to which theory power spectra will be saved
@@ -399,7 +399,7 @@ class computePowerSpectra(theoryPredictions):
 		'all'
 		]
 	#(optional) maximum number of systematics to deproject - uses all provided if set to None
-	Nsyst_max = None
+	Nsyst_max = 10
 
 	#approximately logarithmically-spaced bandpowers used in Nicola+19
 	use_N19_bps = False
