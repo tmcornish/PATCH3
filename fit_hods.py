@@ -385,8 +385,14 @@ for fd in cf.get_global_fields():
 		
 
 		#set up an HDF5 backend
-		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
-		backend.reset(nwalkers, ndim)
+		backend_file = PATH_FD + cf.backend_file
+		backend = emcee.backends.HDFBackend(backend_file)
+		#backend.reset(nwalkers, ndim)
+		if os.path.exists(backend_file):
+			print('Loading chains from saved backend...')
+			print(f'Starting at step {backend.iteration}...')
+			sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, backend=backend)
+			p0 = sampler.get_last_sample()
 		
 
 		print(f'Using {ncores} cores and {nwalkers} walkers.')
