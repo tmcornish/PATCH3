@@ -489,6 +489,8 @@ for i in range(0,nsim+1):
 					out_dict[k] = hf[k][:]
 				else:
 					out_dict[k] = None
+	else:
+		out_dict = {**out_dict, **{k : None for k in out_required}}
 
 	if out_dict['map_in'] is None:
 		print(f'{id_str}: synthesising, masking and contaminating map...')
