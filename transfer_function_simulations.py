@@ -76,6 +76,9 @@ bpw_edges = np.linspace(cf.ell_min, ell_max+1, cf.nbpws).astype(int)
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 ell_effs = b.get_effective_ells()
 
+#number of digits to use for string-formatted numbers when naming files
+ndigit = int(np.floor(np.log10(nsim))) + 1
+
 #############################
 ######### FUNCTIONS #########
 #############################
@@ -459,9 +462,11 @@ out_required = [
 
 print(f'Generating {nsim} synthetic maps...')
 #############################################
-for i in range(nsim):
+for i in range(1,nsim+1):
+	#string form of iteration index
+	i_str = str(i).zfill(ndigit)
 	#filename for outputs from this simulation
-	outfile = f'{PATH_SIMS}sim{i}_nside{cf.nside_hi}.hdf5'
+	outfile = f'{PATH_SIMS}sim{i_str}_nside{cf.nside_hi}.hdf5'
 
 	#set up dictionary for storing outputs
 	out_dict = {
