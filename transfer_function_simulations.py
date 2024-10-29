@@ -2,8 +2,6 @@
 # - Uses simulated maps to compare deprojection bias vs transfer function as a
 #   means of obtaining unbiased angular power spectra. This is a standalone script and
 #   not intended as part of the pipeline, but may be worked into it eventually.
-# TODO:
-# - Make the script able to identify and fill in any gaps from previous runs. 
 #####################################################################################################
 
 import healpy as hp
