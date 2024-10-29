@@ -396,12 +396,23 @@ df = nmt.NmtField(mask, None, spin=0)
 print('Workspaces: calculating mode coupling matrix...')
 ########################################################
 w = nmt.NmtWorkspace()
-w.compute_coupling_matrix(df, df, b)
+wsp_file = PATH_SIMS + 'sims_workspace.fits'
+if os.path.exists(wsp_file):
+	w.read_from(wsp_file)
+else:
+	w.compute_coupling_matrix(df, df, b)
+	w.write_to(wsp_file)
 
 print('Workspaces: calculating coupling coefficients...')
 ########################################################
 cw = nmt.NmtCovarianceWorkspace()
-cw.compute_coupling_coefficients(df, df)
+covwsp_file = PATH_SIMS + 'sims_covworkspace.fits'
+if os.path.exists(covwsp_file):
+	cw.read_from(covwsp_file)
+else:
+	cw.compute_coupling_coefficients(df, df)
+	cw.write_to(covwsp_file)
+
 
 
 print('Loading systematics maps...')
@@ -436,6 +447,16 @@ print(alphas_in)
 cl_best_db = []		#cl_best from deprojection bias
 cl_ratio = []		#ratio of measured cl to input cl
 
+#list of required datasets to search for from existing simulaitons
+out_required = [
+	'map_in',
+	'cl_meas',
+	'cov',
+	'err_cell',
+	'cl_meas_coupled',
+	'cl_bias',
+	'alphas_meas'	
+]
 
 print(f'Generating {nsim} synthetic maps...')
 #############################################
@@ -443,22 +464,32 @@ for i in range(nsim):
 	#filename for outputs from this simulation
 	outfile = f'{PATH_SIMS}sim{i}_nside{cf.nside_hi}.hdf5'
 
+	#set up dictionary for storing outputs
+	out_dict = {
+		'ell_effs' : ell_effs,
+		'cl_in' : cl_in,
+		'systs' : systs,
+		'alphas_in' : alphas_in
+	}
 	#if outputs exist for this iteration, skip
 	if os.path.exists(outfile):
 		print(f'Output file found for iteration {i}; checking for required outputs...')
 		with h5py.File(outfile, 'r') as hf:
-			cl_best_db.append(hf['cl_meas'][:] - hf['cl_bias'][:])
-			cl_ratio.append(w.decouple_cell(hf['cl_meas_coupled'][:] / cl_in))
-		continue
+			for k in out_required:
+				if k in hf.keys():
+					out_dict[k] = hf[k][:]
+				else:
+					out_dict[k] = None
 
-	print(f'Synthesising, masking and contaminating map {i}...')
-	#synthesise the map from the input C_ells
-	np.random.seed(i)
-	map_in = hp.synfast(cl_in, nside=cf.nside_hi) 
+	if out_dict['map_in'] is None:
+		print(f'Synthesising, masking and contaminating map {i}...')
+		#synthesise the map from the input C_ells
+		np.random.seed(i)
+		out_dict['map_in'] = hp.synfast(cl_in, nside=cf.nside_hi) 
 
 	#apply the survey mask
 	masked_pix = (mask == 0.)
-	map_masked = map_in * mask
+	map_masked = out_dict['map_in'] * mask
 
 	#contaminate with systematics
 	map_cont = map_masked + np.sum(
@@ -466,48 +497,45 @@ for i in range(nsim):
 								axis=0
 								)
 
-	print(f'Map {i}: Computing deprojected C_ells...')
-	#calculate (deprojected) angular power spectra
-	df = nmt.NmtField(mask, [map_cont], templates=systmaps)
-	alphas_meas = df.alphas
-	cl_coupled = nmt.compute_coupled_cell(df, df)
-	cl = w.decouple_cell(cl_coupled)
+	if out_dict['cl_meas_coupled'] is None:
+		print(f'Sim {i}: Computing deprojected C_ells...')
+		#calculate (deprojected) angular power spectra
+		df = nmt.NmtField(mask, [map_cont], templates=systmaps)
+		out_dict['alphas_meas'] = df.alphas
+		out_dict['cl_meas_coupled'] = nmt.compute_coupled_cell(df, df)
+	
+	if out_dict['cl_meas'] is None:
+		out_dict['cl_meas'] = w.decouple_cell(out_dict['cl_meas_coupled'])
 
-	print(f'Map {i}: computing covariances...')
-	#covariances and errors
-	cl_guess = cl_coupled / mu_w2
-	cov = nmt.gaussian_covariance(cw,
-							      0, 0, 0, 0,
-								  [cl_guess[0]],
-								  [cl_guess[0]],
-								  [cl_guess[0]],
-								  [cl_guess[0]],
-							  	  w)
-	err_cell = np.sqrt(np.diag(cov))
+	if out_dict['cov'] is None:
+		print(f'Sim {i}: computing covariances...')
+		#covariances and errors
+		cl_guess = out_dict['cl_meas_coupled'] / mu_w2
+		out_dict['cov'] = nmt.gaussian_covariance(cw,
+									0, 0, 0, 0,
+									[cl_guess[0]],
+									[cl_guess[0]],
+									[cl_guess[0]],
+									[cl_guess[0]],
+									w)
+	if out_dict['err_cell'] is None:
+		out_dict['err_cell'] = np.sqrt(np.diag(out_dict['cov']))
 
-	print(f'Map {i}: computing deprojection bias...')
-	#deprojection bias, using measured C_ell as estimate for true
-	cl_bias_coupled = nmt.deprojection_bias(df, df, cl_coupled)
-	cl_bias = w.decouple_cell(cl_bias_coupled)
+	if out_dict['cl_bias'] is None:
+		print(f'Sim {i}: computing deprojection bias...')
+		#deprojection bias, using measured C_ell as estimate for true
+		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_meas_coupled'])
+		out_dict['cl_bias'] = w.decouple_cell(cl_bias_coupled)
 
 	#best estimate of unbiased C_ell
-	cl_best = cl - cl_bias
+	cl_best = out_dict['cl_meas'] - out_dict['cl_bias']
 	cl_best_db.append(cl_best)
 
-	print(f'Map {i}: calculating ratio of measured to input C_ell...')
-	r_cl = w.decouple_cell(cl_coupled / cl_in)
+	print(f'Sim {i}: calculating ratio of measured to input C_ell...')
+	r_cl = w.decouple_cell(out_dict['cl_meas_coupled'] / cl_in)
 	cl_ratio.append(r_cl)
 
-	print(f'Map {i}: Saving outputs...')
+	print(f'Sim {i}: Saving outputs...')
 	with h5py.File(outfile, 'w') as hf:
-		hf.create_dataset('ell_effs', data=ell_effs)
-		hf.create_dataset('cl_in', data=cl_in)
-		hf.create_dataset('map_in', data=map_in)
-		#hf.create_dataset('alms_in', data=alms_in)
-		hf.create_dataset('cl_meas', data=cl)
-		hf.create_dataset('err_cl', data=err_cell)
-		hf.create_dataset('cl_meas_coupled', data=cl_coupled)
-		hf.create_dataset('cl_bias', data=cl_bias)
-		hf.create_dataset('systs', data=systs)
-		hf.create_dataset('alphas_in', data=alphas_in)
-		hf.create_dataset('alphas_meas', data=alphas_meas)
+		for k in out_dict.keys():
+			hf.create_dataset(k, data=out_dict[k])
