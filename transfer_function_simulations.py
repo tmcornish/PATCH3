@@ -520,16 +520,16 @@ for i in range(0,nsim+1):
 
 	if out_dict['cl_guess'] is None:
 		#covariances and errors
-		cl_guess = out_dict['cl_meas_coupled'] / mu_w2
+		out_dict['cl_guess'] = out_dict['cl_meas_coupled'] / mu_w2
 
 	if out_dict['cov'] is None:
 		print(f'{id_str}: computing covariances...')
 		out_dict['cov'] = nmt.gaussian_covariance(cw,
 									0, 0, 0, 0,
-									[cl_guess[0]],
-									[cl_guess[0]],
-									[cl_guess[0]],
-									[cl_guess[0]],
+									[out_dict['cl_guess'][0]],
+									[out_dict['cl_guess'][0]],
+									[out_dict['cl_guess'][0]],
+									[out_dict['cl_guess'][0]],
 									w)
 	if out_dict['err_cell'] is None:
 		out_dict['err_cell'] = np.sqrt(np.diag(out_dict['cov']))
