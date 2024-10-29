@@ -58,7 +58,7 @@ R_kz[:, (k_arr < 0.02)+(k_arr >= 8)] = 1
 pk_R = ccl.pk2d.Pk2D(a_arr=a_arr, lk_arr=lk_arr, pk_arr=R_kz, is_logp=False)
 
 #directory containing the measured HSC C_ells and maps
-PATH_FD = 'out/combined/'
+PATH_FD = cf.PATH_OUT + 'combined/'
 #directory containing the systematics maps
 PATH_SYST = PATH_FD + 'systmaps/'
 #directory for the synthetic maps
