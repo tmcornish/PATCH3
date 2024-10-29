@@ -460,13 +460,18 @@ out_required = [
 	'alphas_meas'	
 ]
 
-print(f'Generating {nsim} synthetic maps...')
+print(f'Generating {nsim}+1 synthetic maps...')
 #############################################
-for i in range(1,nsim+1):
-	#string form of iteration index
-	i_str = str(i).zfill(ndigit)
+for i in range(0,nsim+1):
+	#define distinctive string for output filename
+	if i == 0:
+		id_str = f'test_sim'
+	else:
+		#string form of iteration index
+		i_str = str(i).zfill(ndigit)
+		id_str = f'sim{i_str}'
 	#filename for outputs from this simulation
-	outfile = f'{PATH_SIMS}sim{i_str}_nside{cf.nside_hi}.hdf5'
+	outfile = f'{PATH_SIMS}{id_str}_nside{cf.nside_hi}.hdf5'
 
 	#set up dictionary for storing outputs
 	out_dict = {
@@ -477,7 +482,7 @@ for i in range(1,nsim+1):
 	}
 	#if outputs exist for this iteration, skip
 	if os.path.exists(outfile):
-		print(f'Output file found for iteration {i}; checking for required outputs...')
+		print(f'Output file found for {id_str}; checking for required outputs...')
 		with h5py.File(outfile, 'r') as hf:
 			for k in out_required:
 				if k in hf.keys():
@@ -486,7 +491,7 @@ for i in range(1,nsim+1):
 					out_dict[k] = None
 
 	if out_dict['map_in'] is None:
-		print(f'Synthesising, masking and contaminating map {i}...')
+		print(f'{id_str}: synthesising, masking and contaminating map...')
 		#synthesise the map from the input C_ells
 		np.random.seed(i)
 		out_dict['map_in'] = hp.synfast(cl_in, nside=cf.nside_hi) 
@@ -502,7 +507,7 @@ for i in range(1,nsim+1):
 								)
 
 	if out_dict['cl_meas_coupled'] is None:
-		print(f'Sim {i}: Computing deprojected C_ells...')
+		print(f'{id_str}: Computing deprojected C_ells...')
 		#calculate (deprojected) angular power spectra
 		df = nmt.NmtField(mask, [map_cont], templates=systmaps)
 		out_dict['alphas_meas'] = df.alphas
@@ -516,7 +521,7 @@ for i in range(1,nsim+1):
 		cl_guess = out_dict['cl_meas_coupled'] / mu_w2
 
 	if out_dict['cov'] is None:
-		print(f'Sim {i}: computing covariances...')
+		print(f'{id_str}: computing covariances...')
 		out_dict['cov'] = nmt.gaussian_covariance(cw,
 									0, 0, 0, 0,
 									[cl_guess[0]],
@@ -528,7 +533,7 @@ for i in range(1,nsim+1):
 		out_dict['err_cell'] = np.sqrt(np.diag(out_dict['cov']))
 
 	if out_dict['cl_bias'] is None:
-		print(f'Sim {i}: computing deprojection bias...')
+		print(f'{id_str}: computing deprojection bias...')
 		#deprojection bias, using measured C_ell as estimate for true
 		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_guess'])
 		out_dict['cl_bias'] = w.decouple_cell(cl_bias_coupled)
@@ -537,11 +542,11 @@ for i in range(1,nsim+1):
 	cl_best = out_dict['cl_meas'] - out_dict['cl_bias']
 	cl_best_db.append(cl_best)
 
-	print(f'Sim {i}: calculating ratio of measured to input C_ell...')
+	print(f'{id_str}: calculating ratio of measured to input C_ell...')
 	r_cl = w.decouple_cell(out_dict['cl_meas_coupled'] / cl_in)
 	cl_ratio.append(r_cl)
 
-	print(f'Sim {i}: Saving outputs...')
+	print(f'{id_str}: Saving outputs...')
 	with h5py.File(outfile, 'w') as hf:
 		for k in out_dict.keys():
 			hf.create_dataset(k, data=out_dict[k])
