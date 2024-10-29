@@ -452,6 +452,7 @@ out_required = [
 	'cov',
 	'err_cell',
 	'cl_meas_coupled',
+	'cl_guess',
 	'cl_bias',
 	'alphas_meas'	
 ]
@@ -505,10 +506,12 @@ for i in range(nsim):
 	if out_dict['cl_meas'] is None:
 		out_dict['cl_meas'] = w.decouple_cell(out_dict['cl_meas_coupled'])
 
-	if out_dict['cov'] is None:
-		print(f'Sim {i}: computing covariances...')
+	if out_dict['cl_guess'] is None:
 		#covariances and errors
 		cl_guess = out_dict['cl_meas_coupled'] / mu_w2
+
+	if out_dict['cov'] is None:
+		print(f'Sim {i}: computing covariances...')
 		out_dict['cov'] = nmt.gaussian_covariance(cw,
 									0, 0, 0, 0,
 									[cl_guess[0]],
@@ -522,7 +525,7 @@ for i in range(nsim):
 	if out_dict['cl_bias'] is None:
 		print(f'Sim {i}: computing deprojection bias...')
 		#deprojection bias, using measured C_ell as estimate for true
-		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_meas_coupled'])
+		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_guess'])
 		out_dict['cl_bias'] = w.decouple_cell(cl_bias_coupled)
 
 	#best estimate of unbiased C_ell
