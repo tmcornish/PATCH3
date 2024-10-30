@@ -17,6 +17,7 @@ import map_utils as mu
 import output_utils as outils
 import warnings
 import glob
+import pandas as pd
 
 
 ### SETTINGS & GLOBALS ###
@@ -438,9 +439,15 @@ systmaps = np.array(
 
 print(f'Loaded {nsyst} systematics.')
 
-#generate random deprojection coefficients for each systematic
-np.random.seed(nsim+1)
-alphas_in = np.random.randn(nsyst) * 1.5 - 1 
+#retrieve example deprojection coefficients from relevant file
+alphas_df = pd.read_csv(
+						PATH_FD + 'cache/deprojection_alphas_1024_bin0.txt',
+						sep='\t',
+						index_col=0
+						)
+alphas_in = alphas_df.loc[[os.path.basename(s) for s in systs]]['alpha'].values
+#multiply by 5 to exaggerate effect of each systematic
+alphas_in *= 5
 print('Input deprojection coefficients:')
 print(alphas_in)
 
