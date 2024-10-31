@@ -459,10 +459,15 @@ cl_ratio = []		#ratio of measured cl to input cl
 out_required = [
 	'map_in',
 	'cl_meas',
+	'cl_meas_nd',
 	'cov',
+	'cov_nd',
 	'err_cell',
+	'err_cell_nd',
 	'cl_meas_coupled',
+	'cl_meas_coupled_nd',
 	'cl_guess',
+	'cl_guess_nd',
 	'cl_bias',
 	'alphas_meas'	
 ]
@@ -515,6 +520,14 @@ for i in range(0,nsim+1):
 								axis=0
 								)
 
+	if out_dict['cl_meas_coupled_nd'] is None:
+		print(f'{id_str}: Computing C_ells without deprojection...')
+		#calculate (deprojected) angular power spectra
+		df = nmt.NmtField(mask, [map_cont], templates=None)
+		out_dict['cl_meas_coupled_nd'] = nmt.compute_coupled_cell(df, df)
+	if out_dict['cl_meas_nd'] is None:
+		out_dict['cl_meas_nd'] = w.decouple_cell(out_dict['cl_meas_coupled_nd'])
+	
 	if out_dict['cl_meas_coupled'] is None:
 		print(f'{id_str}: Computing deprojected C_ells...')
 		#calculate (deprojected) angular power spectra
@@ -528,6 +541,22 @@ for i in range(0,nsim+1):
 	if out_dict['cl_guess'] is None:
 		#covariances and errors
 		out_dict['cl_guess'] = out_dict['cl_meas_coupled'] / mu_w2
+	
+	if out_dict['cl_guess_nd'] is None:
+		#covariances and errors
+		out_dict['cl_guess_nd'] = out_dict['cl_meas_coupled_nd'] / mu_w2
+
+	if out_dict['cov_nd'] is None:
+		print(f'{id_str}: computing covariances (no deprojection)...')
+		out_dict['cov_nd'] = nmt.gaussian_covariance(cw,
+									0, 0, 0, 0,
+									[out_dict['cl_guess_nd'][0]],
+									[out_dict['cl_guess_nd'][0]],
+									[out_dict['cl_guess_nd'][0]],
+									[out_dict['cl_guess_nd'][0]],
+									w)
+	if out_dict['err_cell_nd'] is None:
+		out_dict['err_cell_nd'] = np.sqrt(np.diag(out_dict['cov_nd']))
 
 	if out_dict['cov'] is None:
 		print(f'{id_str}: computing covariances...')
@@ -549,11 +578,6 @@ for i in range(0,nsim+1):
 
 	#best estimate of unbiased C_ell
 	cl_best = out_dict['cl_meas'] - out_dict['cl_bias']
-	cl_best_db.append(cl_best)
-
-	print(f'{id_str}: calculating ratio of measured to input C_ell...')
-	r_cl = w.decouple_cell(out_dict['cl_meas_coupled'] / cl_in)
-	cl_ratio.append(r_cl)
 
 	print(f'{id_str}: Saving outputs...')
 	with h5py.File(outfile, 'w') as hf:
