@@ -484,7 +484,7 @@ compute_db = True
 
 print(f'Generating {nsim_tot}+1 synthetic maps...')
 #############################################
-for i in range(0,nsim_tot+1):
+for i in range(101,nsim_tot+1):
 	#define distinctive string for output filename
 	if i == 0:
 		id_str = f'test_sim'
@@ -497,6 +497,7 @@ for i in range(0,nsim_tot+1):
 		#switch off deprojection bias calculation
 		if i == nsim + 1:
 			compute_db = False
+			out_required.remove('cl_bias')
 		#string form of iteration index
 		i_str = str(i-nsim).zfill(ndigit)
 		id_str = f'sim{i_str}_other_cl'
@@ -589,11 +590,12 @@ for i in range(0,nsim_tot+1):
 	if out_dict['err_cell'] is None:
 		out_dict['err_cell'] = np.sqrt(np.diag(out_dict['cov']))
 
-	if out_dict['cl_bias'] is None and compute_db:
-		print(f'{id_str}: computing deprojection bias...')
-		#deprojection bias, using measured C_ell as estimate for true
-		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_guess'])
-		out_dict['cl_bias'] = w.decouple_cell(cl_bias_coupled)
+	if compute_db:
+		if out_dict['cl_bias'] is None:
+			print(f'{id_str}: computing deprojection bias...')
+			#deprojection bias, using measured C_ell as estimate for true
+			cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_guess'])
+			out_dict['cl_bias'] = w.decouple_cell(cl_bias_coupled)
 
 
 	print(f'{id_str}: Saving outputs...')
