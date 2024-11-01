@@ -595,8 +595,6 @@ for i in range(0,nsim_tot+1):
 		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_guess'])
 		out_dict['cl_bias'] = w.decouple_cell(cl_bias_coupled)
 
-	#best estimate of unbiased C_ell
-	cl_best = out_dict['cl_meas'] - out_dict['cl_bias']
 
 	print(f'{id_str}: Saving outputs...')
 	with h5py.File(outfile, 'w') as hf:
