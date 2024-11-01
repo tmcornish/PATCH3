@@ -71,7 +71,7 @@ if not os.path.exists(PATH_SIMS):
 nsim = 100
 #map/C_ell parameters
 ell_max = 3 * cf.nside_hi - 1
-ells_theory = range(0, ell_max+1)
+ells_theory = np.arange(0, ell_max+1)
 npix = hp.nside2npix(cf.nside_hi)
 bpw_edges = np.linspace(cf.ell_min, ell_max+1, cf.nbpws).astype(int)
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
@@ -477,7 +477,7 @@ out_required = [
 #total number of simulations
 nsim_tot = nsim
 if diff_sim_cl:
-	nsim *= 2
+	nsim_tot *= 2
 
 #whether to compute deprojection bias
 compute_db = True
