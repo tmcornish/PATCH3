@@ -80,6 +80,11 @@ ell_effs = b.get_effective_ells()
 #number of digits to use for string-formatted numbers when naming files
 ndigit = int(np.floor(np.log10(nsim))) + 1
 
+#whether to use a different C_ell as input for the transfer function simulations
+diff_sim_cl = True
+#C_ell to use if the above is true
+cl_in_sims = 1 / (ells_theory + 10)
+
 #############################
 ######### FUNCTIONS #########
 #############################
@@ -451,9 +456,6 @@ alphas_in *= 5
 print('Input deprojection coefficients:')
 print(alphas_in)
 
-#lists for storing results from each simulation
-cl_best_db = []		#cl_best from deprojection bias
-cl_ratio = []		#ratio of measured cl to input cl
 
 #list of required datasets to search for from existing simulaitons
 out_required = [
@@ -472,23 +474,40 @@ out_required = [
 	'alphas_meas'	
 ]
 
-print(f'Generating {nsim}+1 synthetic maps...')
+#total number of simulations
+nsim_tot = nsim
+if diff_sim_cl:
+	nsim *= 2
+
+#whether to compute deprojection bias
+compute_db = True
+
+print(f'Generating {nsim_tot}+1 synthetic maps...')
 #############################################
-for i in range(0,nsim+1):
+for i in range(0,nsim_tot+1):
 	#define distinctive string for output filename
 	if i == 0:
 		id_str = f'test_sim'
-	else:
-		#string form of iteration index
+		cl_in_now = cl_in
+	elif 0 < i <= nsim:
+		 #string form of iteration index
 		i_str = str(i).zfill(ndigit)
 		id_str = f'sim{i_str}'
+	else:
+		#switch off deprojection bias calculation
+		if i == nsim + 1:
+			compute_db = False
+		#string form of iteration index
+		i_str = str(i-nsim).zfill(ndigit)
+		id_str = f'sim{i_str}_other_cl'
+		cl_in_now = cl_in_sims
 	#filename for outputs from this simulation
 	outfile = f'{PATH_SIMS}{id_str}_nside{cf.nside_hi}.hdf5'
 
 	#set up dictionary for storing outputs
 	out_dict = {
 		'ell_effs' : ell_effs,
-		'cl_in' : cl_in,
+		'cl_in' : cl_in_now,
 		'systs' : systs,
 		'alphas_in' : alphas_in
 	}
@@ -508,7 +527,7 @@ for i in range(0,nsim+1):
 		print(f'{id_str}: synthesising, masking and contaminating map...')
 		#synthesise the map from the input C_ells
 		np.random.seed(i)
-		out_dict['map_in'] = hp.synfast(cl_in, nside=cf.nside_hi) 
+		out_dict['map_in'] = hp.synfast(cl_in_now, nside=cf.nside_hi) 
 
 	#apply the survey mask
 	masked_pix = (mask == 0.)
@@ -570,7 +589,7 @@ for i in range(0,nsim+1):
 	if out_dict['err_cell'] is None:
 		out_dict['err_cell'] = np.sqrt(np.diag(out_dict['cov']))
 
-	if out_dict['cl_bias'] is None:
+	if out_dict['cl_bias'] is None and compute_db:
 		print(f'{id_str}: computing deprojection bias...')
 		#deprojection bias, using measured C_ell as estimate for true
 		cl_bias_coupled = nmt.deprojection_bias(df, df, out_dict['cl_guess'])
