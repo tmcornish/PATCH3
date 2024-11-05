@@ -278,3 +278,88 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='', **kwargs
 		mp = mp.copy()
 		mp[mp <= unseen_thresh] = hp.UNSEEN
 	hp.gnomview(mp, rot=[ra_mean, dec_mean, 0], xsize=xsize, ysize=ysize, reso=reso, notext=True, fig=fig, title=title, **kwargs)
+
+
+def setup_cl_plot(nbins, auto_only=False, label_subplots=False, normalised=False):
+	'''
+	Sets up a multi-panel figure for displaying angular
+	power spectra for different tomographic bin pairings.
+
+	Parameters
+	----------
+	nbins: int
+		Number of tomographic bins (not pairings) being considered.
+	
+	auto_only: bool
+		If True, will only set up plot for autocorrelation power 
+		spectra. Otherwise, will set up for all bin pairings.
+	
+	label_subplots: bool
+		If True, will label each subplot with the corresponding
+		bin pairing.
+	
+	normalised: bool
+		Whether the displayed C_ells will be normalised by a factor
+		of ell(ell+1)/(2*pi).
+	
+	Returns
+	-------
+	fig: matplotlib.pyplot.Figure
+		Figure object.
+	
+	axes: numpy.ndarray[matplotlib.pyplot.Axes]
+		Axes for each subplot.
+	'''
+
+	import cell_utils as cu
+	import matplotlib as mpl
+	import matplotlib.pyplot as plt
+
+	#get the bin pairings from the specified number of bins
+	pairings, pairings_s = cu.get_bin_pairings(nbins, auto_only)
+
+	#define the figure size based on the number of pairings
+	if auto_only:
+		xsize = 10.
+		ysize = nbins * 2.
+		ncols = 2
+		nrows = (nbins // 2) + (nbins % 2) 
+	else:
+		xsize = nbins * 4.
+		ysize = nbins * 3.5
+		ncols = nrows = nbins
+
+	#ylabel for figure(s) depends on normalisation of the C_ells
+	if normalised:
+		ylabel = r'$C_{\ell}\frac{\ell(\ell+1)}{2\pi}$'
+	else:
+		ylabel = r'$C_{\ell}$'
+
+	#set up a figure for the power spectra from each redshift bin
+	fig = plt.figure(figsize=(xsize, ysize))
+	gs = fig.add_gridspec(ncols=ncols, nrows=nrows)
+
+	#list to which axes will be appended
+	axes = []
+	for ip, (p, p_str) in enumerate(zip(pairings, pairings_s)):
+		if auto_only:
+			i = ip % ncols
+			j = ip // ncols
+		else:
+			i,j = p
+		#add subplot to gridspec
+		ax = fig.add_subplot(gs[j,i])
+		#only label axes if on outer edge of figure
+		if j == (nrows-1):
+			ax.set_xlabel(r'$\ell$')
+		if i == 0:
+			ax.set_ylabel(ylabel)
+		#set loglog scale
+		ax.set_xscale('log')
+		ax.set_yscale('log')
+
+		if label_subplots:
+			#add text to the top-right corner to indicate which bins have been compared
+			ax.text(0.95, 0.95, f'({p_str})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
+		axes.append(ax)
+	return fig, axes
