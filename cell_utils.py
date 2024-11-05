@@ -5,6 +5,40 @@
 import pymaster as nmt
 import numpy as np
 
+
+def get_bin_pairings(nbins, auto_only=False):
+		'''
+		Returns pairs of IDs for each tomographic bin being analysed. Also
+		returns comma-separated string versions of the ID pairs.
+
+		Parameters
+		----------
+		nbins: int
+			Number of bins being considered.
+		
+		auto_only: bool
+			If True, will only return each bin paired with itself.
+		
+		Returns
+		-------
+		pairings: list[tuple]
+			List of possible bin pairings.
+		
+		pairings_s: list[str]
+			List of comma-separated string versions of the ID pairs.
+		'''
+		import itertools
+
+		l = list(range(nbins))
+		if auto_only:
+			pairings = [(i,i) for i in l]
+		else:
+			pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+		return pairings, pairings_s
+
+
+
 def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None, return_cl_coupled=False, return_cl_guess=False):
 	'''
 	Computes the Gaussian covariance for a pair of angular power spectra,
