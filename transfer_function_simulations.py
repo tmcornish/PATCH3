@@ -466,6 +466,8 @@ out_required = [
 	'cov_nd',
 	'err_cell',
 	'err_cell_nd',
+	'cl_clean',
+	'cl_clean_coupled',
 	'cl_meas_coupled',
 	'cl_meas_coupled_nd',
 	'cl_guess',
@@ -539,11 +541,13 @@ for i in range(101,nsim_tot+1):
 								alphas_in[:,None,None] * systmaps,
 								axis=0
 								)
-	if out_dict['cl_meas_pre_cont'] is None:
+	if out_dict['cl_clean_coupled'] is None:
 		print(f'{id_str}: Computing C_ells prior to contamination...')
 		#calculate (deprojected) angular power spectra
 		df = nmt.NmtField(mask, [out_dict['map_in']], templates=None, masked_on_input=False)
-		out_dict['cl_meas_pre_cont'] = nmt.compute_coupled_cell(df, df)
+		out_dict['cl_clean_coupled'] = nmt.compute_coupled_cell(df, df)
+	if out_dict['cl_clean'] is None:
+		out_dict['cl_clean'] = w.decouple_cell(out_dict['cl_clean_coupled'])
 
 	if out_dict['cl_meas_coupled_nd'] is None:
 		print(f'{id_str}: Computing C_ells without deprojection...')
