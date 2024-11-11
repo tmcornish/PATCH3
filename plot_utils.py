@@ -106,9 +106,9 @@ arrow_settings = {
 }
 
 #default markers to cycle through when plotting multiple datasets on a set of axes
-cycle_mkr = ['s', '^', 'v', '*', (8,1,0), 'x', '<', '>', 'p']
+cycle_mkr = ['o', 's', '^', 'v', '*', (8,1,0), 'x', '<', '>', 'p']
 #default colours to cycle through when plotting multiple datasets
-cycle_clr = [plum, lilac, blue, teal, green, orange, red, dark_red]
+cycle_clr = [dark_blue, teal, dark_red, plum, lilac, blue, green, orange, red, magenta]
 
 
 
