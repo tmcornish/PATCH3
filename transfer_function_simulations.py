@@ -438,7 +438,7 @@ if cf.Nsyst_max:
 nsyst = len(systs)
 
 systmaps = np.array(
-				[mu.load_map(s, is_systmap=True, mask=maskdata, apply_mask=False) for s in systs]
+				[mu.load_map(s, is_systmap=True, mask=maskdata, apply_mask=True) for s in systs]
 				).reshape([nsyst, 1, npix])
 
 
@@ -536,14 +536,19 @@ for i in range(101,nsim_tot+1):
 
 	#contaminate with systematics
 	map_cont = map_masked + np.sum(
-								alphas_in[:,None,None] * mask[None, None, :] * systmaps,
+								alphas_in[:,None,None] * systmaps,
 								axis=0
 								)
+	if out_dict['cl_meas_pre_cont'] is None:
+		print(f'{id_str}: Computing C_ells prior to contamination...')
+		#calculate (deprojected) angular power spectra
+		df = nmt.NmtField(mask, [out_dict['map_in']], templates=None, masked_on_input=False)
+		out_dict['cl_meas_pre_cont'] = nmt.compute_coupled_cell(df, df)
 
 	if out_dict['cl_meas_coupled_nd'] is None:
 		print(f'{id_str}: Computing C_ells without deprojection...')
 		#calculate (deprojected) angular power spectra
-		df = nmt.NmtField(mask, [map_cont], templates=None)
+		df = nmt.NmtField(mask, [map_cont], templates=None, masked_on_input=True)
 		out_dict['cl_meas_coupled_nd'] = nmt.compute_coupled_cell(df, df)
 	if out_dict['cl_meas_nd'] is None:
 		out_dict['cl_meas_nd'] = w.decouple_cell(out_dict['cl_meas_coupled_nd'])
@@ -551,7 +556,7 @@ for i in range(101,nsim_tot+1):
 	if out_dict['cl_meas_coupled'] is None:
 		print(f'{id_str}: Computing deprojected C_ells...')
 		#calculate (deprojected) angular power spectra
-		df = nmt.NmtField(mask, [map_cont], templates=systmaps)
+		df = nmt.NmtField(mask, [map_cont], templates=systmaps, masked_on_input=True)
 		out_dict['alphas_meas'] = df.alphas
 		out_dict['cl_meas_coupled'] = nmt.compute_coupled_cell(df, df)
 	
