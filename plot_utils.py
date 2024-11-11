@@ -280,7 +280,7 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='', **kwargs
 	hp.gnomview(mp, rot=[ra_mean, dec_mean, 0], xsize=xsize, ysize=ysize, reso=reso, notext=True, fig=fig, title=title, **kwargs)
 
 
-def setup_cl_plot(nbins, auto_only=False, label_subplots=False, normalised=False):
+def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, ylabel=None):
 	'''
 	Sets up a multi-panel figure for displaying angular
 	power spectra for different tomographic bin pairings.
@@ -298,10 +298,16 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, normalised=False
 		If True, will label each subplot with the corresponding
 		bin pairing.
 	
-	normalised: bool
-		Whether the displayed C_ells will be normalised by a factor
-		of ell(ell+1)/(2*pi).
-	
+	xlabel: str or None
+		Custom label for the x-axis if the independent variable is anything
+		other than the angular multipoles (ells). If None, will use a default 
+		label.
+
+	ylabel: str or None
+		Custom label for the y-axis if the dependent variable is anything
+		other than the angular power spectra (C_ells). If None, will use a 
+		default label.
+		
 	Returns
 	-------
 	fig: matplotlib.pyplot.Figure
@@ -329,10 +335,11 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, normalised=False
 		ysize = nbins * 3.5
 		ncols = nrows = nbins
 
-	#ylabel for figure(s) depends on normalisation of the C_ells
-	if normalised:
-		ylabel = r'$C_{\ell}\frac{\ell(\ell+1)}{2\pi}$'
-	else:
+	#default x-axis label if none provided
+	if not xlabel:
+		xlabel = r'$\ell$'
+	#default y-axis label if none provided
+	if not ylabel:
 		ylabel = r'$C_{\ell}$'
 
 	#set up a figure for the power spectra from each redshift bin
@@ -351,7 +358,7 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, normalised=False
 		ax = fig.add_subplot(gs[j,i])
 		#only label axes if on outer edge of figure
 		if j == (nrows-1):
-			ax.set_xlabel(r'$\ell$')
+			ax.set_xlabel(xlabel)
 		if i == 0:
 			ax.set_ylabel(ylabel)
 		#set loglog scale
