@@ -38,6 +38,61 @@ def get_bin_pairings(nbins, auto_only=False):
 		return pairings, pairings_s
 
 
+def get_data_from_sacc(s, auto_only=False):
+	'''
+	Retrieves the relevant covariance information, which depends on the
+	user settings in config.py.
+
+	Parameters
+	----------
+	s: sacc.sacc.Sacc
+		Sacc object containing the angular power spectrum information.
+	
+	auto_only: bool
+		If True, retrieves information for the autocorrelations only.
+
+	Returns
+	-------
+	ells: np.ndarray
+		Array of multipoles at which the power spectra are defined (i.e. effective
+		multipoles of each bandpower).
+	
+	cells: np.ndarray
+		Array of arrays containing the desired power spectra.
+	
+	cov: np.ndarray
+		Matrix of the relevant convariances.
+	'''
+
+	#get the tracer combinations
+	combos = s.get_tracer_combinations()
+	#get the number of tomographic bins
+	nbins = len(np.unique(combos))
+	#get the full covariance matrix from the Sacc
+	cov_full = s.covariance.covmat
+
+	if auto_only:
+		#cycle through the redshift bins
+		ells, cells, inds = [], [], []
+		for i in range(nbins):
+			ells_now, cells_now, inds_now = s.get_ell_cl('cl_00', f'bin_{i}', f'bin_{i}', return_ind=True)
+			ells.append(ells_now)
+			cells.append(cells_now)
+			inds.extend(list(inds_now))
+		#use the returned indices to retrieve the relevant covariance information
+		cov = cov_full[inds][:,inds]
+	
+	else:
+		#get data for all power spectra
+		ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in combos]
+		cov = cov_full
+		#list the ells and cells for each pairing
+		ells = [ell_cl[i][0] for i in range(len(ell_cl))]
+		cells = [ell_cl[i][1] for i in range(len(ell_cl))]
+	
+	return ells, cells, cov
+	
+
 
 def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None, return_cl_coupled=False, return_cl_guess=False):
 	'''
