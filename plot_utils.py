@@ -147,6 +147,37 @@ def scale_RGB_colour(rgb, scale_l=1., scale_s=1.):
 	return colorsys.hls_to_rgb(h, l_new, s_new)
 
 
+def x_offset(i, delta, log=False):
+	'''
+	For use when plotting multiple sets of data on a single set of axes. Computes an offset in the 
+	x-direction depending on which the current iteration of a loop through the different datasets.
+	
+	Parameters
+	----------
+	i: int
+		The current iteration of a loop through the different datasets.
+	
+	delta: float
+		Determines the distance between each data point. If the x-axis has a
+		linear scale, the offset will be some multiple of delta. If it has a log
+		scale, the offset will be delta raised to some integer power.
+	
+	log: bool
+		Whether the x-axis has a logged scale.
+
+	Returns
+	-------
+	offset: float
+		The offset along the x-axis.
+	'''
+
+	if log:
+		offset = delta ** (((i + 1) // 2) * ((-1) ** (i+1)))
+	else:
+		offset = delta * ((i + 1) // 2) * ((-1) ** (i+1))
+	
+	return offset
+
 
 def plot_correlation_matrix(S, **kwargs):
 	'''
