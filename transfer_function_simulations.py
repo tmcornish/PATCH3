@@ -486,7 +486,7 @@ compute_db = True
 
 print(f'Generating {nsim_tot}+1 synthetic maps...')
 #############################################
-for i in range(101,nsim_tot+1):
+for i in range(nsim_tot+1):
 	#define distinctive string for output filename
 	if i == 0:
 		id_str = f'test_sim'
