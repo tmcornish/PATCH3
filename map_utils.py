@@ -527,7 +527,7 @@ def load_tomographic_maps(map_path, fullsky=True, apply_mask=False, mask=None, i
 
 	#check the format of the idx argument, if provided
 	if idx is not None:
-		nd_idx = gu.get_ndim(idx)
+		nd_idx = np.ndim(idx)
 		if nd_idx == 0:
 			if type(idx) == str:
 				to_read = [idx]

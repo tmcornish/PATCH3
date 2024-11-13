@@ -106,9 +106,9 @@ arrow_settings = {
 }
 
 #default markers to cycle through when plotting multiple datasets on a set of axes
-cycle_mkr = ['s', '^', 'v', '*', (8,1,0), 'x', '<', '>', 'p']
+cycle_mkr = ['o', 's', '^', 'v', '*', (8,1,0), 'x', '<', '>', 'p']
 #default colours to cycle through when plotting multiple datasets
-cycle_clr = [plum, lilac, blue, teal, green, orange, red, dark_red]
+cycle_clr = [dark_blue, teal, dark_red, plum, lilac, blue, green, orange, red, magenta]
 
 
 
@@ -146,6 +146,37 @@ def scale_RGB_colour(rgb, scale_l=1., scale_s=1.):
 	#convert back to rgb and return the result
 	return colorsys.hls_to_rgb(h, l_new, s_new)
 
+
+def x_offset(i, delta, log=False):
+	'''
+	For use when plotting multiple sets of data on a single set of axes. Computes an offset in the 
+	x-direction depending on which the current iteration of a loop through the different datasets.
+	
+	Parameters
+	----------
+	i: int
+		The current iteration of a loop through the different datasets.
+	
+	delta: float
+		Determines the distance between each data point. If the x-axis has a
+		linear scale, the offset will be some multiple of delta. If it has a log
+		scale, the offset will be delta raised to some integer power.
+	
+	log: bool
+		Whether the x-axis has a logged scale.
+
+	Returns
+	-------
+	offset: float
+		The offset along the x-axis.
+	'''
+
+	if log:
+		offset = delta ** (((i + 1) // 2) * ((-1) ** (i+1)))
+	else:
+		offset = delta * ((i + 1) // 2) * ((-1) ** (i+1))
+	
+	return offset
 
 
 def plot_correlation_matrix(S, **kwargs):
@@ -278,3 +309,95 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='', **kwargs
 		mp = mp.copy()
 		mp[mp <= unseen_thresh] = hp.UNSEEN
 	hp.gnomview(mp, rot=[ra_mean, dec_mean, 0], xsize=xsize, ysize=ysize, reso=reso, notext=True, fig=fig, title=title, **kwargs)
+
+
+def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, ylabel=None):
+	'''
+	Sets up a multi-panel figure for displaying angular
+	power spectra for different tomographic bin pairings.
+
+	Parameters
+	----------
+	nbins: int
+		Number of tomographic bins (not pairings) being considered.
+	
+	auto_only: bool
+		If True, will only set up plot for autocorrelation power 
+		spectra. Otherwise, will set up for all bin pairings.
+	
+	label_subplots: bool
+		If True, will label each subplot with the corresponding
+		bin pairing.
+	
+	xlabel: str or None
+		Custom label for the x-axis if the independent variable is anything
+		other than the angular multipoles (ells). If None, will use a default 
+		label.
+
+	ylabel: str or None
+		Custom label for the y-axis if the dependent variable is anything
+		other than the angular power spectra (C_ells). If None, will use a 
+		default label.
+		
+	Returns
+	-------
+	fig: matplotlib.pyplot.Figure
+		Figure object.
+	
+	axes: numpy.ndarray[matplotlib.pyplot.Axes]
+		Axes for each subplot.
+	'''
+
+	import cell_utils as cu
+	import matplotlib as mpl
+	import matplotlib.pyplot as plt
+
+	#get the bin pairings from the specified number of bins
+	pairings, pairings_s = cu.get_bin_pairings(nbins, auto_only)
+
+	#define the figure size based on the number of pairings
+	if auto_only:
+		xsize = 10.
+		ysize = nbins * 2.
+		ncols = 2
+		nrows = (nbins // 2) + (nbins % 2) 
+	else:
+		xsize = nbins * 4.
+		ysize = nbins * 3.5
+		ncols = nrows = nbins
+
+	#default x-axis label if none provided
+	if not xlabel:
+		xlabel = r'$\ell$'
+	#default y-axis label if none provided
+	if not ylabel:
+		ylabel = r'$C_{\ell}$'
+
+	#set up a figure for the power spectra from each redshift bin
+	fig = plt.figure(figsize=(xsize, ysize))
+	gs = fig.add_gridspec(ncols=ncols, nrows=nrows)
+
+	#list to which axes will be appended
+	axes = []
+	for ip, (p, p_str) in enumerate(zip(pairings, pairings_s)):
+		if auto_only:
+			i = ip % ncols
+			j = ip // ncols
+		else:
+			i,j = p
+		#add subplot to gridspec
+		ax = fig.add_subplot(gs[j,i])
+		#only label axes if on outer edge of figure
+		if j == (nrows-1):
+			ax.set_xlabel(xlabel)
+		if i == 0:
+			ax.set_ylabel(ylabel)
+		#set loglog scale
+		ax.set_xscale('log')
+		ax.set_yscale('log')
+
+		if label_subplots:
+			#add text to the top-right corner to indicate which bins have been compared
+			ax.text(0.95, 0.95, f'({p_str})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
+		axes.append(ax)
+	return fig, axes
