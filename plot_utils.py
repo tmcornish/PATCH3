@@ -403,22 +403,22 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 	return fig, axes
 
 
-def plot_cells(ells, cells, ax, err_cells=None, color='k', marker='o', label=None, return_handle=False, return_label=False, **kwargs):
+def plot_cells(ax, ells, cells, err_cells=None, color='k', marker='o', label=None, return_handle=False, return_label=False, **kwargs):
 	'''
 	Convenience function for plotting C_ells on an existing set	of axes. 
 	NOTE: These C_ells are assumed to be binned into bandpowers.
 
 	Parameters
 	----------
+	ax: matplotlib.axes.Axes
+		Axes on which the data are to be plotted.
+	
 	ells: numpy.ndarray
 		NumPy array containing the effective multipoles of each bandpower.
 	
 	cells: numpy.ndarray
 		NumPy array containing the angular power spectrum values.
 		Must have same dimensions as ells.
-	
-	ax: matplotlib.axes.Axes
-		Axes on which the data are to be plotted.
 	
 	err_cells: numpy.ndarray or None
 		NumPy array containing the uncertanites on the angular power spectrum 
@@ -445,10 +445,17 @@ def plot_cells(ells, cells, ax, err_cells=None, color='k', marker='o', label=Non
 	mask_pve = cells >= 0
 	mask_nve = ~mask_pve
 
+	#need to handle err_cells separately in case none provided
+	if err_cells:
+		err_cells_pve = err_cells[mask_pve]
+		err_cells_nve = err_cells[mask_nve]
+	else:
+		err_cells_pve = err_cells_nve = None
+
 	#plot the positive data
 	cell_plot = ax.errorbar(ells[mask_pve], 
 							cells[mask_pve],
-							yerr=err_cells[mask_pve],
+							yerr=err_cells_pve,
 							color=color,
 							ecolor=color,
 							marker=marker,
@@ -459,7 +466,7 @@ def plot_cells(ells, cells, ax, err_cells=None, color='k', marker='o', label=Non
 	#plot the negative data
 	ax.errorbar(ells[mask_nve], 
 				cells[mask_nve],
-				yerr=err_cells[mask_nve],
+				yerr=err_cells_nve,
 				mec=color,
 				ecolor=color,
 				marker=marker,
