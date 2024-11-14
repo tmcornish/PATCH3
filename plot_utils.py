@@ -454,7 +454,7 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	cells_nve = cells[mask_nve]
 	
 	#need to handle err_cells separately in case none provided
-	if err_cells:
+	if err_cells is not None:
 		err_cells_pve = err_cells[mask_pve]
 		err_cells_nve = err_cells[mask_nve]
 	else:
