@@ -401,3 +401,77 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 			ax.text(0.95, 0.95, f'({p_str})', transform=ax.transAxes, ha='right', va='top', fontsize=20.)
 		axes.append(ax)
 	return fig, axes
+
+
+def plot_cells(ells, cells, ax, err_cells=None, color='k', marker='o', label=None, return_handle=False, return_label=False, **kwargs):
+	'''
+	Convenience function for plotting C_ells on an existing set	of axes. 
+	NOTE: These C_ells are assumed to be binned into bandpowers.
+
+	Parameters
+	----------
+	ells: numpy.ndarray
+		NumPy array containing the effective multipoles of each bandpower.
+	
+	cells: numpy.ndarray
+		NumPy array containing the angular power spectrum values.
+		Must have same dimensions as ells.
+	
+	ax: matplotlib.axes.Axes
+		Axes on which the data are to be plotted.
+	
+	err_cells: numpy.ndarray or None
+		NumPy array containing the uncertanites on the angular power spectrum 
+		values. Must have same dimensions as ells (assumes symmetric errors).
+	
+	color: str
+		String code for the desired colour of the datapoints.
+	
+	marker: str
+		String code for the desired marker of the datapoints.
+
+	label: str
+		Legend label for the data.
+	
+	return_handle: bool
+		Whether or not to return the legend handle for the data.
+	
+	return_label: bool
+		Whether or not to return the legend label for the data.
+		
+	'''
+
+	#determine which data are positive and which are negative
+	mask_pve = cells >= 0
+	mask_nve = ~mask_pve
+
+	#plot the positive data
+	cell_plot = ax.errorbar(ells[mask_pve], 
+							cells[mask_pve],
+							yerr=err_cells[mask_pve],
+							color=color,
+							ecolor=color,
+							marker=marker,
+							linestyle='none',
+							label=label,
+							**kwargs
+						 	)
+	#plot the negative data
+	ax.errorbar(ells[mask_nve], 
+				cells[mask_nve],
+				yerr=err_cells[mask_nve],
+				mec=color,
+				ecolor=color,
+				marker=marker,
+				linestyle='none',
+				mfc='none',
+				**kwargs
+				)
+
+	to_return = [None]
+	if return_handle:
+		to_return.append(cell_plot)
+	if return_label and label:
+		to_return.append(label)
+	
+	return (*to_return,)
