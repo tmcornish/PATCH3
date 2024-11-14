@@ -403,10 +403,9 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 	return fig, axes
 
 
-def plot_cells(ax, ells, cells, err_cells=None, color='k', marker='o', label=None, return_handle=False, return_label=False, **kwargs):
+def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', label=None, return_handle=False, return_label=False, **kwargs):
 	'''
 	Convenience function for plotting C_ells on an existing set	of axes. 
-	NOTE: These C_ells are assumed to be binned into bandpowers.
 
 	Parameters
 	----------
@@ -424,11 +423,17 @@ def plot_cells(ax, ells, cells, err_cells=None, color='k', marker='o', label=Non
 		NumPy array containing the uncertanites on the angular power spectrum 
 		values. Must have same dimensions as ells (assumes symmetric errors).
 	
+	binned: bool
+		Whether or not the C_ells are binned into bandpowers.
+
 	color: str
 		String code for the desired colour of the datapoints.
 	
 	marker: str
 		String code for the desired marker of the datapoints.
+	
+	linestyle: str
+		String code for the desired linestyle (only used if C_ells are not binned).
 
 	label: str
 		Legend label for the data.
@@ -444,33 +449,45 @@ def plot_cells(ax, ells, cells, err_cells=None, color='k', marker='o', label=Non
 	#determine which data are positive and which are negative
 	mask_pve = cells >= 0
 	mask_nve = ~mask_pve
-
+	#split data into two subsets
+	ells_pve = ells[mask_pve]
+	ells_nve = ells[mask_nve]
+	cells_pve = cells[mask_pve]
+	cells_nve = cells[mask_nve]
+	
 	#need to handle err_cells separately in case none provided
 	if err_cells:
 		err_cells_pve = err_cells[mask_pve]
 		err_cells_nve = err_cells[mask_nve]
 	else:
 		err_cells_pve = err_cells_nve = None
+	
+	#if C_ells are binned into bandpowers, remove the linestyle
+	if binned:
+		linestyle = 'none'
+	#if they are not binned, remove the markers
+	else:
+		marker = 'none'
 
 	#plot the positive data
-	cell_plot = ax.errorbar(ells[mask_pve], 
-							cells[mask_pve],
+	cell_plot = ax.errorbar(ells_pve, 
+							cells_pve,
 							yerr=err_cells_pve,
 							color=color,
 							ecolor=color,
 							marker=marker,
-							linestyle='none',
+							linestyle=linestyle,
 							label=label,
 							**kwargs
 						 	)
 	#plot the negative data
-	ax.errorbar(ells[mask_nve], 
-				cells[mask_nve],
+	ax.errorbar(ells_nve, 
+				cells_nve,
 				yerr=err_cells_nve,
 				mec=color,
 				ecolor=color,
 				marker=marker,
-				linestyle='none',
+				linestyle=linestyle,
 				mfc='none',
 				**kwargs
 				)
