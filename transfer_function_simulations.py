@@ -93,16 +93,9 @@ def get_zeff(i):
 	'''
 	Computes the effective redshift for the specified tomographic bin.
 	'''
-	#file containing DIR-based n(z) distributions
-	if cf.use_dir:
-		nofz_file = cf.nz_dir_file
-	else:
-		nofz_file = PATH_FD + cf.nz_mc_file
-	#open the n(z) file
-	with h5py.File(nofz_file, 'r') as hf:
-		#compute comoving distance for each tomographic bin included in pairings
-		z = hf['z'][:]
-		nz = hf[f'nz_{i}'][:]
+	#compute comoving distance for each tomographic bin included in pairings
+	z = tracers[i].z
+	nz = tracers[i].nz
 	#effective redshift of bin
 	zeff = np.sum(z * nz) / np.sum(nz)
 	return zeff
@@ -223,10 +216,6 @@ ell_cl = [s.get_ell_cl('cl_00', i, j) for i,j in s.get_tracer_combinations()]
 ells_all = [ell_cl[i][0] for i in range(npairs)]
 cells_all = [ell_cl[i][1] for i in range(npairs)]
 cov_all = s.covariance.covmat
-#apply scale cuts
-ells, cells, cov = apply_scale_cuts(ells_all, cells_all, cov_all)
-err_cell = np.sqrt(np.diag(cov))
-icov = np.linalg.inv(cov)
 
 #construct NumberCountsTracer objects from the saved n(z) info
 tracers = [s.tracers[i] for i in s.tracers.keys()]
@@ -238,6 +227,11 @@ NCT = [
 		bias=(t.z, np.ones_like(t.z))
 	) for t in tracers
 ]
+
+#apply scale cuts
+ells, cells, cov = apply_scale_cuts(ells_all, cells_all, cov_all)
+err_cell = np.sqrt(np.diag(cov))
+icov = np.linalg.inv(cov)
 
 def log_prior(theta):
 	'''
