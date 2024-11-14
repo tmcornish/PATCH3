@@ -24,7 +24,7 @@ def check_for_latex():
 
 #dictionary containing custom formatting for plots
 styledict = {
-	'figure.figsize' : (8., 6.),
+	'figure.figsize' : (6., 4.5),
 	'legend.fontsize' : 14,
 	'legend.shadow' : False,
 	'legend.framealpha' : 0.9,
@@ -357,14 +357,12 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 
 	#define the figure size based on the number of pairings
 	if auto_only:
-		xsize = 10.
-		ysize = nbins * 2.
 		ncols = 2
-		nrows = (nbins // 2) + (nbins % 2) 
+		nrows = (nbins // 2) + (nbins % 2)
 	else:
-		xsize = nbins * 4.
-		ysize = nbins * 3.5
 		ncols = nrows = nbins
+	xsize = ncols * x_size
+	ysize = nrows * y_size
 
 	#default x-axis label if none provided
 	if not xlabel:
