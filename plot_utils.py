@@ -83,7 +83,7 @@ fuchsia = '#E102B5'
 grey = '#969696'
 
 #obtain the figure size in inches
-x_size, y_size = 8., 8.
+x_size, y_size = styledict['figure.figsize']
 
 #formatting for any arrows to be added to the plot for representing upper/lower limits
 ax_frac = 1/40.				#the fraction of the y axis that the total length of a vertical arrow should occupy
