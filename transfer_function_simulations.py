@@ -240,8 +240,8 @@ err_cell = np.sqrt(np.diag(cov))
 icov = np.linalg.inv(cov)
 
 def log_prior(theta):
-	logM0, logM1, mu0p, mu1p, alpha = theta
-	if (0. < logM0 < 15.) and (0. < logM1 < 17.) and (-10. < mu0p < 10.) and (-12. < mu1p < 15.) and (-1 < alpha < 4):
+	logM0, logM1, alpha = theta
+	if (0. < logM0 < 15.) and (0. < logM1 < 17.) and (-1 < alpha < 4):
 		logp = 0.
 	else:
 		logp = -np.inf
@@ -251,7 +251,7 @@ a_pivot = 1 / (1 + 0.65)
 
 def model_cell(theta, ells=ells):
 	#free parameters in the model
-	logM0, logM1, mu0p, mu1p, alpha = theta
+	logM0, logM1, alpha = theta
 	smooth_transition = lambda a: alpha
 	#halo profile
 	prof = ccl.halos.HaloProfileHOD(
@@ -260,9 +260,6 @@ def model_cell(theta, ells=ells):
 		log10Mmin_0=logM0,
 		log10M0_0=logM0,
 		log10M1_0=logM1,
-		log10M0_p=mu0p,
-		log10Mmin_p=mu0p,
-		log10M1_p=mu1p,
 		a_pivot=a_pivot
 		)
 	#halo-model power spectrum for galaxies
@@ -315,12 +312,12 @@ def nll(*args):
 	return -log_probability(*args)
 
 #fit HOD
-initial = [12, 12,0, 0, 1]
+initial = [12, 12, 1]
 ndim = len(initial)
 with warnings.catch_warnings():
 	warnings.simplefilter('ignore')
 	soln = minimize(nll, initial)
-logM0, logM1, mu0p, mu1p, alpha_smooth = soln.x
+logM0, logM1, alpha_smooth = soln.x
 
 print('Results of HOD fit:')
 print(soln)
@@ -337,9 +334,6 @@ prof = ccl.halos.HaloProfileHOD(
 	log10Mmin_0=logM0,
 	log10M0_0=logM0,
 	log10M1_0=logM1,
-	log10M0_p=mu0p,
-	log10Mmin_p=mu0p,
-	log10M1_p=mu1p,
 	a_pivot=a_pivot
 	)
 #halo-model power spectrum for galaxies
