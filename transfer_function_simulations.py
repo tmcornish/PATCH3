@@ -238,52 +238,30 @@ err_cell = np.sqrt(np.diag(cov))
 icov = np.linalg.inv(cov)
 
 def log_prior(theta):
-	'''
-	Defines the priors on the free parameters in the HOD model
-	(in this case, logM0 and logM1).
-
-	Parameters
-	----------
-	theta: tuple
-		Tuple containing values for the free parameters logM0 and logM1.
-	
-	Returns
-	-------
-	logp: float
-		Either 0 or negative infinity, depending on whether the parameter
-		values are within the bound sof the flat priors.
-	'''
-	logM0, logM1 = theta
-	if (0. < logM0 < 15.) and (0. < logM1 < 17.):
+	logM0, logM1, mu0p, mu1p, alpha = theta
+	if (0. < logM0 < 15.) and (0. < logM1 < 17.) and (-10. < mu0p < 10.) and (-12. < mu1p < 15.) and (-1 < alpha < 4):
 		logp = 0.
 	else:
 		logp = -np.inf
 	return logp
 
-def log_likelihood(theta):
-	'''
-	Defines the priors on the free parameters in the HOD model
-	(in this case, logM0 and logM1).
+a_pivot = 1 / (1 + 0.65)
 
-	Parameters
-	----------
-	theta: tuple
-		Tuple containing values for the free parameters logM0 and logM1.
-	
-	Returns
-	-------
-	logL: float
-		Logarithm of the likelihood.
-	'''
+def model_cell(theta, ells=ells):
 	#free parameters in the model
-	logM0, logM1 = theta
+	logM0, logM1, mu0p, mu1p, alpha = theta
+	smooth_transition = lambda a: alpha
 	#halo profile
 	prof = ccl.halos.HaloProfileHOD(
 		mass_def=m200def,
 		concentration=conc,
 		log10Mmin_0=logM0,
 		log10M0_0=logM0,
-		log10M1_0=logM1
+		log10M1_0=logM1,
+		log10M0_p=mu0p,
+		log10Mmin_p=mu0p,
+		log10M1_p=mu1p,
+		a_pivot=a_pivot
 		)
 	#halo-model power spectrum for galaxies
 	pk = ccl.halos.halomod_Pk2D(
@@ -293,10 +271,9 @@ def log_likelihood(theta):
 		prof_2pt=prof2pt,
 		prof2=prof,
 		a_arr=a_arr,
-		lk_arr=lk_arr
+		lk_arr=lk_arr,
+		smooth_transition=smooth_transition
 	)
-	#correct using halofit
-	pk = pk * pk_R
 	#compute theory C_ells
 	theory_cells = [
 		ccl.angular_cl(
@@ -308,6 +285,11 @@ def log_likelihood(theta):
 		)
 		for ip, (i,j) in enumerate(pairings)
 		]
+	
+	return theory_cells
+
+def log_likelihood(theta):
+	theory_cells = model_cell(theta)
 		
 	#residuals
 	diff = np.concatenate(cells) - np.concatenate(theory_cells)
@@ -316,21 +298,8 @@ def log_likelihood(theta):
 	
 	return logL
 
-def log_probability(theta):
-	'''
-	Calculate the logged probability, factoring in the priors
-	and the likelihood.
 
-	Parameters
-	----------
-	theta: tuple
-		Tuple containing values for the free parameters logM0 and logM1.
-	
-	Returns
-	-------
-	log_prob: float
-		Logarithm of the total probability.
-	'''
+def log_probability(theta):
 	#compute the logged prior
 	lp = log_prior(theta)
 	if not np.isfinite(lp):
@@ -339,20 +308,17 @@ def log_probability(theta):
 		log_prob = lp + log_likelihood(theta)
 	return log_prob
 
+
 def nll(*args):
-	'''
-	Converts log_probability into a function that can be minimised
-	to find the best-fit parameters.
-	'''
 	return -log_probability(*args)
 
 #fit HOD
-initial = [12, 12]
+initial = [12, 12,0, 0, 1]
 ndim = len(initial)
 with warnings.catch_warnings():
 	warnings.simplefilter('ignore')
 	soln = minimize(nll, initial)
-logM0, logM1 = soln.x
+logM0, logM1, mu0p, mu1p, alpha_smooth = soln.x
 
 print('Results of HOD fit:')
 print(soln)
@@ -361,12 +327,18 @@ print(soln)
 #maps can only be generated for one C_ell at a time)
 
 #halo profile
+smooth_transition = lambda a: alpha_smooth
+#halo profile
 prof = ccl.halos.HaloProfileHOD(
 	mass_def=m200def,
 	concentration=conc,
 	log10Mmin_0=logM0,
 	log10M0_0=logM0,
-	log10M1_0=logM1
+	log10M1_0=logM1,
+	log10M0_p=mu0p,
+	log10Mmin_p=mu0p,
+	log10M1_p=mu1p,
+	a_pivot=a_pivot
 	)
 #halo-model power spectrum for galaxies
 pk = ccl.halos.halomod_Pk2D(
@@ -376,8 +348,9 @@ pk = ccl.halos.halomod_Pk2D(
 	prof_2pt=prof2pt,
 	prof2=prof,
 	a_arr=a_arr,
-	lk_arr=lk_arr
-) * pk_R
+	lk_arr=lk_arr,
+	smooth_transition=smooth_transition
+)
 #compute theory C_ells
 cl_in = ccl.angular_cl(
 		cosmo,
