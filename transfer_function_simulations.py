@@ -85,9 +85,9 @@ ell_effs = b.get_effective_ells()
 ndigit = int(np.floor(np.log10(nsim))) + 1
 
 #whether to use a different C_ell as input for the transfer function simulations
-diff_sim_cl = True
+diff_cl_tf = True
 #C_ell to use if the above is true
-cl_in_sims = 1 / (ells_theory + 10)
+cl_in_alt = 1 / (ells_theory + 10)
 
 #############################
 ######### FUNCTIONS #########
@@ -418,7 +418,10 @@ else:
 	cw.compute_coupling_coefficients(df, df)
 	cw.write_to(covwsp_file)
 
-
+#convolve the input C_ell(s) with the bandpower window functions
+cl_in_decoupled = w.decouple_cell(w.couple_cell(cl_in.reshape(1,ell_max+1)))
+if diff_cl_tf:
+	cl_in_alt_decoupled = w.decouple_cell(w.couple_cell(cl_in_alt.reshape(1,ell_max+1)))
 
 print('Loading systematics maps...')
 ####################################
@@ -475,7 +478,7 @@ out_required = [
 ]
 
 #total number of simulations
-if diff_sim_cl:
+if diff_cl_tf:
 	nsuites = 3
 else:
 	nsuites = 2
@@ -493,6 +496,7 @@ for i in range(nsim_tot+1):
 	if i == 0:
 		id_str = f'test_sim'
 		cl_in_now = cl_in
+		cl_in_decoupled_now = cl_in_decoupled
 	elif 0 < i <= nsim:
 		id_str = f'sim{i_str}_DBsuite'
 	else:
@@ -503,7 +507,9 @@ for i in range(nsim_tot+1):
 		if nsim < i <= (2*nsim):
 			id_str = f'sim{i_str}_TFsuite1'
 		else:
-			cl_in_now = cl_in_sims
+			if i == (nsim * 2) + 1:
+				cl_in_now = cl_in_alt
+			cl_in_decoupled_now = cl_in_alt_decoupled
 			id_str = f'sim{i_str}_TFsuite2'
 		
 	#filename for outputs from this simulation
@@ -513,6 +519,7 @@ for i in range(nsim_tot+1):
 	out_dict = {
 		'ell_effs' : ell_effs,
 		'cl_in' : cl_in_now,
+		'cl_in_decoupled' : cl_in_decoupled_now,
 		'systs' : systs,
 		'alphas_in' : alphas_in
 	}
