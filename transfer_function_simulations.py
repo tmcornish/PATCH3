@@ -124,24 +124,17 @@ def scale_cuts():
 	'''
 	#set up dictionary for the scale cuts
 	ell_max_dict = {}
-	#file containing DIR-based n(z) distributions
-	if cf.use_dir:
-		nofz_file = cf.nz_dir_file
-	else:
-		nofz_file = PATH_FD + cf.nz_mc_file
-	#open the n(z) file
-	with h5py.File(nofz_file, 'r') as hf:
-		#compute comoving distance for each tomographic bin included in pairings
-		for i in np.unique(pairings):
-			z = hf['z'][:]
-			nz = hf[f'nz_{i}'][:]
-			#effective redshift of bin
-			zeff = np.sum(z * nz) / np.sum(nz)
-			#comoving distance (Mpc)
-			chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
-			#ell corresponding to kmax (Mpc^{-1}) at zeff
-			ell_max = cf.kmax * chi
-			ell_max_dict[i] = ell_max
+	#compute comoving distance for each tomographic bin included in pairings
+	for i in np.unique(pairings):
+		z = tracers[i].z
+		nz = tracers[i].nz
+		#effective redshift of bin
+		zeff = np.sum(z * nz) / np.sum(nz)
+		#comoving distance (Mpc)
+		chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
+		#ell corresponding to kmax (Mpc^{-1}) at zeff
+		ell_max = cf.kmax * chi
+		ell_max_dict[i] = ell_max
 	#now cycle through each bin pairing
 	cuts = {}
 	for p in pairings:
@@ -150,7 +143,8 @@ def scale_cuts():
 		cuts[p] = min(ell_max_dict[i], ell_max_dict[j])
 	return cuts
 
-def apply_scale_cuts(ells, cells, cov):
+
+def apply_scale_cuts(ells, cells, cov, return_cuts=False, compute_cuts=True, hard_lmax=2000):
 	'''
 	Applies scale cuts to the data involved in the fit.
 
@@ -178,10 +172,15 @@ def apply_scale_cuts(ells, cells, cov):
 
 	'''
 	#decide on scale cuts to use
-	if cf.compute_scale_cuts:
+	if compute_cuts:
 		cuts = scale_cuts()
 	else:
-		cuts = {p : cf.hard_lmax for p in pairings}
+		cuts = {p : hard_lmax for p in pairings}
+
+	#copy the inputs
+	ells_cut = ells.copy()
+	cells_cut = cells.copy()
+	cov_cut = cov.copy()
 
 	#set up a list for containing the masks for each bin pairing
 	masks = []
@@ -190,9 +189,9 @@ def apply_scale_cuts(ells, cells, cov):
 		#get the maximum multipole allowed for the fit
 		lmax = cuts[p]
 		#mask the higher multipoles
-		lmask = ells[ip] <= lmax
-		ells[ip] = ells[ip][lmask]
-		cells[ip] = cells[ip][lmask]
+		lmask = ells_cut[ip] <= lmax
+		ells_cut[ip] = ells_cut[ip][lmask]
+		cells_cut[ip] = cells_cut[ip][lmask]
 		#append the mask to the list
 		masks.append(lmask)
 	#to mask the covariance matrix, combine and flatten all masks, then
@@ -200,9 +199,12 @@ def apply_scale_cuts(ells, cells, cov):
 	masks = np.array(masks).flatten()
 	nkeep = int(masks.sum())
 	covmask = np.outer(masks, masks)
-	cov = cov[covmask].reshape((nkeep, nkeep))
+	cov_cut = cov[covmask].reshape((nkeep, nkeep))
 	
-	return ells, cells, cov
+	if return_cuts:
+		return ells_cut, cells_cut, cov_cut, cuts
+	else:
+		return ells_cut, cells_cut, cov_cut
 
 
 #######################################################
@@ -233,7 +235,7 @@ NCT = [
 ]
 
 #apply scale cuts
-ells, cells, cov = apply_scale_cuts(ells_all, cells_all, cov_all)
+ells, cells, cov = apply_scale_cuts(ells_all, cells_all, cov_all, compute_cuts=False, hard_lmax=2*cf.nside_hi)
 err_cell = np.sqrt(np.diag(cov))
 icov = np.linalg.inv(cov)
 
