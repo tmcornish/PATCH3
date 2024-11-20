@@ -2,6 +2,10 @@
 # - Uses simulated maps to compare deprojection bias vs transfer function as a
 #   means of obtaining unbiased angular power spectra. This is a standalone script and
 #   not intended as part of the pipeline, but may be worked into it eventually.
+# - Produces up to 3 suites of simulations:
+#	- DB suite: input C_ell is a best-fit HOD to the HSC data
+# 	- TF suite 1: additional suite using the same input C_ell as suite 1
+#	- TF suite 2: (optional) input C_ell = 1 / (ell + 10)
 #####################################################################################################
 
 import healpy as hp
@@ -67,7 +71,7 @@ PATH_SIMS = PATH_FD + 'sims/'
 if not os.path.exists(PATH_SIMS):
 	os.system(f'mkdir {PATH_SIMS}')
 
-#number of maps to simulate
+#number of maps to simulate (per suite)
 nsim = 100
 #map/C_ell parameters
 ell_max = 3 * cf.nside_hi - 1
@@ -471,9 +475,11 @@ out_required = [
 ]
 
 #total number of simulations
-nsim_tot = nsim
 if diff_sim_cl:
-	nsim_tot *= 2
+	nsuites = 3
+else:
+	nsuites = 2
+nsim_tot = nsuites * nsim
 
 #whether to compute deprojection bias
 compute_db = True
@@ -481,23 +487,25 @@ compute_db = True
 print(f'Generating {nsim_tot}+1 synthetic maps...')
 #############################################
 for i in range(nsim_tot+1):
+	#string form of iteration index
+	i_str = str(i % nsim).zfill(ndigit)
 	#define distinctive string for output filename
 	if i == 0:
 		id_str = f'test_sim'
 		cl_in_now = cl_in
 	elif 0 < i <= nsim:
-		 #string form of iteration index
-		i_str = str(i).zfill(ndigit)
-		id_str = f'sim{i_str}'
+		id_str = f'sim{i_str}_DBsuite'
 	else:
 		#switch off deprojection bias calculation
 		if i == nsim + 1:
 			compute_db = False
 			out_required.remove('cl_bias')
-		#string form of iteration index
-		i_str = str(i-nsim).zfill(ndigit)
-		id_str = f'sim{i_str}_other_cl'
-		cl_in_now = cl_in_sims
+		if nsim < i <= (2*nsim):
+			id_str = f'sim{i_str}_TFsuite1'
+		else:
+			cl_in_now = cl_in_sims
+			id_str = f'sim{i_str}_TFsuite2'
+		
 	#filename for outputs from this simulation
 	outfile = f'{PATH_SIMS}{id_str}_nside{cf.nside_hi}.hdf5'
 
