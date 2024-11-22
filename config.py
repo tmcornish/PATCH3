@@ -114,7 +114,6 @@ class cf_global:
 	zbins = [0.3, 0.6, 0.9, 1.2, 1.5]
 	nbins = len(zbins) - 1
 
-
 	@classmethod
 	def get_global_fields(cls):		
 		fields_global = []
@@ -219,6 +218,9 @@ class cleanCats(cf_global):
 		'main',
 		#'strict'
 	]
+
+	#file containing a list of columns required for the analysis
+	required_cols_file = f'{cf_global.PATH_PIPE}required_cols.txt'
 
 	#parts of the naming structure for raw data files
 	prefix = f'{cf_global.dr.upper()}_'
