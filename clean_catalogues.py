@@ -41,9 +41,16 @@ def basic_clean(t):
 	#create an empty list to which column names with the 'is_null' suffix will be appended
 	isnull_names = []
 
+	#see if file exists containing a list of required columns
+	if os.path.exists(cf.required_cols_file):
+		with open(cf.required_cols_file) as file:
+			req_cols = file.readlines()
+		req_cols = [c.replace('\n','') for c in req_cols]
+	else:
+		req_cols = t.colnames
 	#cycle through column names
 	for key in t.colnames:
-		if key.__contains__('isnull'):
+		if key.__contains__('isnull') and key in req_cols:
 			sel[t[key]] = 0
 			isnull_names.append(key)
 		else:
