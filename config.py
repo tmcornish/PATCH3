@@ -31,7 +31,7 @@ class cf_global:
 	
 
 	#data release
-	dr = 'pdr3_dud' #'pdr3_wide'
+	dr = 'pdr3_wide' #'pdr3_dud'
 
 	#lists detailing which sub-fields belong to which field
 	hectomap = ['hectomap']
