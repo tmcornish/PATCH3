@@ -215,6 +215,12 @@ f_in_g = cf.fields_in_global()
 
 #cycle through each global field
 for g in f_in_g:
+	#counters for keeping track of the cleaning stages in the whole field
+	l_init_fd = 0 			#counter for number of sources in raw data
+	l_bc_fd = 0				#counter for number of sources in basic-cleaned data
+	l_final_fd = 0 			#counter for number of sources in final catalogue
+	l_gals_fd = 0			#counter for number of galaxies in final catalogue
+	l_stars_fd = 0			#counter for number of stars in final catalogue
 	print(colour_string(g.upper(), 'orange'))
 	#cycle through each of the subfields
 	for fd in f_in_g[g]:
@@ -291,9 +297,11 @@ for g in f_in_g:
 
 		#split catalogue into stars and galaxies
 		data_gals, data_stars = gal_cut(data_all)
+		l_gals = len(data_gals)
+		l_stars = len(data_stars)
 		#flag the tomographic bins in the galaxy catalogue
 		flag_tomo_bins(data_gals)
-		print(colour_string(f'{len(data_gals)} galaxies; {len(data_stars)} stars.', 'green'))
+		print(colour_string(f'{l_gals} galaxies; {l_stars} stars.', 'green'))
 
 		#write the catalogues to output files
 		print('Writing outputs...')
@@ -301,8 +309,18 @@ for g in f_in_g:
 		write_output_hdf(data_gals, hdf_full, mode='w', group='photometry')
 		write_output_hdf(data_stars, hdf_stars, mode='w', group='photometry')
 
+		#add to the relevant counters
+		l_init_fd += l_init
+		l_bc_fd += l_bc
+		l_final_fd += l_final
+		l_gals_fd += l_gals
+		l_stars_fd += l_stars
 
-
+	print(colour_string(f'SUMMARY: {g.upper()}', 'orange'))
+	print(colour_string(f'Began with {l_init_fd} sources.', 'green'))
+	print(colour_string(f'{l_bc_fd} remained after basic cleaning.', 'green'))
+	print(colour_string(f'{l_final_fd} sources remaining after full cleaning.', 'green'))
+	print(colour_string(f'{l_gals_fd} galaxies; {l_stars_fd} stars.', 'green'))
 
 print('Consolidating catalogues from subfields...')
 cats = [cf.cat_basic, cf.cat_main, cf.cat_stars]
