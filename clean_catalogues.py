@@ -195,7 +195,7 @@ def flag_tomo_bins(t):
 	#set up the column
 	t['zbin'] = np.full(len(t), -1, dtype=int)
 	#cycle through the redshift bin edges
-	for i in range(len(cf.zbins)-1):
+	for i in range(cf.nbins):
 		zmin, zmax = cf.zbins[i:i+2]
 		#remove galaxies whose best-fit redshifts are not in this bin
 		zmask = (t[cf.zcol] >= zmin) * (t[cf.zcol] < zmax)
