@@ -235,6 +235,9 @@ class cleanCats(cf_global):
 	#whether to remove galaxies likely to have secondary redshift solutions at high-z
 	remove_pz_outliers = False
 
+	#file for containing a summary of each stage of cleaning
+	clean_summary_file = 'cleaning_summary.txt'
+
 	@classmethod
 	def fields_in_global(cls):
 		fields_global = cls.get_global_fields()
