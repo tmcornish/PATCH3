@@ -233,6 +233,7 @@ f_in_g = cf.fields_in_global()
 
 #cycle through each global field
 for g in f_in_g:
+	PATH_G = f'{cf.PATH_OUT}{g}'
 	#counters for keeping track of the cleaning stages in the whole field
 	l_init_fd = 0 			#counter for number of sources in raw data
 	l_bc_fd = 0				#counter for number of sources in basic-cleaned data
@@ -247,7 +248,7 @@ for g in f_in_g:
 		print(colour_string(fd, 'purple'))
 
 		#create output directory for this field
-		OUT = f'{cf.PATH_OUT}{g}/{fd}'
+		OUT = f'{PATH_G}/{fd}'
 		print(f'Output directory: {OUT}')
 		if not os.path.exists(OUT):
 			os.system(f'mkdir -p {OUT}')
@@ -356,7 +357,7 @@ for g in f_in_g:
 		]
 	summary = {'Catalogue': catalogues, 'N_sources': summary_data}
 	summary = pd.DataFrame(data=summary)
-	summary.to_csv(f'{OUT}{cf.clean_summary_file}', sep='\t', index=False)
+	summary.to_csv(f'{PATH_G}/{cf.clean_summary_file}', sep='\t', index=False)
 
 print('Consolidating catalogues from subfields...')
 cats = [cf.cat_basic, cf.cat_main, cf.cat_stars]
