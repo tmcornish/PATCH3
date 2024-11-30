@@ -110,7 +110,7 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 20" split_metadata.py
 
 ### applying various cuts to clean the catalogues
-#submit_pyjob "-q cmb -m 40" clean_catalogues.py
+submit_pyjob "-q cmb -m 40" clean_catalogues.py
 
 ### making maps from the catalogue data
 #submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
@@ -124,6 +124,9 @@ function power_spectra_job () {
 ### combining maps from all fields
 #submit_pyjob "-q cmb -m 40" combine_fields.py
 
+### compute n(z) distributions using DIR
+#submit_pyjob "-q cmb -n 1x24 -m 5 -s" dir_photozs.py
+
 ### compute theory predictions of the power spectra
 #submit_pyjob "-q cmb -m 40" theory_predictions.py
 
@@ -134,10 +137,10 @@ function power_spectra_job () {
 #power_spectra_job 24 7 compute_power_spectra.py
 
 ### calculating covariances
-submit_pyjob "-q cmb -n 1x24 -m 7 -s" covariances.py
+#submit_pyjob "-q cmb -n 1x24 -m 7 -s" covariances.py
 
 ### calculating covariances
-submit_pyjob "-q cmb -n 1x24 -m 2 -s" make_sacc_files.py
+#submit_pyjob "-q cmb -n 1x24 -m 2 -s" make_sacc_files.py
 
 ### fitting HOD models to data
 #submit_pyjob "-q cmb -n 1x24 -m 7 -s" fit_hods.py
