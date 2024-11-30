@@ -57,7 +57,7 @@ def basic_clean(t):
 		else:
 			#want to remove NaNs UNLESS they are photo-zs, SFRs, stellar masses, or r/i-band magnitude corrections
 			if not key.startswith('pz_') and not key.startswith('corr_') \
-			and key.startswith('mstar_') and key.startswith('sfr_'):
+			and not key.startswith('mstar_') and not key.startswith('sfr_'):
 				sel[np.isnan(t[key])] = 0
 	
 	#also remove any sources that are not primary detections
