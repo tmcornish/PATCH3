@@ -230,7 +230,7 @@ class cleanCats(cf_global):
 	blend_cut = 10. ** (-0.375)
 
 	#whether to correct recorded r/i photometry to equivalent in r2/i2
-	correct_ri = False
+	correct_ri = True
 
 	#whether to remove galaxies likely to have secondary redshift solutions at high-z
 	remove_pz_outliers = False
@@ -368,18 +368,18 @@ class theoryPredictions(dirPhotozs):
 
 	#fiducial cosmology parameters
 	cosmo_fiducial = {
-		'Omega_c' : 0.27,
-		'Omega_b' : 0.045,
-		'h'       : 0.67,
-		'sigma8'  : 0.83,
-		'n_s'     : 0.96
+		'Omega_c': 0.26066676,
+		'Omega_b': 0.048974682,
+		'h': 0.6766,
+		'n_s': 0.9665,
+		'sigma8': 0.8102
 	}
 
 	#base name of the files to which theory power spectra will be saved
 	theory_out = 'theory_cells.hdf5'
 
 	#whether to use the n(z) distributions caculated using DIR
-	use_dir = False
+	use_dir = True
 
 	### The following are only relevant if use_dir == False
 	#column in the catalogues containing the random MC draws from the redshift distribution
