@@ -480,7 +480,7 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 						 	)
 	#plot the negative data
 	ax.errorbar(ells_nve, 
-				cells_nve,
+				-cells_nve,
 				yerr=err_cells_nve,
 				mec=color,
 				ecolor=color,
