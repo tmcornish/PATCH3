@@ -11,7 +11,7 @@ import pyccl as ccl
 import h5py
 import multiprocessing as mp
 from scipy.optimize import minimize
-from output_utils import colour_string
+from output_utils import colour_string, select_from_sacc
 import os
 
 ### SETTINGS ###
@@ -52,14 +52,6 @@ def scale_cuts():
 	'''
 	Computes a suitable scale cut to apply prior to fitting, depending on the effective
 	redshifts of the tomographic bins.
-
-	Parameters
-	----------
-	pairings: list[tuple]
-		List of bin pairings involved in the fitting.
-	
-	fd: str
-		Name of the field currently being analysed.
 	
 	Returns
 	-------
@@ -68,24 +60,18 @@ def scale_cuts():
 	'''
 	#set up dictionary for the scale cuts
 	ell_max_dict = {}
-	#file containing DIR-based n(z) distributions
-	if cf.use_dir:
-		nofz_file = cf.nz_dir_file
-	else:
-		nofz_file = PATH_FD + cf.nz_mc_file
-	#open the n(z) file
-	with h5py.File(nofz_file, 'r') as hf:
-		#compute comoving distance for each tomographic bin included in pairings
-		for i in np.unique(pairings):
-			z = hf['z'][:]
-			nz = hf[f'nz_{i}'][:]
-			#effective redshift of bin
-			zeff = np.sum(z * nz) / np.sum(nz)
-			#comoving distance (Mpc)
-			chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
-			#ell corresponding to kmax (Mpc^{-1}) at zeff
-			ell_max = cf.kmax * chi
-			ell_max_dict[i] = ell_max
+	#compute comoving distance for each tomographic bin included in pairings
+	for i in np.unique(pairings):
+		z = tracers[i].z
+		nz = tracers[i].nz
+		#effective redshift of bin
+		zeff = np.sum(z * nz) / np.sum(nz)
+		#comoving distance (Mpc)
+		chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
+		#ell corresponding to kmax (Mpc^{-1}) at zeff
+		ell_max = cf.kmax * chi
+		#use this value only if it is less than 2*NSIDE
+		ell_max_dict[i] = min(ell_max, 2*cf.nside_hi)
 	#now cycle through each bin pairing
 	cuts = {}
 	for p in pairings:
@@ -95,18 +81,12 @@ def scale_cuts():
 	return cuts
 
 
-def apply_scale_cuts(ells, cells, cov):
+def apply_scale_cuts(ells, cells, cov, return_cuts=False, compute_cuts=True, hard_lmax=2000):
 	'''
 	Applies scale cuts to the data involved in the fit.
 
 	Parameters
 	----------
-	cuts: dict
-		Dictionary of scale cuts for each bin pairing.
-	
-	pairings: list[tuple]
-		All bin pairings involved in the fit.
-	
 	ells: list[numpy.ndarray]
 		List of arrays containing the effective multipoles for each 
 		bin pairing.
@@ -118,15 +98,41 @@ def apply_scale_cuts(ells, cells, cov):
 	cov: numpy.ndarray
 		Covariance matrix for the angular power spectra.
 	
+	return_cuts: bool
+		Returns the applied cuts if True.
+	
+	compute_cuts: bool
+		If True, will compute the scale cuts using a value of k_max specified
+		in the config file. If False, will use the value specified by the
+		hard_lmax argument.
+	
+	hard_lmax: int
+		Maximum multipole to use in compute_cuts is False.
+		
 	Returns
 	-------
-
+	ells_cut: list[numpy.ndarray]
+		List of effective multipoles after applying the scale cuts.
+	
+	cells_cut: list[numpy.ndarray]
+		List of C_ells after applying the scale cuts.
+	
+	cov_cut: numpy.ndarray
+		Covariance matrix after applying the scale cuts.
+	
+	cuts: dict (optional)
+		Dictionary containing the ell_max values used. 
 	'''
 	#decide on scale cuts to use
-	if cf.compute_scale_cuts:
+	if compute_cuts:
 		cuts = scale_cuts()
 	else:
-		cuts = {p : cf.hard_lmax for p in pairings}
+		cuts = {p : hard_lmax for p in pairings}
+
+	#copy the inputs
+	ells_cut = ells.copy()
+	cells_cut = cells.copy()
+	cov_cut = cov.copy()
 
 	#set up a list for containing the masks for each bin pairing
 	masks = []
@@ -135,9 +141,9 @@ def apply_scale_cuts(ells, cells, cov):
 		#get the maximum multipole allowed for the fit
 		lmax = cuts[p]
 		#mask the higher multipoles
-		lmask = ells[ip] <= lmax
-		ells[ip] = ells[ip][lmask]
-		cells[ip] = cells[ip][lmask]
+		lmask = ells_cut[ip] <= lmax
+		ells_cut[ip] = ells_cut[ip][lmask]
+		cells_cut[ip] = cells_cut[ip][lmask]
 		#append the mask to the list
 		masks.append(lmask)
 	#to mask the covariance matrix, combine and flatten all masks, then
@@ -145,63 +151,12 @@ def apply_scale_cuts(ells, cells, cov):
 	masks = np.array(masks).flatten()
 	nkeep = int(masks.sum())
 	covmask = np.outer(masks, masks)
-	cov = cov[covmask].reshape((nkeep, nkeep))
+	cov_cut = cov[covmask].reshape((nkeep, nkeep))
 	
-	return ells, cells, cov
-
-
-
-
-def get_data(s):
-	'''
-	Retrieves the relevant covariance information, which depends on the
-	user settings in config.py.
-
-	Parameters
-	----------
-	s: sacc.sacc.Sacc
-		Sacc object containing the angular power spectrum information.
-	
-	Returns
-	-------
-	ells: np.ndarray
-		Array of multipoles at which the power spectra are defined (i.e. effective
-		multipoles of each bandpower).
-	
-	cells: np.ndarray
-		Array of arrays containing the desired power spectra.
-	
-	cov: np.ndarray
-		Matrix of the relevant convariances.
-	'''
-
-	#get the full covariance matrix from the Sacc
-	cov_full = s.covariance.covmat
-
-	if cf.auto_only:
-		#cycle through the redshift bins
-		ells, cells, inds = [], [], []
-		for i in range(cf.nbins):
-			ells_now, cells_now, inds_now = s.get_ell_cl('cl_00', f'cl{i}', f'cl{i}', return_ind=True)
-			ells.append(ells_now)
-			cells.append(cells_now)
-			inds.extend(list(inds_now))
-		#use the returned indices to retrieve the relevant covariance information
-		cov = cov_full[inds][:,inds]
-	
+	if return_cuts:
+		return ells_cut, cells_cut, cov_cut, cuts
 	else:
-		#get data for all power spectra
-		ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()]
-		cov = cov_full
-		#list the ells and cells for each pairing
-		ells = [ell_cl[i][0] for i in range(len(ell_cl))]
-		cells = [ell_cl[i][1] for i in range(len(ell_cl))]
-
-	#apply scale cuts
-	ells, cells, cov = apply_scale_cuts(ells, cells, cov)
-
-	#return the ells, C_ells and covariance matrix, along with the bin pairings
-	return ells, cells, cov
+		return ells_cut, cells_cut, cov_cut
 
 	
 
@@ -320,19 +275,27 @@ def nll(*args):
 #######################################################
 
 
+#determine the bin pairings
+if cf.auto_only:
+	pairings = [(i,i) for i in range(cf.nbins)]
+else:
+	pairings, _ = cf.get_bin_pairings()
+tracer_combos = [(f'cl{i}', f'cl{j}') for i,j in pairings]
+ncombos = len(tracer_combos)
+
 #cycle through the fields being analysed
 for fd in cf.get_global_fields():
 	
 	PATH_FD = cf.PATH_OUT + fd + '/'
 
 	#load the Sacc file containing the power spectrum info
-	s = sacc.Sacc.load_fits(PATH_FD + cf.outsacc)
+	s = select_from_sacc(PATH_FD + cf.outsacc, tracer_combos, 'cl_00')
+	#get ells and cells (no scale cuts applied at this stage)
+	ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()]
+	ells_all = [ell_cl[i][0] for i in range(len(ell_cl))]
+	cells_all = [ell_cl[i][1] for i in range(len(ell_cl))]
+	cov_all = s.covariance.covmat
 
-	#get the relevant data
-	ells, cells, cov = get_data(s)
-	#invert the covariance matrix
-	icov = np.linalg.inv(cov)
-	
 	#construct NumberCountsTracer objects from the saved n(z) info
 	tracers = [s.tracers[i] for i in s.tracers.keys()]
 	NCT = [
@@ -343,6 +306,16 @@ for fd in cf.get_global_fields():
 			bias=(t.z, np.ones_like(t.z))
 		) for t in tracers
 	]
+
+	#apply scale cuts
+	ells, cells, cov, ell_cuts = apply_scale_cuts(ells_all, 
+												cells_all, 
+												cov_all, 
+												return_cuts=True, 
+												compute_cuts=cf.compute_scale_cuts 
+												)
+	#invert the covariance matrix
+	icov = np.linalg.inv(cov)
 
 	if __name__ == '__main__':	
 		print(colour_string(fd.upper(), 'orange'))
