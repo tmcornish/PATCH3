@@ -27,7 +27,7 @@ else:
 
 #range of wavenumbers and scale factors over which theory power spectra will be computed
 lk_arr = np.log(np.geomspace(1E-4, 100, 256))
-a_arr = 1. / (1. + np.linspace(0, 6, 100)[::-1])
+a_arr = 1. / (1. + np.linspace(0, 6, 16)[::-1])
 
 #create a halo model
 m200def = ccl.halos.MassDef200m							#halo mass definition
@@ -43,6 +43,9 @@ hmc = ccl.halos.HMCalculator(
 #2pt correlator
 prof2pt = ccl.halos.Profile2ptHOD()
 
+#for redshift-dependent parameters
+z_pivot = 0.65
+a_pivot = 1 / (1 + z_pivot)
 
 #############################
 ######### FUNCTIONS #########
@@ -163,12 +166,12 @@ def apply_scale_cuts(ells, cells, cov, return_cuts=False, compute_cuts=True, har
 def log_prior(theta):
 	'''
 	Defines the priors on the free parameters in the HOD model
-	(in this case, logM0 and logM1).
+	(in this case, mu_min and mu_1).
 
 	Parameters
 	----------
 	theta: tuple
-		Tuple containing values for the free parameters logM0 and logM1.
+		Tuple containing values for the free parameters.
 	
 	Returns
 	-------
@@ -176,8 +179,8 @@ def log_prior(theta):
 		Either 0 or negative infinity, depending on whether the parameter
 		values are within the bound sof the flat priors.
 	'''
-	logM0, logM1 = theta
-	if (0. < logM0 < 15.) and (0. < logM1 < 17.):
+	mu_min, mu_1, mu_minp, mu_1p, alpha_smooth = theta
+	if (0. < mu_min < 15.) and (0. < mu_1 < 17.) and (-10. < mu_minp < 10.) and (-12. < mu_1p < 15.) and (-1 < alpha_smooth < 4):
 		logp = 0.
 	else:
 		logp = -np.inf
@@ -186,13 +189,12 @@ def log_prior(theta):
 
 def log_likelihood(theta):
 	'''
-	Defines the priors on the free parameters in the HOD model
-	(in this case, logM0 and logM1).
+	Defines the priors on the free parameters in the HOD model.
 
 	Parameters
 	----------
 	theta: tuple
-		Tuple containing values for the free parameters logM0 and logM1.
+		Tuple containing values for the free parameters.
 	
 	Returns
 	-------
@@ -200,14 +202,19 @@ def log_likelihood(theta):
 		Logarithm of the likelihood.
 	'''
 	#free parameters in the model
-	logM0, logM1 = theta
+	mu_min, mu_1, mu_minp, mu_1p, alpha_smooth = theta
+	smooth_transition = lambda a: alpha_smooth
 	#halo profile
 	prof = ccl.halos.HaloProfileHOD(
 		mass_def=m200def,
 		concentration=conc,
-		log10Mmin_0=logM0,
-		log10M0_0=logM0,
-		log10M1_0=logM1
+		log10Mmin_0=mu_min,
+		log10M0_0=mu_min,
+		log10M1_0=mu_1,
+		log10M0_p=mu_minp,
+		log10Mmin_p=mu_minp,
+		log10M1_p=mu_1p,
+		a_pivot=a_pivot
 		)
 	#halo-model power spectrum for galaxies
 	pk = ccl.halos.halomod_Pk2D(
@@ -217,19 +224,23 @@ def log_likelihood(theta):
 		prof_2pt=prof2pt,
 		prof2=prof,
 		a_arr=a_arr,
-		lk_arr=lk_arr
+		lk_arr=lk_arr,
+		smooth_transition=smooth_transition
 	)
-	#compute theory C_ells
-	theory_cells = [
-		ccl.angular_cl(
-			cosmo,
-			NCT[i],
-			NCT[j],
-			ells[ip],
-			p_of_k_a=pk
-		)
-		for ip, (i,j) in enumerate(pairings)
-		]
+	try:
+		#compute theory C_ells
+		theory_cells = [
+			ccl.angular_cl(
+				cosmo,
+				NCT[i],
+				NCT[j],
+				ells[ip],
+				p_of_k_a=pk
+			)
+			for ip, (i,j) in enumerate(pairings)
+			]
+	except:
+		return -np.inf
 		
 	#residuals
 	diff = np.concatenate(cells) - np.concatenate(theory_cells)
@@ -247,7 +258,7 @@ def log_probability(theta):
 	Parameters
 	----------
 	theta: tuple
-		Tuple containing values for the free parameters logM0 and logM1.
+		Tuple containing values for the free parameters.
 	
 	Returns
 	-------
@@ -321,10 +332,15 @@ for fd in cf.get_global_fields():
 		print(colour_string(fd.upper(), 'orange'))
 		print('Estimating intial best fit...')
 		######################################
-		initial = [12, 12]
+		initial = [12, 12, 0, 0, 1]
 		ndim = len(initial)
 		soln = minimize(nll, initial)
-		print(f'Initial best-fit values:\nlogM0 = {soln.x[0]:.3f}\nlogM1 = {soln.x[1]:.3f}')
+		print(f'Initial best-fit values:\n'
+		f'mu_min = {soln.x[0]:.3f}\n'
+		f'mu_1 = {soln.x[1]:.3f}\n'
+		f'mu_minp = {soln.x[2]:.3f}\n'
+		f'mu_1p = {soln.x[3]:.3f}\n'
+		f'alpha_smooth = {soln.x[4]:.3f}')
 
 		print('Setting up the MCMC...')
 		###############################
@@ -337,14 +353,20 @@ for fd in cf.get_global_fields():
 		nwalkers = 2 * ncores
 
 		#initial positions for the walkers
-		p0 = [soln.x + np.array([cf.dlogM0 * np.random.rand(),
-								cf.dlogM1 * np.random.rand()])
+		p0 = [soln.x + np.array([cf.dmu_min * np.random.rand(),
+								cf.dmu_1 * np.random.rand(),
+								cf.dmu_minp * np.random.rand(),
+								cf.dmu_1p * np.random.rand(),
+								cf.dalpha_smooth * np.random.rand()])
 								for _ in range(nwalkers)]
 		p0 = np.array(p0)
-		p0 -= np.array([cf.dlogM0/2., cf.dlogM1/2.])
+		p0 -= np.array([cf.dmu_min/2.,
+				  cf.dmu_1/2., 
+				  cf.dmu_minp/2.,
+				  cf.dmu_1p/2.,
+				  cf.dalpha_smooth/2.])
 
 		
-
 		#set up an HDF5 backend
 		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
 		backend.reset(nwalkers, ndim)
@@ -382,4 +404,4 @@ for fd in cf.get_global_fields():
 
 			#print best-fit values
 			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
-			print(f'Best-fit values:\nlogM0: {theta0[0]:.3f}\nlogM1: {theta0[1]:.3f}')
+			print(f'Best-fit values:\nmu_min: {theta0[0]:.3f}\nmu_1: {theta0[1]:.3f}')
