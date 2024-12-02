@@ -494,10 +494,16 @@ class fitHods(makeSaccFiles):
 	#maximum number of iterations for the sampler
 	niter_max = 100000
 	#maximum distances the initial walker positions can be from the initial best fit for each parameter
-	dlogM0 = 1.
-	dlogM1 = 1.
+	dmu_min = 1.
+	dmu_1 = 1.
+	dmu_minp = 1.
+	dmu_1p = 1.
+	dalpha_smooth = 1.
+	#pivot redshift for redshift-dependent parameters
+	z_pivot = 0.65
+
 	#name of the emcee backend
-	backend_file = 'hod_mcmc_backend.hdf5'
+	backend_file = 'hod_mcmc_backend_test.hdf5'
 
 	#whether to compute scale cuts based on redshift and a maximum k
 	compute_scale_cuts = True
