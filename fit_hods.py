@@ -180,7 +180,7 @@ def log_prior(theta):
 		values are within the bound sof the flat priors.
 	'''
 	mu_min, mu_1, mu_minp, mu_1p, alpha_smooth = theta
-	if (0. < mu_min < 15.) and (0. < mu_1 < 17.) and (-10. < mu_minp < 10.) and (-12. < mu_1p < 15.) and (-1 < alpha_smooth < 4):
+	if (0. < mu_min < 15.) and (0. < mu_1 < 17.) and (-10. < mu_minp < 10.) and (-12. < mu_1p < 15.) and (0. < alpha_smooth < 4):
 		logp = 0.
 	else:
 		logp = -np.inf
@@ -227,21 +227,18 @@ def log_likelihood(theta):
 		lk_arr=lk_arr,
 		smooth_transition=smooth_transition
 	)
-	try:
-		#compute theory C_ells
-		theory_cells = [
-			ccl.angular_cl(
-				cosmo,
-				NCT[i],
-				NCT[j],
-				ells[ip],
-				p_of_k_a=pk
-			)
-			for ip, (i,j) in enumerate(pairings)
-			]
-	except:
-		return -np.inf
-		
+	#compute theory C_ells
+	theory_cells = [
+		ccl.angular_cl(
+			cosmo,
+			NCT[i],
+			NCT[j],
+			ells[ip],
+			p_of_k_a=pk
+		)
+		for ip, (i,j) in enumerate(pairings)
+		]
+	
 	#residuals
 	diff = np.concatenate(cells) - np.concatenate(theory_cells)
 	
