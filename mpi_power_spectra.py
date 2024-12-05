@@ -8,6 +8,7 @@ import healpy as hp
 import healsparse as hsp
 import numpy as np
 from map_utils import *
+from cell_utils import compute_covariance
 import h5py
 import pymaster as nmt
 from output_utils import colour_string
@@ -31,7 +32,7 @@ def load_systematics(deproj_file, systs):
 	Determines whether the specified list of systematics has already been
 	deprojected on a previous run, and if not then returns an array containing
 	all of the systematics full-sky maps. If these systematics have been
-	deprojected on a previous run, returns an array on NaNs with the same shape. 
+	deprojected on a previous run, returns an array of NaNs with the same shape. 
 
 	Parameters
 	----------
@@ -82,82 +83,6 @@ def load_systematics(deproj_file, systs):
 	print('Done!')
 
 	return systmaps
-
-
-def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_coupled=False, return_cl_guess=False):
-	'''
-	Computes the covariance matrix for a pair of power spectra. Can also
-	optionally return the coupled C_ells used to calculate the covariances,
-	as well as the guess C_ells computed from these.
-
-	Parameters
-	----------
-	w: nmt.NmtWorkspace
-		Workspace containing the mode coupling matrix (computed prior to this).
-	
-	cw: nmt.NmtCovarianceWorkspace
-		Covariance workspace containing the coupling coefficients (computed 
-		prior to this).
-	
-	f_i1, f_i2: nmt.NmtField, nmt.NmtField
-		Fields involved in the calculation of the first power spectrum.
-	
-	f_j1, f_j2: nmt.NmtField, nmt.NmtField
-		Fields involved in the calculation of the second power spectrum. If None,
-		the calculated covariance will be that for the first power spectrum cross-
-		correlated with itself.
-	
-	return_cl_coupled: bool
-		If True, will return the coupled C_ells used to compute the covariance matrix.
-	
-	return_cl_guess: bool
-		If True, will return the guess C_ells estimated from the coupled C_ells.
-	
-	Returns
-	-------
-	covar: numpy.ndarray
-		Covariance matrix.
-	
-	err_cell: numpy.ndarray
-		Square root of the diagonal of the covariance matrix (corresponds to the
-		uncertainties on the power spectra data points).
-	'''
-	#see if additional fields have been provided for the second power spectrum
-	if f_j1 is None:
-		f_j1 = f_i1
-	if f_j2 is None:
-		f_j2 = f_i2
-	
-	#compute coupled c_ells for each possible combination of i and j
-	cl_coupled_i1j1 = nmt.compute_coupled_cell(f_i1, f_j1)
-	cl_coupled_i1j2 = nmt.compute_coupled_cell(f_i1, f_j2)
-	cl_coupled_i2j1 = nmt.compute_coupled_cell(f_i2, f_j1)
-	cl_coupled_i2j2 = nmt.compute_coupled_cell(f_i2, f_j2)
-	#use these along with the mask to get a guess of the true C_ell
-	cl_guess_i1j1 = cl_coupled_i1j1 / mu_w2
-	cl_guess_i1j2 = cl_coupled_i1j2 / mu_w2
-	cl_guess_i2j1 = cl_coupled_i2j1 / mu_w2
-	cl_guess_i2j2 = cl_coupled_i2j2 / mu_w2
-
-
-	covar = nmt.gaussian_covariance(cw, 
-									0, 0, 0, 0,			#spin of each field
-									[cl_guess_i1j1[0]],	
-									[cl_guess_i1j2[0]],
-									[cl_guess_i2j1[0]],
-									[cl_guess_i2j2[0]],
-									w)
-	#errorbars for each bandpower
-	err_cell = np.diag(covar) ** 0.5
-
-	to_return = [covar, err_cell]
-	if return_cl_coupled:
-		to_return.append([cl_coupled_i1j1, cl_coupled_i1j2, cl_coupled_i2j1, cl_coupled_i2j2])
-	if return_cl_guess:
-		to_return.append([cl_guess_i1j1, cl_guess_i1j2, cl_guess_i2j1, cl_guess_i2j2])
-
-
-	return (*to_return,)
 
 
 
