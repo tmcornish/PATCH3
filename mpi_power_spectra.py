@@ -7,7 +7,7 @@ import config
 import healpy as hp
 import healsparse as hsp
 import numpy as np
-from map_utils import *
+from map_utils import load_map, load_tomographic_maps, MaskData
 from cell_utils import compute_covariance
 import h5py
 import pymaster as nmt
