@@ -8,7 +8,7 @@ import healpy as hp
 import healsparse as hsp
 import numpy as np
 from map_utils import load_map, load_tomographic_maps, MaskData
-from cell_utils import compute_covariance
+from cell_utils import get_bpw_edges, compute_covariance
 import h5py
 import pymaster as nmt
 from output_utils import colour_string
@@ -110,10 +110,7 @@ if cf.use_N19_bps:
 	#only include bandpowers < 3 * NSIDE
 	bpw_edges = bpw_edges[bpw_edges <= ell_max]
 else:
-	if cf.log_spacing:
-		bpw_edges = np.geomspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
-	else:
-		bpw_edges = np.linspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
+	bpw_edges = get_bpw_edges(cf.nside_hi, cf.nbpws, ell_min=cf.ell_min, log_spacing=cf.log_spacing)
 #create pymaster NmtBin object using these bandpower objects
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 #get the effective ells

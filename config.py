@@ -411,7 +411,7 @@ class computePowerSpectra(theoryPredictions):
 	bpw_edges = [100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
 			 3800, 4600, 6200, 7800, 9400, 12600, 15800]
 	#Number of bandpowers to use if not using edges from Nicola+19
-	nbpws = 18
+	nbpws = 17
 	#minimum ell (i.e. largest scale) to use
 	ell_min = 1
 	#whether to use linear or log spacing for the bandpowers
@@ -437,22 +437,6 @@ class computePowerSpectra(theoryPredictions):
 	#file for containing the best-fit coefficients for linear deprojection
 	alphas_file = f'deprojection_alphas_{cf_global.nside_hi}.txt'
 
-	@classmethod
-	def get_bpw_edges(cls):
-		import numpy as np
-
-		ell_max = 3 * cls.nside_hi
-		if cls.use_N19_bps:
-			#retrieve bandpower edges from config
-			bpw_edges = np.array(cls.bpw_edges).astype(int)
-			#only include bandpowers < 3 * NSIDE
-			bpw_edges = bpw_edges[bpw_edges <= ell_max]
-		else:
-			if cls.log_spacing:
-				bpw_edges = np.geomspace(cls.ell_min, ell_max, cls.nbpws).astype(int)
-			else:
-				bpw_edges = np.linspace(cls.ell_min, ell_max, cls.nbpws).astype(int)
-		return bpw_edges
 
 
 

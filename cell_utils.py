@@ -7,35 +7,72 @@ import numpy as np
 
 
 def get_bin_pairings(nbins, auto_only=False):
-		'''
-		Returns pairs of IDs for each tomographic bin being analysed. Also
-		returns comma-separated string versions of the ID pairs.
+	'''
+	Returns pairs of IDs for each tomographic bin being analysed. Also
+	returns comma-separated string versions of the ID pairs.
 
-		Parameters
-		----------
-		nbins: int
-			Number of bins being considered.
-		
-		auto_only: bool
-			If True, will only return each bin paired with itself.
-		
-		Returns
-		-------
-		pairings: list[tuple]
-			List of possible bin pairings.
-		
-		pairings_s: list[str]
-			List of comma-separated string versions of the ID pairs.
-		'''
-		import itertools
+	Parameters
+	----------
+	nbins: int
+		Number of bins being considered.
+	
+	auto_only: bool
+		If True, will only return each bin paired with itself.
+	
+	Returns
+	-------
+	pairings: list[tuple]
+		List of possible bin pairings.
+	
+	pairings_s: list[str]
+		List of comma-separated string versions of the ID pairs.
+	'''
+	import itertools
 
-		l = list(range(nbins))
-		if auto_only:
-			pairings = [(i,i) for i in l]
-		else:
-			pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
-		return pairings, pairings_s
+	l = list(range(nbins))
+	if auto_only:
+		pairings = [(i,i) for i in l]
+	else:
+		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+	pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+	return pairings, pairings_s
+
+
+def get_bpw_edges(nside, nbpws, ell_min=0, log_spacing=False):
+	'''
+	Returns bandpower edges for use in power spectra calculation, given
+	the NSIDE of the maps being considered and the desired number of
+	bandpowers. Can be linear or log-spaced.
+
+	Parameters
+	----------
+	nside: int
+		NSIDE of the map(s) being considered. 
+	
+	npws: int
+		Desired number of bandpowers.
+	
+	ell_min: int
+		Minimum multipole to consider.
+	
+	log_spacing: bool
+		Whether to use log spacing instead of linear for bandpower edges.
+	
+	Returns
+	-------
+	bpw_edges: numpy.ndarray
+		Array containing the edges of each bandpower. Has length nbpws+1.
+	'''
+	#maximum multipole
+	ell_max = 3 * nside - 1
+	#compute bandpower edges with this information
+	if log_spacing:
+		bpw_edges = np.geomspace(ell_min, ell_max, nbpws+1).astype(int)
+	else:
+		bpw_edges = np.linspace(ell_min, ell_max, nbpws+1).astype(int)
+	
+	return bpw_edges
+
 
 
 def get_data_from_sacc(s, auto_only=False):
