@@ -1,6 +1,9 @@
 #####################################################################################################
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
+# TODO: 
+# -	save deprojection alphas
+# - include possibility that number of nodes < number of bin pairings 
 #####################################################################################################
 
 import config
@@ -16,6 +19,7 @@ import os
 import sys
 import glob
 from mpi4py import MPI
+import sacc
 
 ### SETTINGS ###
 cf = config.computePowerSpectra
@@ -96,9 +100,10 @@ rank = comm.Get_rank()
 
 #all possible pairings of tomographic bins (as tuples and as strings)
 pairings, pairings_s = cf.get_bin_pairings()
+npairs = len(pairings)
 
 #maximum ell allowed by the resolution
-ell_max = 3 * cf.nside_hi
+ell_max = 3 * cf.nside_hi - 1
 #get pixel area in units of steradians
 Apix = hp.nside2pixarea(cf.nside_hi)
 #get the number of pixels in a full-sky map at the required resolution
@@ -108,7 +113,7 @@ if cf.use_N19_bps:
 	#retrieve bandpower edges from config
 	bpw_edges = np.array(cf.bpw_edges).astype(int)
 	#only include bandpowers < 3 * NSIDE
-	bpw_edges = bpw_edges[bpw_edges <= ell_max]
+	bpw_edges = bpw_edges[bpw_edges <= ell_max+1]
 else:
 	bpw_edges = get_bpw_edges(cf.nside_hi, cf.nbpws, ell_min=cf.ell_min, log_spacing=cf.log_spacing)
 #create pymaster NmtBin object using these bandpower objects
@@ -120,9 +125,9 @@ ell_effs = b.get_effective_ells()
 #cycle through the fields being analysed
 for fd in cf.get_global_fields():
 	#path to the directory containing the maps
-	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
+	PATH_FD = f'{cf.PATH_OUT}{fd}/'
 	#path to directory of cached outputs from this script
-	PATH_CACHE = PATH_MAPS + 'cache/'
+	PATH_CACHE = PATH_FD + 'cache/'
 	wsp_path = PATH_CACHE + cf.wsp_file
 	covwsp_path = PATH_CACHE + cf.covwsp_file
 	#set up NmtWorkspace and NmtCovarianceWorkspace
@@ -137,7 +142,7 @@ for fd in cf.get_global_fields():
 			os.system(f'mkdir -p {PATH_CACHE}')
 
 		#load the survey mask and convert to full-sky realisation
-		mask = MaskData(PATH_MAPS + cf.survey_mask)
+		mask = MaskData(PATH_FD + cf.survey_mask)
 		#temporarily create an NmtField using just the mask
 		fmask = nmt.NmtField(mask.mask_full, maps=None, spin=0)
 
@@ -164,7 +169,7 @@ for fd in cf.get_global_fields():
 		del fmask
 
 		#path to directory containing systematics maps
-		PATH_SYST = f'{PATH_MAPS}systmaps/'
+		PATH_SYST = f'{PATH_FD}systmaps/'
 		systs = []
 		#check for 'All' in systmaps and convert this to a list of all systematics maps
 		if 'all' in map(str.lower, cf.systs):
@@ -213,23 +218,32 @@ for fd in cf.get_global_fields():
 	#create density fields, with and without deprojection, splitting the work between ranks if possible
 	if size >= cf.nbins:
 		if rank in range(cf.nbins):
-			dg_map, = load_tomographic_maps(PATH_MAPS + cf.deltag_maps, idx=rank)
+			dg_map, = load_tomographic_maps(PATH_FD + cf.deltag_maps, idx=rank)
 			print(f'Creating NmtField for bin {rank} (without deprojection)...')
+			####################################################################
 			density_fields_nd = nmt.NmtField(mask.mask_full, [dg_map], templates=None, lite=cf.lite)
+			
 			print(f'Creating NmtField for bin {rank} (with deprojection)...')
+			################################################################
 			density_fields = nmt.NmtField(mask.mask_full, [dg_map], templates=systmaps, lite=cf.lite)
+
 		density_fields_nd = comm.gather(density_fields_nd, root=0)
 		density_fields = comm.gather(density_fields, root=0)
+
 	else:
 		if rank == 0:
-			dg_map = load_tomographic_maps(PATH_MAPS + cf.deltag_maps)
+			dg_map = load_tomographic_maps(PATH_FD + cf.deltag_maps)
 			print(f'Creating NmtFields for all bins (without deprojection)...')
+			###################################################################
 			density_fields_nd = [nmt.NmtField(mask.mask_full, [dg], templates=None, lite=cf.lite)
 									for dg in dg_map]
+			
 			print(f'Creating NmtField for all bins (with deprojection)...')
+			###############################################################
 			density_fields = [nmt.NmtField(mask.mask_full, [dg], templates=systmaps, lite=cf.lite)
 					 				for dg in dg_map]
 	
+
 	#broadcast the list of NmtFields
 	if rank != 0:
 		density_fields_nd = None
@@ -237,59 +251,205 @@ for fd in cf.get_global_fields():
 	density_fields_nd = comm.bcast(density_fields_nd, root=0)
 	density_fields = comm.bcast(density_fields, root=0)
 
-	#compute the C_ells, splitting the work across ranks if possible
-	if size >= len(pairings):
-		#current bin pairing
-		i, j = pairings[rank]
-		#current density fields (no deprojection)
-		f_i_nd = density_fields_nd[i]
-		f_j_nd = density_fields_nd[j]
-		#current density fields (with deprojection)
-		f_i = density_fields[i]
-		f_j = density_fields[j]
 
-		print(f'Calculating covar(C^{i}{j}, C^{i}{j}) (without deprojection)...')
-		covar_nd, err_cell_nd, (_, cl_coupled_ij_nd, _, _), (_, cl_guess_ij_nd, _, _) = compute_covariance(w, cw, f_i_nd, f_j_nd,
-																					return_cl_coupled=True,
-																					return_cl_guess=True)
-		print('Done!')
+	#set up buffers for gathering results
+	cl_buff = None				#buffer for the main C_ells
+	cl_nd_buff = None		#buffer for the C_ells without deprojection
+	cl_noise_buff = None 	#buffer for the noise power spectra
+	cl_bias_buff = None		#buffer for the deprojection bias
+	if rank == 0:
+		cl_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			
+		cl_nd_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)					
+		cl_noise_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			 	
+		cl_bias_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			
 
-		print(f'Calculating covar(C^{i}{j}, C^{i}{j}) (with deprojection)...')
-		if nsyst > 0:
-			covar, err_cell, (_, cl_coupled_ij, _, _), (_, cl_guess_ij, _, _) = compute_covariance(w, cw, f_i, f_j,
-																					return_cl_coupled=True,
-																					return_cl_guess=True)
-		else:
-			covar = covar_nd
-			err_cell = err_cell_nd
-			cl_coupled_ij = cl_coupled_ij_nd
-			cl_guess_ij = cl_guess_ij_nd
-		print('Done!')
+	#current bin pairing
+	i, j = pairings[rank]
+	#current density fields (no deprojection)
+	f_i_nd = density_fields_nd[i]
+	f_j_nd = density_fields_nd[j]
+	#current density fields (with deprojection)
+	f_i = density_fields[i]
+	f_j = density_fields[j]
+
+	print(f'Calculating coupled C_ells for pairing {i},{j}...')
+	###########################################################
+	#without deprojection
+	cl_coupled_nd = nmt.compute_coupled_cell(f_i_nd, f_j_nd)
+	cl_guess_nd = cl_coupled_nd / mu_w2
+	
+	#with deprojection
+	if nsyst > 0:
+		cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
+		cl_guess = cl_coupled / mu_w2
 	else:
-		if rank == 0:
-			for p in pairings:
-				i, j = p
-			#current density fields (no deprojection)
-			f_i_nd = density_fields_nd[i]
-			f_j_nd = density_fields_nd[j]
-			#current density fields (with deprojection)
-			f_i = density_fields[i]
-			f_j = density_fields[j]
+		cl_coupled = cl_coupled_nd
+		cl_guess = cl_guess_nd
+	#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
+	if cf.correct_for_stars:
+		mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
+		cl_coupled *= mult
+		cl_guess *= mult
 
-			print(f'Calculating covar(C^{i}{j}, C^{i}{j}) (without deprojection)...')
-			covar_nd, err_cell_nd, (_, cl_coupled_ij_nd, _, _), (_, cl_guess_ij_nd, _, _) = compute_covariance(w, cw, f_i_nd, f_j_nd,
-																						return_cl_coupled=True,
-																						return_cl_guess=True)
-			print('Done!')
 
-			print(f'Calculating covar(C^{i}{j}, C^{i}{j}) (with deprojection)...')
-			if nsyst > 0:
-				covar, err_cell, (_, cl_coupled_ij, _, _), (_, cl_guess_ij, _, _) = compute_covariance(w, cw, f_i, f_j,
-																						return_cl_coupled=True,
-																						return_cl_guess=True)
-			else:
-				covar = covar_nd
-				err_cell = err_cell_nd
-				cl_coupled_ij = cl_coupled_ij_nd
-				cl_guess_ij = cl_guess_ij_nd
-			print('Done!')
+	print(f'Calculating deprojection bias for pairing {i},{j}...')
+	##############################################################
+	if nsyst > 0 and not cf.lite:
+		cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+	else:
+		print('No systematics maps provided; skipping deprojection bias calculation.')
+		cl_bias = np.zeros_like(cl_guess)
+
+	
+	### save alphas
+
+	print(f'Calculating decoupled C_ells for pairing {i},{j}...')
+	###########################################################
+	#compute the decoupled C_ell (w/o deprojection)
+	cl_decoupled_nd = w.decouple_cell(cl_coupled_nd)
+	#compute the decoupled, debiased C_ell (w/ deprojection)
+	cl_decoupled = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+	#decouple the bias C_ells as well
+	cl_bias_decoupled = w.decouple_cell(cl_bias)
+
+	if i == j:
+		print(f'Calculating shot noise for bin {i}...')
+		###############################################
+		#load the N_g map and calculate the mean weighted by the mask
+		mu_N = load_tomographic_maps(PATH_FD + cf.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
+		#calculate the noise power spectrum
+		cl_noise_coupled = np.full(ell_max+1, Apix * mu_w / mu_N).reshape((1,ell_max+1))
+		#decouple
+		cl_noise_decoupled = w.decouple_cell(cl_noise_coupled)
+	else:
+		cl_noise_coupled = np.zeros((1, ell_max+1))
+		cl_noise_decoupled = np.zeros((1, cf.nbpws))
+	
+	#gather (decoupled) results
+	comm.Gather(cl_decoupled, cl_buff, root=0)
+	comm.Gather(cl_decoupled_nd, cl_nd_buff, root=0)
+	comm.Gather(cl_noise_decoupled, cl_noise_buff, root=0)
+	comm.Gather(cl_bias_decoupled, cl_bias_buff, root=0)
+
+	if rank == 0:
+		print('Calculating covariances...')
+		###################################
+		#set up an array for the covariance matrices
+		covar_all = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
+		covar_all_nd = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
+
+		#cycle through the possible combinations of pairs of fields
+		id_i = 0
+		for i1 in range(cf.nbins):
+			for i2 in range(i1, cf.nbins):
+				id_j = 0
+				for j1 in range(cf.nbins):
+					for j2 in range(j1, cf.nbins):
+						covar_all[id_i, :, id_j, :] = compute_covariance(w, cw,
+													   density_fields[i1],
+													   density_fields[i2],
+													   density_fields[j1],
+													   density_fields[j2]
+													   )[0]
+						covar_all_nd[id_i, :, id_j, :] = compute_covariance(w, cw,
+													   density_fields_nd[i1],
+													   density_fields_nd[i2],
+													   density_fields_nd[j1],
+													   density_fields_nd[j2]
+													   )[0]
+						id_j += 1
+				id_i += 1
+
+		#reshape the covariance matrix
+		covar_all = covar_all.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
+		covar_all_nodeproj = covar_all_nodeproj.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
+	
+		print('Constructing SACCs...')
+		##############################
+		#get the bandpower window functions
+		wins = w.get_bandpower_windows()[0, :, 0, :].T
+		wins = sacc.BandpowerWindow(np.arange(1, ell_max+1), wins)
+
+		#set up the various SACC files
+		s_main = sacc.Sacc()		# main results (i.e. w/ deprojection)
+		s_nodeproj = sacc.Sacc()	# results w/o deprojection
+		s_noise = sacc.Sacc()		# noise power spectra
+		s_bias = sacc.Sacc()		# deprojection bias
+
+		#get the n(z) distributions
+		if cf.use_dir:
+			nofz_info = cf.nz_dir_file
+		else:
+			nofz_info = f'{PATH_FD}{cf.nz_mc_file}'
+		with h5py.File(nofz_info, 'r') as hf:
+			#get the redshifts at which n(z) distributions are defined
+			z = hf['z'][:]
+			#add tracers to the Sacc object (one for each redshift bin)
+			for i in range(len(cf.zbins)-1):
+				#get the n(z) distribution for this bin
+				nz = hf[f'nz_{i}'][:]
+				s_main.add_tracer('NZ',	#n(z)-type tracer
+							f'cl{i}',	#tracer name
+							quantity='galaxy_density', #quantity
+							spin=0,
+							z=z,
+							nz=nz
+							)
+				s_nodeproj.add_tracer('NZ',	#n(z)-type tracer
+							f'cl{i}',	#tracer name
+							quantity='galaxy_density', #quantity
+							spin=0,
+							z=z,
+							nz=nz
+							)
+				s_noise.add_tracer('NZ',	#n(z)-type tracer
+							f'cl{i}',	#tracer name
+							quantity='galaxy_density', #quantity
+							spin=0,
+							z=z,
+							nz=nz
+							)
+				s_bias.add_tracer('NZ',	#n(z)-type tracer
+							f'cl{i}',	#tracer name
+							quantity='galaxy_density', #quantity
+							spin=0,
+							z=z,
+							nz=nz
+							)
+
+		#cycle through the bin pairings
+		for ip, (i,j) in enumerate(pairings):
+			#add the relevant c_ell info to the Sacc
+			s_main.add_ell_cl('cl_00',
+						f'cl{i}', f'cl{j}',
+						ell_effs,
+						cl_buff[ip],
+						window=wins
+						)
+			s_nodeproj.add_ell_cl('cl_00',
+						f'cl{i}', f'cl{j}',
+						ell_effs,
+						cl_nd_buff[ip],
+						window=wins
+						)
+			s_bias.add_ell_cl('cl_00',
+							f'cl{i}', f'cl{j}',
+							ell_effs,
+							cl_bias_buff[ip],
+							window=wins
+							)
+			s_noise.add_ell_cl('cl_00',
+						f'cl{i}', f'cl{i}',
+						ell_effs,
+						cl_noise_buff[ip],
+						window=wins)
+
+		#add the covariance matrix to the Sacc
+		s_main.add_covariance(covar_all)
+		s_nodeproj.add_covariance(covar_all_nodeproj)
+
+		#save the SACC files
+		s_main.save_fits(f'{PATH_FD}{cf.outsacc}', overwrite=True)
+		s_nodeproj.save_fits(f'{PATH_FD}{cf.outsacc[:-5]}_nodeproj.fits', overwrite=True)
+		s_noise.save_fits(f'{PATH_FD}{cf.outsacc[:-5]}_noise.fits', overwrite=True)
+		s_bias.save_fits(f'{PATH_FD}{cf.outsacc[:-5]}_deprojbias.fits', overwrite=True)
