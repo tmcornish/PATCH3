@@ -300,8 +300,14 @@ for fd in cf.get_global_fields():
 		print('No systematics maps provided; skipping deprojection bias calculation.')
 		cl_bias = np.zeros_like(cl_guess)
 
-	
-	### save alphas
+	if i == j:
+		print(f'Saving deprojection coefficients for bin {i}...')
+		##############################################################
+		alphas = f_i.alphas
+		with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
+			alphas_file.write('Sytematic\talpha\n')
+			for k in range(nsyst):
+				alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
 
 	print(f'Calculating decoupled C_ells for pairing {i},{j}...')
 	###########################################################
