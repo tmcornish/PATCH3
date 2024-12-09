@@ -225,6 +225,9 @@ for fd in cf.get_global_fields():
 			print(f'Creating NmtField for bin {rank} (with deprojection)...')
 			################################################################
 			density_fields = nmt.NmtField(mask.mask_full, [dg_map], templates=systmaps, lite=cf.lite)
+		else:
+			density_fields_nd = None
+			dnesity_fields = None
 
 		density_fields_nd = comm.gather(density_fields_nd, root=0)
 		density_fields = comm.gather(density_fields, root=0)
@@ -244,7 +247,11 @@ for fd in cf.get_global_fields():
 	
 
 	#broadcast the list of NmtFields
-	if rank != 0:
+	if rank == 0:
+		#remove any None entries
+		density_fields_nd = [df for df in density_fields_nd if df]
+		density_fields = [df for df in density_fields if df]
+	else:
 		density_fields_nd = None
 		density_fields = None
 	density_fields_nd = comm.bcast(density_fields_nd, root=0)
