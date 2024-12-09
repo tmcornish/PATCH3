@@ -437,7 +437,8 @@ class computePowerSpectra(theoryPredictions):
 	#file for containing the best-fit coefficients for linear deprojection
 	alphas_file = f'deprojection_alphas_{cf_global.nside_hi}.txt'
 
-
+	#name for the main output Sacc file
+	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 
 ###############################
@@ -460,8 +461,6 @@ class makeSaccFiles(covariances):
 
 	name = 'makeSaccFiles'
 
-	#name for the main output Sacc file
-	outsacc = f'gc_sacc_{cf_global.nside_hi}.fits'
 
 
 ##################
