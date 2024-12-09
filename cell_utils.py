@@ -42,7 +42,10 @@ def get_bpw_edges(nside, nbpws, ell_min=0, log_spacing=False):
 	'''
 	Returns bandpower edges for use in power spectra calculation, given
 	the NSIDE of the maps being considered and the desired number of
-	bandpowers. Can be linear or log-spaced.
+	bandpowers. Can be linear or log-spaced. Note that NaMaster treats
+	upper bin edges as exclusive; in order to have the uppermost edge
+	equal to 3 * NSIDE - 1 (as is typically desired), it is necessary
+	to set ell_max = 3 * NSIDE here.
 
 	Parameters
 	----------
@@ -64,12 +67,17 @@ def get_bpw_edges(nside, nbpws, ell_min=0, log_spacing=False):
 		Array containing the edges of each bandpower. Has length nbpws+1.
 	'''
 	#maximum multipole
-	ell_max = 3 * nside - 1
+	ell_max = 3 * nside
 	#compute bandpower edges with this information
 	if log_spacing:
-		bpw_edges = np.geomspace(ell_min, ell_max, nbpws+1).astype(int)
+		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
 	else:
-		bpw_edges = np.linspace(ell_min, ell_max, nbpws+1).astype(int)
+		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws+1).astype(int))
+	
+	#check if any bins were lost due to spacing being too small 
+	n_removed = (nbpws + 1) - len(bpw_edges)
+	if n_removed > 0:
+		print(f'WARNING: {n_removed} bins were lost due to spacing between bins being too small.')
 	
 	return bpw_edges
 
