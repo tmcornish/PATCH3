@@ -180,7 +180,7 @@ def log_prior(theta):
 		values are within the bound sof the flat priors.
 	'''
 	mu_min, mu_1, mu_minp, mu_1p, alpha_smooth = theta
-	if (0. < mu_min < 15.) and (0. < mu_1 < 17.) and (-10. < mu_minp < 10.) and (-12. < mu_1p < 15.) and (0. < alpha_smooth < 4):
+	if (0. < mu_min < 15.) and (0. < mu_1 < 17.) and (-10. < mu_minp < 10.) and (-12. < mu_1p < 15.) and (0.01 < alpha_smooth < 4):
 		logp = 0.
 	else:
 		logp = -np.inf
