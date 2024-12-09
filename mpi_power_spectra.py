@@ -227,7 +227,7 @@ for fd in cf.get_global_fields():
 			density_fields = nmt.NmtField(mask.mask_full, [dg_map], templates=systmaps, lite=cf.lite)
 		else:
 			density_fields_nd = None
-			dnesity_fields = None
+			density_fields = None
 
 		density_fields_nd = comm.gather(density_fields_nd, root=0)
 		density_fields = comm.gather(density_fields, root=0)
