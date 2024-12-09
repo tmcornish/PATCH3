@@ -2,7 +2,6 @@
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
 # TODO: 
-# -	save deprojection alphas
 # - include possibility that number of nodes < number of bin pairings 
 #####################################################################################################
 
@@ -112,7 +111,7 @@ npix = hp.nside2npix(cf.nside_hi)
 if cf.use_N19_bps:
 	#retrieve bandpower edges from config
 	bpw_edges = np.array(cf.bpw_edges).astype(int)
-	#only include bandpowers < 3 * NSIDE
+	#only include bandpowers < 3 * NSIDE (NOTE: NaMaster treats the upper edges as exclusive)
 	bpw_edges = bpw_edges[bpw_edges <= ell_max+1]
 else:
 	bpw_edges = get_bpw_edges(cf.nside_hi, cf.nbpws, ell_min=cf.ell_min, log_spacing=cf.log_spacing)
