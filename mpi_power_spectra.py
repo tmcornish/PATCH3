@@ -133,6 +133,14 @@ for fd in cf.get_global_fields():
 	w = nmt.NmtWorkspace()
 	cw = nmt.NmtCovarianceWorkspace()
 	
+	#load the survey mask and convert to full-sky realisation
+	mask = MaskData(PATH_FD + cf.survey_mask)
+	#retrieve relevant quantities from the mask data
+	above_thresh = mask.vpix_ring
+	sum_w_above_thresh = mask.sum
+	mu_w = mask.mean
+	mu_w2 = mask.meansq	
+
 	if rank == 0:
 		print(colour_string(fd.upper(), 'orange'))
 
@@ -140,8 +148,6 @@ for fd in cf.get_global_fields():
 		if not os.path.exists(PATH_CACHE):
 			os.system(f'mkdir -p {PATH_CACHE}')
 
-		#load the survey mask and convert to full-sky realisation
-		mask = MaskData(PATH_FD + cf.survey_mask)
 		#temporarily create an NmtField using just the mask
 		fmask = nmt.NmtField(mask.mask_full, maps=None, spin=0)
 
@@ -186,7 +192,6 @@ for fd in cf.get_global_fields():
 		systmaps = load_systematics(deproj_file, systs)
 		
 	else:
-		mask = None
 		nsyst = None
 		while True:
 			try:
@@ -195,14 +200,6 @@ for fd in cf.get_global_fields():
 				break
 			except (FileNotFoundError, RuntimeError):
 				continue
-
-	#broadcast the mask 
-	mask = comm.bcast(mask, root=0)
-	#retrieve relevant quantities from the mask data
-	above_thresh = mask.vpix_ring
-	sum_w_above_thresh = mask.sum
-	mu_w = mask.mean
-	mu_w2 = mask.meansq	
 
 	#broadcast the number of systematics
 	nsyst = comm.bcast(nsyst, root=0)
@@ -230,8 +227,6 @@ for fd in cf.get_global_fields():
 
 	density_fields_nd = comm.gather(density_fields_nd, root=0)
 	density_fields = comm.gather(density_fields, root=0)
-
-	
 
 	#broadcast the list of NmtFields
 	if rank == 0:
