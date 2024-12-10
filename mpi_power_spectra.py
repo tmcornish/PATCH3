@@ -19,6 +19,7 @@ import sys
 import glob
 from mpi4py import MPI
 import sacc
+import pandas as pd
 
 ### SETTINGS ###
 cf = config.computePowerSpectra
@@ -87,6 +88,43 @@ def load_systematics(deproj_file, systs):
 
 	return systmaps
 
+
+def make_deprojected_field(dg_map, alphas=None):
+	'''
+	Uses pre-saved coefficients for linear deprojection to reconstruct the systematics-deprojected
+	delta_g map, and created an NmtField object from that.
+
+	Parameters
+	----------
+	dg_map: numpy.ndarray
+		Full-sky delta_g map, with no deprojection applied.
+	
+	alphas: pandas.DataFrame or None
+		DataFrame containing the name of each systematic and its corresponding best-fit deprojection
+		coefficient. If None, no deprojection will occur.
+
+	Returns
+	-------
+	df: pymaster.NmtField
+		NaMaster Field object constructed from the deprojected delta_g map.
+	'''
+	#mask the delta_g map and reshape it for namaster
+	dg_map *= mask.mask_full
+	dg_map = dg_map.reshape(1, npix)
+	if alphas:
+		#load the systematics
+		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in alphas.index]
+		nsyst = len(systmaps)
+		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
+		#apply the mask to the systematics
+		systmaps *= mask.mask_full
+		#deproject the systematics
+		dg_map -= np.sum(alphas['alpha'].values()[:, None, None] * systmaps, axis=0)
+
+	#create an NmtField object with the deprojected map (do NOT re-mask)
+	df = nmt.NmtField(np.ones_like(mask.mask_full), [dg_map], templates=None)
+
+	return df
 
 
 #######################################################
@@ -211,37 +249,28 @@ for fd in cf.get_global_fields():
 	if np.isnan(systmaps).all():
 		continue
 
-	#create density fields, with and without deprojection, splitting the work between ranks if possible
-	if rank in range(cf.nbins):
-		dg_map, = load_tomographic_maps(PATH_FD + cf.deltag_maps, idx=rank)
-		print(f'Creating NmtField for bin {rank} (without deprojection)...')
-		####################################################################
-		density_fields_nd = nmt.NmtField(mask.mask_full, [dg_map], templates=None, lite=cf.lite)
-		
-		print(f'Creating NmtField for bin {rank} (with deprojection)...')
-		################################################################
-		density_fields = nmt.NmtField(mask.mask_full, [dg_map], templates=systmaps, lite=cf.lite)
-	else:
-		density_fields_nd = None
-		density_fields = None
+	#current bin pairing
+	i, j = pairings[rank]
+	#load tomographic maps for this pairing
+	dg_i, dg_j = load_tomographic_maps(PATH_FD + cf.deltag_maps, idx=[i,j])
+	
+	print(f'Creating NmtFields for pairing {i},{j} (without deprojection)...')
+	##########################################################################
+	#current density fields (no deprojection)
+	f_i_nd = nmt.NmtField(mask.mask_full, [dg_i], templates=None, lite=cf.lite)
+	f_j_nd = nmt.NmtField(mask.mask_full, [dg_j], templates=None, lite=cf.lite)
+	
+	print(f'Creating NmtFields for pairing {i},{j} (with deprojection)...')
+	##########################################################################
+	#current density fields (with deprojection)
+	f_i = nmt.NmtField(mask.mask_full, [dg_i], templates=systmaps, lite=cf.lite)
+	f_j = nmt.NmtField(mask.mask_full, [dg_j], templates=systmaps, lite=cf.lite)
 
-	density_fields_nd = comm.gather(density_fields_nd, root=0)
-	density_fields = comm.gather(density_fields, root=0)
-
-	#broadcast the list of NmtFields
-	if rank == 0:
-		#remove any None entries
-		density_fields_nd = [df for df in density_fields_nd if df]
-		density_fields = [df for df in density_fields if df]
-	else:
-		density_fields_nd = None
-		density_fields = None
-	density_fields_nd = comm.bcast(density_fields_nd, root=0)
-	density_fields = comm.bcast(density_fields, root=0)
-
+	#delete systmaps to free up some memory
+	del systmaps
 
 	#set up buffers for gathering results
-	cl_buff = None				#buffer for the main C_ells
+	cl_buff = None			#buffer for the main C_ells
 	cl_nd_buff = None		#buffer for the C_ells without deprojection
 	cl_noise_buff = None 	#buffer for the noise power spectra
 	cl_bias_buff = None		#buffer for the deprojection bias
@@ -251,14 +280,6 @@ for fd in cf.get_global_fields():
 		cl_noise_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			 	
 		cl_bias_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			
 
-	#current bin pairing
-	i, j = pairings[rank]
-	#current density fields (no deprojection)
-	f_i_nd = density_fields_nd[i]
-	f_j_nd = density_fields_nd[j]
-	#current density fields (with deprojection)
-	f_i = density_fields[i]
-	f_j = density_fields[j]
 
 	print(f'Calculating coupled C_ells for pairing {i},{j}...')
 	###########################################################
@@ -278,16 +299,7 @@ for fd in cf.get_global_fields():
 		mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
 		cl_coupled *= mult
 		cl_guess *= mult
-
-
-	print(f'Calculating deprojection bias for pairing {i},{j}...')
-	##############################################################
-	if nsyst > 0 and not cf.lite:
-		cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-	else:
-		print('No systematics maps provided; skipping deprojection bias calculation.')
-		cl_bias = np.zeros_like(cl_guess)
-
+	
 	if i == j:
 		print(f'Saving deprojection coefficients for bin {i}...')
 		##############################################################
@@ -296,17 +308,7 @@ for fd in cf.get_global_fields():
 			alphas_file.write('Sytematic\talpha\n')
 			for k in range(nsyst):
 				alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
-
-	print(f'Calculating decoupled C_ells for pairing {i},{j}...')
-	###########################################################
-	#compute the decoupled C_ell (w/o deprojection)
-	cl_decoupled_nd = w.decouple_cell(cl_coupled_nd)
-	#compute the decoupled, debiased C_ell (w/ deprojection)
-	cl_decoupled = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-	#decouple the bias C_ells as well
-	cl_bias_decoupled = w.decouple_cell(cl_bias)
-
-	if i == j:
+	
 		print(f'Calculating shot noise for bin {i}...')
 		###############################################
 		#load the N_g map and calculate the mean weighted by the mask
@@ -318,6 +320,28 @@ for fd in cf.get_global_fields():
 	else:
 		cl_noise_coupled = np.zeros((1, ell_max+1))
 		cl_noise_decoupled = np.zeros((1, cf.nbpws))
+
+
+	print(f'Calculating deprojection bias for pairing {i},{j}...')
+	##############################################################
+	if nsyst > 0 and not cf.lite:
+		cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+	else:
+		print('No systematics maps provided; skipping deprojection bias calculation.')
+		cl_bias = np.zeros_like(cl_guess)
+
+	#delete the NamasterFields to save some memory
+	del f_i, f_j, f_i_nd, f_j_nd
+
+	print(f'Calculating decoupled C_ells for pairing {i},{j}...')
+	###########################################################
+	#compute the decoupled C_ell (w/o deprojection)
+	cl_decoupled_nd = w.decouple_cell(cl_coupled_nd)
+	#compute the decoupled, debiased C_ell (w/ deprojection)
+	cl_decoupled = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+	#decouple the bias C_ells as well
+	cl_bias_decoupled = w.decouple_cell(cl_bias)
+
 	
 	#gather (decoupled) results
 	comm.Gather(cl_decoupled, cl_buff, root=0)
@@ -328,6 +352,14 @@ for fd in cf.get_global_fields():
 	if rank == 0:
 		print('Calculating covariances...')
 		###################################
+
+		#reload maps and deproject using saved information
+		dg_maps = load_tomographic_maps(PATH_FD + cf.deltag_maps)
+		alphas_dfs = [pd.read_csv(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{k}.txt', sep='\t', index_col=0)
+						for k in range(cf.nbins)]
+		density_fields_nd = [nmt.NmtField(mask.mask_full, [dg], templates=None) for dg in dg_maps]
+		density_fields = [make_deprojected_field(dg, al) for dg, al in zip(dg_maps, alphas_dfs)]
+
 		#set up an array for the covariance matrices
 		covar_all = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
 		covar_all_nd = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
