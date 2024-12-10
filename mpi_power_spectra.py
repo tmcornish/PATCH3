@@ -215,35 +215,22 @@ for fd in cf.get_global_fields():
 		continue
 
 	#create density fields, with and without deprojection, splitting the work between ranks if possible
-	if size >= cf.nbins:
-		if rank in range(cf.nbins):
-			dg_map, = load_tomographic_maps(PATH_FD + cf.deltag_maps, idx=rank)
-			print(f'Creating NmtField for bin {rank} (without deprojection)...')
-			####################################################################
-			density_fields_nd = nmt.NmtField(mask.mask_full, [dg_map], templates=None, lite=cf.lite)
-			
-			print(f'Creating NmtField for bin {rank} (with deprojection)...')
-			################################################################
-			density_fields = nmt.NmtField(mask.mask_full, [dg_map], templates=systmaps, lite=cf.lite)
-		else:
-			density_fields_nd = None
-			density_fields = None
-
-		density_fields_nd = comm.gather(density_fields_nd, root=0)
-		density_fields = comm.gather(density_fields, root=0)
-
+	if rank in range(cf.nbins):
+		dg_map, = load_tomographic_maps(PATH_FD + cf.deltag_maps, idx=rank)
+		print(f'Creating NmtField for bin {rank} (without deprojection)...')
+		####################################################################
+		density_fields_nd = nmt.NmtField(mask.mask_full, [dg_map], templates=None, lite=cf.lite)
+		
+		print(f'Creating NmtField for bin {rank} (with deprojection)...')
+		################################################################
+		density_fields = nmt.NmtField(mask.mask_full, [dg_map], templates=systmaps, lite=cf.lite)
 	else:
-		if rank == 0:
-			dg_map = load_tomographic_maps(PATH_FD + cf.deltag_maps)
-			print(f'Creating NmtFields for all bins (without deprojection)...')
-			###################################################################
-			density_fields_nd = [nmt.NmtField(mask.mask_full, [dg], templates=None, lite=cf.lite)
-									for dg in dg_map]
-			
-			print(f'Creating NmtField for all bins (with deprojection)...')
-			###############################################################
-			density_fields = [nmt.NmtField(mask.mask_full, [dg], templates=systmaps, lite=cf.lite)
-					 				for dg in dg_map]
+		density_fields_nd = None
+		density_fields = None
+
+	density_fields_nd = comm.gather(density_fields_nd, root=0)
+	density_fields = comm.gather(density_fields, root=0)
+
 	
 
 	#broadcast the list of NmtFields
