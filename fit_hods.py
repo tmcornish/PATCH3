@@ -187,6 +187,26 @@ def log_prior(theta):
 	return logp
 
 
+def suppress_1h(a):
+	'''
+	Returns the wavenumber below which the 1-halo term should be suppressed in
+	the halo model power spectrum. Needs to be a function of the scale factor
+	a in order to be compliant with CCL, but currently returns a constant.
+
+	Parameters
+	----------
+	a: float
+		Cosmic scale factor.
+	
+	Returns
+	-------
+	k_max: float
+		Wavenumber (in Mpc^{-1}) below which the 1-halo term will be suppressed.
+	'''
+	k_max = 0.01
+	return k_max
+
+
 def log_likelihood(theta):
 	'''
 	Defines the priors on the free parameters in the HOD model.
@@ -225,7 +245,8 @@ def log_likelihood(theta):
 		prof2=prof,
 		a_arr=a_arr,
 		lk_arr=lk_arr,
-		smooth_transition=smooth_transition
+		smooth_transition=smooth_transition,
+		suppress_1h=suppress_1h
 	)
 	#compute theory C_ells
 	theory_cells = [
