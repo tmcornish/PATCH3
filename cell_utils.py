@@ -93,6 +93,61 @@ def get_data_from_sacc(s, auto_only=False):
 	return ells, cells, cov
 	
 
+def select_from_sacc(s, tracer_combos, data_type):
+	'''
+	Given a Sacc object and a set of tracer combinations, will return a new Sacc object
+	containing only the information for those tracer combinations.
+
+	Parameters
+	----------
+	s: sacc.sacc.Sacc or str
+		The Sacc object containing the information for many tracers. If a string, must be 
+		the path to a Sacc file.
+	
+	tracer_combos: list[tuple]
+		List of tuples, with each tuple containing a pair of tracer names.
+	
+	data_type: str
+		Data type for which the information is to be extracted. E.g. 'cl_00' or
+		'galaxy_density_cl'. Use print(sacc.standard_types) to see list of possible
+		values.
+	
+	Returns
+	-------
+	s_new: sacc.sacc.Sacc
+		Sacc object containing only the desired information.
+	'''
+	import sacc
+
+	#check if input is a string
+	if type(s) == str:
+		s = sacc.Sacc.load_fits(s)
+
+	#get the unique tracer names
+	tc_unique = np.unique(tracer_combos)
+	#set up a new Sacc object and add tracers
+	s_new = sacc.Sacc()
+	for tc in tc_unique:
+		s_new.add_tracer_object(s.get_tracer(tc))
+	#now add ell and C_ell info for each desired combination
+	inds_all = []
+	for tc in tracer_combos:
+		ells, cells, inds = s.get_ell_cl(data_type, *tc, return_ind=True)
+		#get the window functions
+		wins = s.get_bandpower_windows(inds)
+		#add the ell_cl info
+		s_new.add_ell_cl(data_type, *tc, ells, cells, window=wins)
+		#add the indices to the list
+		inds_all.extend(list(inds))
+	#add the covariance info
+	if s.covariance is not None:
+		s_new.covariance = sacc.covariance.FullCovariance(s.covariance.covmat[inds_all][:,inds_all])
+	else:
+		s_new.covariance = None
+
+	return s_new
+	
+
 
 def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None, return_cl_coupled=False, return_cl_guess=False):
 	'''
