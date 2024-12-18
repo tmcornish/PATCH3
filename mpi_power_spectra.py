@@ -52,6 +52,7 @@ def load_systematics(deproj_file, systs):
 	systmaps: numpy.ndarray
 		Array containing all of the systematics full-sky maps.
 	'''
+	nsyst = len(systs) - 1
 	#see if deproj_file already exists
 	if os.path.exists(deproj_file):
 		with open(deproj_file, 'r+') as df:
@@ -111,7 +112,7 @@ def make_deprojected_field(dg_map, alphas=None):
 	#mask the delta_g map and reshape it for namaster
 	dg_map *= mask.mask_full
 	dg_map = dg_map.reshape(1, npix)
-	if alphas:
+	if alphas is not None:
 		#load the systematics
 		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in alphas.index]
 		nsyst = len(systmaps)
@@ -119,7 +120,7 @@ def make_deprojected_field(dg_map, alphas=None):
 		#apply the mask to the systematics
 		systmaps *= mask.mask_full
 		#deproject the systematics
-		dg_map -= np.sum(alphas['alpha'].values()[:, None, None] * systmaps, axis=0)
+		dg_map -= np.sum(alphas['alpha'].values[:, None, None] * systmaps, axis=0)
 
 	#create an NmtField object with the deprojected map (do NOT re-mask)
 	df = nmt.NmtField(np.ones_like(mask.mask_full), [dg_map], templates=None)
@@ -220,8 +221,6 @@ for fd in cf.get_global_fields():
 		#if given a max number of systematics to deproject, slice the list accordingly
 		if cf.Nsyst_max is not None:
 			systs = systs[:cf.Nsyst_max]
-		#get the number of systematics
-		nsyst = len(systs)
 		#add the boolean 'lite' to the end of the list of systematics
 		systs.append(str(cf.lite))
 		#file containing list of systematics maps deprojected in the previous run
@@ -231,6 +230,7 @@ for fd in cf.get_global_fields():
 		
 	else:
 		nsyst = None
+		systs = None
 		while True:
 			try:
 				w.read_from(wsp_path)
@@ -239,8 +239,10 @@ for fd in cf.get_global_fields():
 			except (FileNotFoundError, RuntimeError):
 				continue
 
-	#broadcast the number of systematics
-	nsyst = comm.bcast(nsyst, root=0)
+	#broadcast the list of systematics
+	syst = comm.bcast(systs, root=0)
+	#get the number of systematics
+	nsyst = len(systs) - 1
 	#broadcast the array of systematics maps
 	if rank != 0:
 		systmaps = np.empty((nsyst, 1, npix), dtype=np.float64)
@@ -388,13 +390,13 @@ for fd in cf.get_global_fields():
 
 		#reshape the covariance matrix
 		covar_all = covar_all.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
-		covar_all_nodeproj = covar_all_nodeproj.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
+		covar_all_nd = covar_all_nd.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
 	
 		print('Constructing SACCs...')
 		##############################
 		#get the bandpower window functions
 		wins = w.get_bandpower_windows()[0, :, 0, :].T
-		wins = sacc.BandpowerWindow(np.arange(1, ell_max+1), wins)
+		wins = sacc.BandpowerWindow(np.arange(ell_max+1), wins)
 
 		#set up the various SACC files
 		s_main = sacc.Sacc()		# main results (i.e. w/ deprojection)
@@ -449,30 +451,30 @@ for fd in cf.get_global_fields():
 			s_main.add_ell_cl('cl_00',
 						f'cl{i}', f'cl{j}',
 						ell_effs,
-						cl_buff[ip],
+						cl_buff[ip][0],
 						window=wins
 						)
 			s_nodeproj.add_ell_cl('cl_00',
 						f'cl{i}', f'cl{j}',
 						ell_effs,
-						cl_nd_buff[ip],
+						cl_nd_buff[ip][0],
 						window=wins
 						)
 			s_bias.add_ell_cl('cl_00',
 							f'cl{i}', f'cl{j}',
 							ell_effs,
-							cl_bias_buff[ip],
+							cl_bias_buff[ip][0],
 							window=wins
 							)
 			s_noise.add_ell_cl('cl_00',
 						f'cl{i}', f'cl{i}',
 						ell_effs,
-						cl_noise_buff[ip],
+						cl_noise_buff[ip][0],
 						window=wins)
 
 		#add the covariance matrix to the Sacc
 		s_main.add_covariance(covar_all)
-		s_nodeproj.add_covariance(covar_all_nodeproj)
+		s_nodeproj.add_covariance(covar_all_nd)
 
 		#save the SACC files
 		s_main.save_fits(f'{PATH_FD}{cf.outsacc}', overwrite=True)
