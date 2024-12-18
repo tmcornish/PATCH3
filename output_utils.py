@@ -252,7 +252,10 @@ def select_from_sacc(s, tracer_combos, data_type):
 		#add the indices to the list
 		inds_all.extend(list(inds))
 	#add the covariance info
-	s_new.covariance = sacc.covariance.FullCovariance(s.covariance.covmat[inds_all][:,inds_all])
+	if s.covariance is not None:
+		s_new.covariance = sacc.covariance.FullCovariance(s.covariance.covmat[inds_all][:,inds_all])
+	else:
+		s_new.covariance = None
 
 	return s_new
 	
