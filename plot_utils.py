@@ -401,7 +401,7 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 	return fig, axes
 
 
-def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', label=None, **kwargs):
+def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', linestyle_nve='--', label=None, **kwargs):
 	'''
 	Convenience function for plotting C_ells on an existing set	of axes. 
 
@@ -457,6 +457,7 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	#if C_ells are binned into bandpowers, remove the linestyle
 	if binned:
 		linestyle = 'none'
+		linestyle_nve = 'none'
 	#if they are not binned, remove the markers
 	else:
 		marker = 'none'
@@ -476,10 +477,11 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	ax.errorbar(ells_nve, 
 				-cells_nve,
 				yerr=err_cells_nve,
+				color=color,
 				mec=color,
 				ecolor=color,
 				marker=marker,
-				linestyle=linestyle,
+				linestyle=linestyle_nve,
 				mfc='none',
 				**kwargs
 				)
