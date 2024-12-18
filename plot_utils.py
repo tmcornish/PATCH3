@@ -401,7 +401,7 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 	return fig, axes
 
 
-def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', label=None, return_handle=False, return_label=False, **kwargs):
+def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', label=None, **kwargs):
 	'''
 	Convenience function for plotting C_ells on an existing set	of axes. 
 
@@ -436,12 +436,6 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	label: str
 		Legend label for the data.
 	
-	return_handle: bool
-		Whether or not to return the legend handle for the data.
-	
-	return_label: bool
-		Whether or not to return the legend label for the data.
-		
 	'''
 
 	#determine which data are positive and which are negative
@@ -490,10 +484,4 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 				**kwargs
 				)
 
-	to_return = [None]
-	if return_handle:
-		to_return.append(cell_plot)
-	if return_label and label:
-		to_return.append(label)
-	
-	return (*to_return,)
+	return cell_plot, label
