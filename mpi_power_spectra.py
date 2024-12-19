@@ -467,7 +467,7 @@ for fd in cf.get_global_fields():
 							window=wins
 							)
 			s_noise.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{i}',
+						f'cl{i}', f'cl{j}',
 						ell_effs,
 						cl_noise_buff[ip][0],
 						window=wins)
