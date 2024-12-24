@@ -63,8 +63,8 @@ global:
   deltag_maps: deltag_maps_1024.hsp
 
   #redshift column to use for tomography
-	zcol: pz_best_dnnz
-	#redshift bin edges
-	zbins: [0.3, 0.6, 0.9, 1.2, 1.5]
-	nbins: 4
+  zcol: pz_best_dnnz
+  #redshift bin edges
+  zbins: [0.3, 0.6, 0.9, 1.2, 1.5]
+  nbins: 4
 
