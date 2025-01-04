@@ -69,3 +69,10 @@ global:
     depth_map: depth_map
     ngal_maps: ngal_maps
     deltag_maps: deltag_maps
+
+  #tomographic sample definitions (semi-colon separated)
+  samples:
+    bin0: '0.3 <= zphot ; zphot < 0.6'
+    bin1: '0.6 <= zphot ; zphot < 0.9'
+    bin2: '0.9 <= zphot ; zphot < 1.2'
+    bin3: '1.2 <= zphot ; zphot < 1.5'
