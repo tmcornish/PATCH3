@@ -1,9 +1,15 @@
 global:
   #relevant directories
-  PATH_PIPE: /home/cornisht/LSST_clustering/pHSC3/
-  PATH_DATA: /home/cornisht/LSST_clustering/Data/HSC_DR3/
-  PATH_OUT: /home/cornisht/LSST_clustering/pHSC3/out/
-  PATH_PLOTS: /home/cornisht/LSST_clustering/pHSC3/out/figures/
+  paths:
+    pipeline: /home/cornisht/LSST_clustering/pHSC3/
+    data: /home/cornisht/LSST_clustering/Data/HSC_DR3/
+    out: /home/cornisht/LSST_clustering/pHSC3/out/
+    figures: /home/cornisht/LSST_clustering/pHSC3/out/figures/
+  
+  #column names corresponding to key quantities in the catalogue
+  key_cols:
+    zphot: pz_best_dnnz
+    mag: cmodel_mag
 
   #data release
   dr: pdr3_wide
@@ -17,14 +23,16 @@ global:
   #low-resolution NSIDE parameter to use for splitting the data
   nside_cover: 8
 
-  #main photometric band
-  band: i
-  #list of all photometric bands
-  bands: [g, r, i, z, y]
-  #alternative names for some bands
-  bands_alt:
-    i: [i2]
-    r: [r2]
+  #photometric bands
+  bands:
+    #main band
+    primary: i
+    #list of all other bands
+    secondary: [g, r, z, y]
+    #alternative names for some bands
+    altnames:
+      i: [i2]
+      r: [r2]
 
   #S/N thresholds in primary band and other bands
   sn_pri: 10.
@@ -41,30 +49,23 @@ global:
   #threshold to apply to smoothed mask
   smooth_thresh: 0.4
 
-  #catalogue names
-  cat_basic: basicclean_catalogue.hdf5
-  cat_main: clean_catalogue.hdf5
-  cat_stars: star_catalogue.hdf5
+  #suffix to add to filenames produced from this run
+  suffix: ''
 
-  #names for various maps
-  dustmaps:
-  - dustmaps_g_1024.hsp
-  - dustmaps_r_1024.hsp
-  - dustmaps_i_1024.hsp
-  - dustmaps_z_1024.hsp
-  - dustmaps_y_1024.hsp
-  footprint: footprint_1024.hsp
-  bo_mask: bo_mask_1024.hsp
-  masked_frac: masked_fraction_1024.hsp
-  survey_mask: survey_mask_1024.hsp
-  star_map: star_counts_1024.hsp
-  depth_map: depth_map_1024.hsp
-  ngal_maps: ngal_maps_1024.hsp
-  deltag_maps: deltag_maps_1024.hsp
+  #catalogue names (without file extensions)
+  cats:
+    basic: basicclean_catalogue
+    main: clean_catalogue
+    stars: star_catalogue
 
-  #redshift column to use for tomography
-  zcol: pz_best_dnnz
-  #redshift bin edges
-  zbins: [0.3, 0.6, 0.9, 1.2, 1.5]
-  nbins: 4
-
+  #base names for various maps (without file extensions)
+  maps:
+    dustmaps: dustmaps
+    footprint: footprint
+    bo_mask: bo_mask
+    masked_frac: masked_fraction
+    survey_mask: survey_mask
+    star_map: star_counts
+    depth_map: depth_map
+    ngal_maps: ngal_maps
+    deltag_maps: deltag_maps
