@@ -59,6 +59,7 @@ global:
     basic: basicclean_catalogue
     main: clean_catalogue
     stars: star_catalogue
+    tomography: tomography_catalogue
 
   #base names for various maps (without file extensions)
   maps:
@@ -310,5 +311,6 @@ plotPowerSpectra:
 
 ###########################################################################################
 
+#makeTXPipeInputs
 
-
+###########################################################################################
