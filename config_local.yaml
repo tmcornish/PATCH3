@@ -79,7 +79,6 @@ global:
     bin2: '0.9 <= zphot ; zphot < 1.2'
     bin3: '1.2 <= zphot ; zphot < 1.5'
 
-
 ###########################################################################################
 
 getData:
@@ -97,5 +96,18 @@ getData:
   #maximum number of sources allowed before catalogues split for field
   Nmax: 5_000_000
 
+###########################################################################################
+
+splitMetadata:
+  #boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
+  bounds:
+    aegis: [212., 216., 51.6, 53.6]
+    spring: [326.25, 41.25, -8., 8.]
+    autumn: [125., 227.5, -4., 7.]
+    hectomap: [195., 255., 41.5, 45.]
+
+  #whether to further split the metadata by filter (can help Decasu avoid memory issues)
+	split_by_band: true
 
 ###########################################################################################
+
