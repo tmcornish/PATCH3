@@ -112,7 +112,7 @@ splitMetadata:
     hectomap: [195., 255., 41.5, 45.]
 
   #whether to further split the metadata by filter (can help Decasu avoid memory issues)
-	split_by_band: true
+  split_by_band: true
 
 ###########################################################################################
 
@@ -158,5 +158,21 @@ makeMapsFromCat:
 
   #use N_exp maps to define an extra cut?
   use_nexp_maps: true
+
+###########################################################################################
+
+#makeGalaxyMaps
+
+###########################################################################################
+
+#combineFields
+
+###########################################################################################
+
+pcaSystematics:
+  #plot eigenvalues of the principal components
+  plot_eigen: true
+  #fraction of total variance to keep with principal components
+  var_thresh: 0.98
 
 ###########################################################################################
