@@ -81,6 +81,7 @@ global:
   cell_files:
     theory: cells_theory
     main: cells_measured
+    covariances: covariance_matrices
   
   #base names for files cached whrn computing power spectra (without file extensions)
   cache_files:
@@ -254,5 +255,9 @@ computePowerSpectra:
 
   #create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
   lite: false
+
+###########################################################################################
+
+#covariances
 
 ###########################################################################################
