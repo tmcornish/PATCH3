@@ -295,8 +295,7 @@ hod_params = (
 )
 
 #compute theory C_ells
-cl_in = model_cell(hod_params, ells=np.array(ells_theory, dtype=int))
-
+cl_in = model_cell(hod_params, ells=np.array(ells_theory, dtype=int))[0]
 
 print('Loading HSC mask...')
 ############################
