@@ -6,6 +6,8 @@
 import os, sys
 import output_utils as opu
 
+#retrieve the path of the pipeline config file
+config_file = sys.argv[1] 
 
 ##################
 #### SETTINGS ####
@@ -71,22 +73,22 @@ proc = [
 	]
 
 run_str = [
-	'cd data_query/ && python -u get_data.py; cd ..',
-	'python -u split_metadata.py',
-	'python -u clean_catalogues.py',
-	'python -u make_maps_from_metadata.py',
-	'python -u make_maps_from_catalogue.py',
-	'python -u make_galaxy_maps.py',
-	'python -u combine_fields.py',
-	'python -u pca_systematics.py',
-	'python -u dir_photozs.py',
-	'python -u theory_predictions.py',
-	'python -u compute_power_spectra.py',
-	'python -u covariances.py',
-	'python -u make_sacc_files.py',
-	'python -u fit_hods.py',
-	'python -u plot_power_spectra.py',
-	'python -u make_txpipe_inputs.py'
+	f'cd data_query/ && python -u get_data.py {config_file}; cd ..',
+	f'python -u split_metadata.py {config_file}',
+	f'python -u clean_catalogues.py {config_file}',
+	f'python -u make_maps_from_metadata.py {config_file}',
+	f'python -u make_maps_from_catalogue.py {config_file}',
+	f'python -u make_galaxy_maps.py {config_file}',
+	f'python -u combine_fields.py {config_file}',
+	f'python -u pca_systematics.py {config_file}',
+	f'python -u dir_photozs.py {config_file}',
+	f'python -u theory_predictions.py {config_file}',
+	f'python -u compute_power_spectra.py {config_file}',
+	f'python -u covariances.py {config_file}',
+	f'python -u make_sacc_files.py {config_file}',
+	f'python -u fit_hods.py {config_file}',
+	f'python -u plot_power_spectra.py {config_file}',
+	f'python -u make_txpipe_inputs.py {config_file}'
 	]
 
 
