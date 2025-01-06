@@ -211,7 +211,7 @@ def apply_scale_cuts(ells, cells, cov, return_cuts=False, compute_cuts=True, har
 ###############    START OF SCRIPT    #################
 #######################################################
 
-print('Using observed HSC C_ells data to derive input C_ell for simulations...')
+print('Creating input C_ell for simulations...')
 ################################################################################
 
 #retrieve relevant data for the specified bin pairing
@@ -239,19 +239,12 @@ ells, cells, cov = apply_scale_cuts(ells_all, cells_all, cov_all, compute_cuts=F
 err_cell = np.sqrt(np.diag(cov))
 icov = np.linalg.inv(cov)
 
-def log_prior(theta):
-	logM0, logM1, alpha = theta
-	if (0. < logM0 < 15.) and (0. < logM1 < 17.) and (-1 < alpha < 4):
-		logp = 0.
-	else:
-		logp = -np.inf
-	return logp
-
 a_pivot = 1 / (1 + 0.65)
+suppress_1h = lambda a: 0.01
 
-def model_cell(theta, ells=ells):
+def model_cell(theta, ells):
 	#free parameters in the model
-	logM0, logM1, alpha = theta
+	logM0, logM1, mu0p, mu1p, alpha = theta
 	smooth_transition = lambda a: alpha
 	#halo profile
 	prof = ccl.halos.HaloProfileHOD(
@@ -260,6 +253,9 @@ def model_cell(theta, ells=ells):
 		log10Mmin_0=logM0,
 		log10M0_0=logM0,
 		log10M1_0=logM1,
+		log10M0_p=mu0p,
+		log10Mmin_p=mu0p,
+		log10M1_p=mu1p,
 		a_pivot=a_pivot
 		)
 	#halo-model power spectrum for galaxies
@@ -271,7 +267,8 @@ def model_cell(theta, ells=ells):
 		prof2=prof,
 		a_arr=a_arr,
 		lk_arr=lk_arr,
-		smooth_transition=smooth_transition
+		smooth_transition=smooth_transition,
+		suppress_1h=suppress_1h
 	)
 	#compute theory C_ells
 	theory_cells = [
@@ -279,82 +276,26 @@ def model_cell(theta, ells=ells):
 			cosmo,
 			NCT[i],
 			NCT[j],
-			ells[ip],
+			ells,
 			p_of_k_a=pk
 		)
-		for ip, (i,j) in enumerate(pairings)
+		for i,j in pairings
 		]
 	
 	return theory_cells
 
-def log_likelihood(theta):
-	theory_cells = model_cell(theta)
-		
-	#residuals
-	diff = np.concatenate(cells) - np.concatenate(theory_cells)
-	
-	logL = -np.dot(diff, np.dot(icov, diff)) / 2.
-	
-	return logL
 
-
-def log_probability(theta):
-	#compute the logged prior
-	lp = log_prior(theta)
-	if not np.isfinite(lp):
-		log_prob = -np.inf
-	else:
-		log_prob = lp + log_likelihood(theta)
-	return log_prob
-
-
-def nll(*args):
-	return -log_probability(*args)
-
-#fit HOD
-initial = [12, 12, 1]
-ndim = len(initial)
-with warnings.catch_warnings():
-	warnings.simplefilter('ignore')
-	soln = minimize(nll, initial)
-logM0, logM1, alpha_smooth = soln.x
-
-print('Results of HOD fit:')
-print(soln)
-
-#use the best-fit to generate C_ell^in (just use the first bin pairing since
-#maps can only be generated for one C_ell at a time)
-
-#halo profile
-smooth_transition = lambda a: alpha_smooth
-#halo profile
-prof = ccl.halos.HaloProfileHOD(
-	mass_def=m200def,
-	concentration=conc,
-	log10Mmin_0=logM0,
-	log10M0_0=logM0,
-	log10M1_0=logM1,
-	a_pivot=a_pivot
-	)
-#halo-model power spectrum for galaxies
-pk = ccl.halos.halomod_Pk2D(
-	cosmo,
-	hmc,
-	prof,
-	prof_2pt=prof2pt,
-	prof2=prof,
-	a_arr=a_arr,
-	lk_arr=lk_arr,
-	smooth_transition=smooth_transition
+#best-fit parameters from HOD fitting (performed elsewhere)
+hod_params = (
+	11.15910346,	#mu_min
+	12.97450235,	#mu_1
+	-4.45496618,	#mu_{min,p}
+	-4.91124055,	#mu_{1,p}
+	0.38082766		#alpha_smooth
 )
+
 #compute theory C_ells
-cl_in = ccl.angular_cl(
-		cosmo,
-		NCT[pairings[0][0]],
-		NCT[pairings[0][1]],
-		np.array(ells_theory, dtype=int),
-		p_of_k_a=pk
-	)
+cl_in = model_cell(hod_params, ells=np.array(ells_theory, dtype=int))
 
 
 print('Loading HSC mask...')
