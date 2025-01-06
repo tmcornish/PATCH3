@@ -38,8 +38,7 @@ class PipelineConfig():
 		self.config_dict['bands']['all'] = [self.bands.primary] + self.bands.secondary
 
 		#set the map and catalogue names
-		self._set_map_names()
-		self._set_cat_names()
+		self._set_output_names()
 		
 	def __getattr__(self, name):
 		'''
@@ -51,11 +50,16 @@ class PipelineConfig():
 			value = DictAsMember(value)
 		return value
 
-	def _set_map_names(self):
+	def _set_output_names(self):
 		'''
 		Appends the base names for each map file with the specified suffix
-		and NSIDE used for the analysis.
+		and (where appropriate) the NSIDE used for the analysis.
 		'''
+		#hdf5 catalogues
+		for key in self.cats:
+			self.config_dict['cats'][key] = self.cats[key] + self.suffix + '.hdf5'
+		
+		#healsparse maps
 		for key in self.maps:
 			#if dustmaps, replace name with list of names for all bands
 			if key == 'dustmaps':
@@ -64,13 +68,27 @@ class PipelineConfig():
 												for b in self.bands.all]
 			else:
 				self.config_dict['maps'][key] = self.maps[key] + f'_nside{self.nside_hi}{self.suffix}.hsp'
+		
+		#n(z) hdf5 files
+		for key in self.nofz_files:
+			self.config_dict['nofz_files'][key] = self.nofz_files[key] + self.suffix + '.hdf5'
+		
+		#power spectra hdf5 files
+		for key in self.cell_files:
+			self.config_dict['cell_files'][key] = self.cell_files[key] + f'_nside{self.nside_hi}{self.suffix}.hdf5'
+		
+		#cache files
+		for key in self.cache_files.workspaces:
+			self.config_dict['cache_files']['workspaces'][key] = self.cache_files.workspaces[key] + \
+																f'_nside{self.nside_hi}{self.suffix}.fits'
+		for key in self.cache_files.deproj:
+			self.config_dict['cache_files']['deproj'][key] = self.cache_files.deproj[key] + \
+																f'_nside{self.nside_hi}{self.suffix}.txt'
+		for key in self.cache_files.hods:
+			self.config_dict['cache_files']['hods'][key] = self.cache_files.hods[key] + \
+																f'_nside{self.nside_hi}{self.suffix}.txt'
 
-	def _set_cat_names(self):
-		'''
-		Appends the base names for each catalogue file with the specified suffix.
-		'''
-		for key in self.cats:
-			self.config_dict['cats'][key] = self.cats[key] + self.suffix + '.hdf5'
+
 
 	def get_samples(self, cat):
 		'''
