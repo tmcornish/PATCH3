@@ -95,7 +95,11 @@ global:
       mcmc_backend: hod_mcmc_backend
 
   #base name for SACC files produced by the pipeline (without file extension)
-  sacc_out: gc_sacc 
+  sacc_out: gc_sacc
+
+  #base names for the plots produced by the pipeline (without file extensions)
+  plots:
+    cells: power_spectra
 
   #auxiliary pipeline files
   auxfiles:
@@ -291,4 +295,20 @@ fitHods:
   hard_lmax: 2000
 
 ###########################################################################################
+
+plotPowerSpectra:
+  #whether to multiply the C_ells by l(l+1)/(2*pi) for the figure
+  normalise: false
+  #show the C_ells pre-debiasing
+  show_pre_debias: false
+  #show the C_ells without deprojection
+  show_no_deproj: true
+  #show the theory predictions
+  show_theory: true
+  #make a figure showing all C_ells simultaneously
+  make_combined: false
+
+###########################################################################################
+
+
 
