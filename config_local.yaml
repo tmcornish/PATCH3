@@ -75,6 +75,7 @@ global:
   #auxiliary pipeline files
   auxfiles:
     required_cols: required_cols.txt
+    decasu_config: decasu_config_hpix_hsc_dr3.yaml
 
   #tomographic sample definitions (semi-colon separated)
   samples:
@@ -129,3 +130,8 @@ cleanCats:
 
 ###########################################################################################
 
+makeMapsFromMetadata:
+  #number of cores to use for multiprocessing
+  ncores: 18
+
+###########################################################################################
