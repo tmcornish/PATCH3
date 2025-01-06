@@ -72,6 +72,10 @@ global:
     ngal_maps: ngal_maps
     deltag_maps: deltag_maps
 
+  #auxiliary pipeline files
+  auxfiles:
+    required_cols: required_cols.txt
+
   #tomographic sample definitions (semi-colon separated)
   samples:
     bin0: '0.3 <= zphot ; zphot < 0.6'
@@ -108,6 +112,20 @@ splitMetadata:
 
   #whether to further split the metadata by filter (can help Decasu avoid memory issues)
 	split_by_band: true
+
+###########################################################################################
+
+cleanCats:
+  #types of flag to apply during basic cleaning (list containing 'main' and/or 'strict' or empty)
+  remove_if_flagged: [main]
+  #logged blending cut (maximum allowed flux estimated to be from blending)
+  log_blend_cut: -0.375
+  #whether to correct recorded r/i photometry to equivalent in r2/i2
+  correct_ri: true
+  #whether to remove galaxies likely to have secondary redshift solutions at high-z
+  remove_pz_outliers: true
+  #file for containing a summary of each stage of cleaning
+  clean_summary_file: cleaning_summary.txt
 
 ###########################################################################################
 
