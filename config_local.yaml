@@ -92,6 +92,8 @@ global:
       deprojected: deprojected
       alphas: deprojection_alphas
 
+  #base name for SACC files produced by the pipeline (without file extension)
+  sacc_out: gc_sacc 
 
   #auxiliary pipeline files
   auxfiles:
@@ -259,5 +261,9 @@ computePowerSpectra:
 ###########################################################################################
 
 #covariances
+
+###########################################################################################
+
+#makeSaccFiles
 
 ###########################################################################################
