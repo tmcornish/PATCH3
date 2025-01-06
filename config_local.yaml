@@ -78,8 +78,19 @@ global:
     nz_mc: nz_dists_mc
   
   #base names files for containing various power spectra (without file extensions)
-  c_ell_files:
-    theory: theory_cells 
+  cell_files:
+    theory: cells_theory
+    main: cells_measured
+  
+  #base names for files cached whrn computing power spectra (without file extensions)
+  cache_files:
+    workspaces:
+      wsp: workspace
+      covwsp: covworkspace
+    deproj:
+      deprojected: deprojected
+      alphas: deprojection_alphas
+
 
   #auxiliary pipeline files
   auxfiles:
@@ -211,13 +222,37 @@ dirPhotozs: &dirPhotozs
 
 theoryPredictions: 
   <<: *dirPhotozs
-  #base name of the files to which theory power spectra will be saved
-  theory_out: theory_cells.hdf5
   #whether to use the n(z) distributions caculated using DIR
   use_dir: true
 
   #column in the catalogues containing the random MC draws from the redshift distribution
   #(only relevant if use_dir == False)
   z_mc_col: pz_mc_dnnz
+
+###########################################################################################
+
+computePowerSpectra:
+  #list of maps to deproject (add 'all' to the list if wanting to deproject all
+  #maps in the systematics directory)
+  systs: [all]
+  #(optional) maximum number of systematics to deproject - uses all provided if set to null
+  Nsyst_max: null
+
+  #whether to use the pseudo-log spaced bandpowers from Nicola+19
+  use_N19_bpws: false
+  #number of bandpowers to use if not using edges from Nicola+19
+  nbpws: 18
+  #minimum ell (i.e. largest scale) to use
+  ell_min: 1
+  #whether to use linear or log spacing for the bandpowers
+  log_spacing: false
+
+  #apply a multiplicative correction to delta_g due to star contamination
+  correct_for_stars: true
+  #fiducial estimate for the fraction of stars making it into the final sample (from Nicola+19)
+  Fs_fiducial: 0.02
+
+  #create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
+  lite: false
 
 ###########################################################################################
