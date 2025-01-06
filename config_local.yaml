@@ -135,3 +135,28 @@ makeMapsFromMetadata:
   ncores: 18
 
 ###########################################################################################
+
+makeMapsFromCat:
+  #whether or not to initially make the map at high resolution and degrade
+  highres_first: false
+  #NSIDE for the upgraded-resolution version of the bright object mask
+  nside_mask: 8192
+
+  #types of flag to include in the mask 
+  #(list containing 'brightstar', 'main' and/or 'strict; see flags.py for definitions)
+  flags_to_mask: [brightstar]
+  #whether or not to include the y-band channel stop in the brightstar flags
+  incl_channelstop: false
+
+  #if only stars should be used for creating depth map
+  stars_for_depth: true
+  #minimum number of sources required to calculate depth in a pixel
+  min_sources: 4
+
+  #radius (in deg) of the Guassian kernel used to smooth certain maps
+  r_smooth: 2.
+
+  #use N_exp maps to define an extra cut?
+  use_nexp_maps: true
+
+###########################################################################################
