@@ -91,6 +91,8 @@ global:
     deproj:
       deprojected: deprojected
       alphas: deprojection_alphas
+    hods:
+      mcmc_backend: hod_mcmc_backend
 
   #base name for SACC files produced by the pipeline (without file extension)
   sacc_out: gc_sacc 
@@ -267,3 +269,26 @@ computePowerSpectra:
 #makeSaccFiles
 
 ###########################################################################################
+
+fitHods:
+  #whether to fit for auto-correlations only
+  auto_only: true
+  #maximum number of iterations for the sampler
+  niter_max: 100_000
+  #maximum distances the initial walker positions can be from the initial best fit for each parameter
+  dmax:
+    mu_min: 1.
+    mu_1: 1.
+    mu_minp: 1.
+    mu_1p: 1.
+    alpha_smooth: 1.
+  #pivot redshift for redshift-dependent parameters
+  z_pivot: 0.65
+  #whether to compute scale cuts based on redshift and a maximum k (in Mpc^{-1})
+  compute_scale_cuts: true
+  kmax: 1
+  #hard-coded ell_max to use if compute_scale_cuts is false
+  hard_lmax: 2000
+
+###########################################################################################
+
