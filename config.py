@@ -38,15 +38,17 @@ class cf_global:
 	spring = [f'equator{i:02d}' for i in [21,22,23,0,1,2]]
 	autumn = [f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]]
 	combined = ['combined']
+	equatorial = ['equatorial']
 	#deep/ultra-deep fields
 	cosmos = ['cosmos']
 	
 	#fields for which the pipeline is to be run
 	fields = [
 		#*hectomap,
-		#*spring,
-		#*autumn,
-		*combined,
+		*spring,
+		*autumn,
+		#*combined,
+		#*equatorial,
 		#*cosmos
 	]
 
@@ -127,6 +129,8 @@ class cf_global:
 			fields_global.append('autumn')
 		if 'combined' in cls.fields:
 			fields_global.append('combined')
+		if 'equatorial' in cls.fields:
+			fields_global.append('equatorial')
 		if 'cosmos' in cls.fields:
 			fields_global.append('cosmos')
 		return fields_global
