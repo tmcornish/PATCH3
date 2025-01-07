@@ -43,10 +43,10 @@ class cf_global:
 	
 	#fields for which the pipeline is to be run
 	fields = [
-		#*hectomap,
-		#*spring,
-		#*autumn,
-		*combined,
+		*hectomap,
+		*spring,
+		*autumn,
+		#*combined,
 		#*cosmos
 	]
 
