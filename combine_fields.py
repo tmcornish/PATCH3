@@ -78,7 +78,7 @@ def combine_maps(map_name, fields):
 cf = config.combineFields
 
 #make a directory for the combined maps if necessary
-OUT_MAIN = cf.PATH_OUT + 'combined/'
+OUT_MAIN = cf.PATH_OUT + 'equatorial/'
 OUT_SYSTS = OUT_MAIN + 'systmaps/'
 if not os.path.exists(OUT_SYSTS):
     os.system(f'mkdir -p {OUT_SYSTS}')
