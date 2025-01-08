@@ -1,5 +1,5 @@
 #directories to ignore
-tests
+tests_and_checks
 out/
 __pycache__
 decasu_files
