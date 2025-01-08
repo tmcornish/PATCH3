@@ -9,7 +9,7 @@
 
 class cf_global:
 
-	LOCAL = True	#whether to run on locally or remotely
+	LOCAL = False	#whether to run on locally or remotely
 	NERSC = False	#if remotely: NERSC or glamdring
 
 	#relevant directories (dependent on whether being run locally or on glamdring)
@@ -45,10 +45,10 @@ class cf_global:
 	#fields for which the pipeline is to be run
 	fields = [
 		#*hectomap,
-		*spring,
-		*autumn,
+		#*spring,
+		#*autumn,
 		#*combined,
-		#*equatorial,
+		*equatorial,
 		#*cosmos
 	]
 
