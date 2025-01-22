@@ -3,7 +3,8 @@
 #####################################################################################################
 
 # Import necessary packages/modules
-import os, sys
+import os
+import sys
 import output_utils as opu
 
 #retrieve the path of the pipeline config file
