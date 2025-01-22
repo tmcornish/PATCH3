@@ -46,7 +46,8 @@ def basic_clean(t):
 	if os.path.exists(cf.required_cols_file):
 		with open(cf.required_cols_file) as file:
 			req_cols = file.readlines()
-		req_cols = [c.replace('\n','') for c in req_cols]
+		#remove newline escape sequences and delete any commented lines
+		req_cols = [c.replace('\n','') for c in req_cols if not c.startswith('#')]
 	else:
 		req_cols = t.colnames
 	#cycle through column names
