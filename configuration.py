@@ -39,7 +39,8 @@ class PipelineConfig():
 
 		#set the map and catalogue names
 		self._set_output_names()
-		
+
+
 	def __getattr__(self, name):
 		'''
 		Enables retrieval of pipeline settings as object attributes
@@ -49,6 +50,7 @@ class PipelineConfig():
 		if isinstance(value, dict):
 			value = DictAsMember(value)
 		return value
+
 
 	def _set_output_names(self):
 		'''
@@ -88,6 +90,23 @@ class PipelineConfig():
 			self.config_dict['cache_files']['hods'][key] = self.cache_files.hods[key] + \
 																f'_nside{self.nside_hi}{self.suffix}.txt'
 
+
+
+	def get_subfields(self):
+		'''
+		Identifies which subfields belong to the fields specified in the config file.
+		'''
+		subfields = []
+		if 'hectomap' in self.fields:
+			subfields.append('hectomap')
+		if 'spring' in self.fields:
+			subfields.extend([f'equator{i:02d}' for i in [21,22,23,0,1,2]])
+		if 'autumn' in self.fields:
+			subfields.extend([f'equator{i:02d}' for i in [8,9,10,11,12,13,14,15]])
+		if 'cosmos' in self.fields:
+			subfields.append('cosmos')
+
+		return subfields
 
 
 	def get_samples(self, cat):
