@@ -438,9 +438,15 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	
 	'''
 
-	#determine which data are positive and which are negative
-	mask_pve = cells >= 0
-	mask_nve = ~mask_pve
+	if binned:
+		#determine which data are positive and which are negative
+		mask_pve = cells >= 0
+		mask_nve = ~mask_pve
+	else:
+		#unbinned data requires different treatment
+		import numpy as np
+		mask_pve = np.ones_like(cells, dtype=bool)
+		mask_nve = mask_pve
 	#split data into two subsets
 	ells_pve = ells[mask_pve]
 	ells_nve = ells[mask_nve]
