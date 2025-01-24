@@ -183,38 +183,6 @@ def flag_stars(t):
 	t['is_star'] = star_mask
 
 
-def flag_tomo_bins(t):
-	'''
-	Adds a column flagging which tomographic bin a galaxy belongs to, using the 
-	bin edges specified in the config file. If the galaxy does not belong to any
-	bin it is flagged as -1.
-
-	Parameters
-	----------
-	t: astropy.table.Table
-		Input catalogue.
-
-	Returns
-	-------
-	counts: list[int]
-		List of the number of galaxies in each bin.
-	'''
-	#set up the column
-	t['zbin'] = np.full(len(t), -1, dtype=int)
-	#cycle through the redshift bin edges
-	counts = []
-	for i in range(cf.nbins):
-		zmin, zmax = cf.zbins[i:i+2]
-		#remove galaxies whose best-fit redshifts are not in this bin
-		zmask = (t[cf.zcol] >= zmin) * (t[cf.zcol] < zmax)
-		#optionally remove galaxies with secondary solutions at high redshift
-		if cf.remove_pz_outliers:
-			zmask *= ((t['pz_err95_max_dnnz'] - t['pz_err95_min_dnnz'] < 2.7)
-			 		* (t['pz_err95_max_mizu'] - t['pz_err95_min_mizu'] < 2.7))
-		t['zbin'][zmask] = i
-		counts.append(zmask.sum())
-	return counts
-
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
@@ -225,8 +193,7 @@ catalogues = [
 	'basic_cleaned',
 	'fully_cleaned',
 	'galaxies',
-	'stars',
-	*[f'zbin{i}' for i in range(cf.nbins)]
+	'stars'
 ]
 
 #get a dictionary of all fields being analysed and their respective subfields
@@ -241,7 +208,6 @@ for g in f_in_g:
 	l_final_fd = 0 			#counter for number of sources in final catalogue
 	l_gals_fd = 0			#counter for number of galaxies in final catalogue
 	l_stars_fd = 0			#counter for number of stars in final catalogue
-	l_zbin_fd = [0] * cf.nbins		#counters for each redshift bin
 	print(colour_string(g.upper(), 'orange'))
 	#cycle through each of the subfields
 	for fd in f_in_g[g]:
@@ -320,8 +286,6 @@ for g in f_in_g:
 		data_gals, data_stars = gal_cut(data_all)
 		l_gals = len(data_gals)
 		l_stars = len(data_stars)
-		#flag the tomographic bins in the galaxy catalogue
-		l_zbin = flag_tomo_bins(data_gals)
 		print(colour_string(f'{l_gals} galaxies; {l_stars} stars.', 'green'))
 
 		#write the catalogues to output files
@@ -336,16 +300,12 @@ for g in f_in_g:
 		l_final_fd += l_final
 		l_gals_fd += l_gals
 		l_stars_fd += l_stars
-		for i in range(cf.nbins):
-			l_zbin_fd[i] += l_zbin[i]
 
 	print(colour_string(f'SUMMARY: {g.upper()}', 'orange'))
 	print(colour_string(f'Began with {l_init_fd} sources.', 'green'))
 	print(colour_string(f'{l_bc_fd} remained after basic cleaning.', 'green'))
 	print(colour_string(f'{l_final_fd} sources remaining after full cleaning.', 'green'))
 	print(colour_string(f'{l_gals_fd} galaxies; {l_stars_fd} stars.', 'green'))
-	for i in range(cf.nbins):
-		print(colour_string(f'{l_zbin_fd[i]} galaxies in z bin {i}.', 'green'))
 	
 	#write summary of each stage to file
 	summary_data = [
@@ -353,8 +313,7 @@ for g in f_in_g:
 		l_bc_fd,
 		l_final_fd,
 		l_gals_fd,
-		l_stars_fd,
-		*l_zbin_fd
+		l_stars_fd
 		]
 	summary = {'Catalogue': catalogues, 'N_sources': summary_data}
 	summary = pd.DataFrame(data=summary)
