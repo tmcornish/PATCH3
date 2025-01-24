@@ -114,7 +114,7 @@ def photom_cuts(t):
 
 	#blending cut
 	sel_blend = np.ones(len(t), dtype=bool)
-	blend_mask = t[f'{cf.bands.primary}_blendedness_abs'] >= cf.blend_cut
+	blend_mask = t[f'{cf.bands.primary}_blendedness_abs'] >= 10 ** cf.log_blend_cut
 	sel_blend[blend_mask] = False
 
 	#S/N cut in primary band
