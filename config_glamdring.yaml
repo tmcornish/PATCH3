@@ -124,7 +124,7 @@ global:
 
 ###########################################################################################
 
-getData:
+getData: &getData
   #submit/download data requests
   submit: true
   download: true
@@ -155,6 +155,7 @@ splitMetadata:
 ###########################################################################################
 
 cleanCats:
+  <<: *getData
   #types of flag to apply during basic cleaning (list containing 'main' and/or 'strict' or empty)
   remove_if_flagged: [main]
   #logged blending cut (maximum allowed flux estimated to be from blending)
