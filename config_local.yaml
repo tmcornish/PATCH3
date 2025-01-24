@@ -161,10 +161,16 @@ cleanCats:
   log_blend_cut: -0.375
   #whether to correct recorded r/i photometry to equivalent in r2/i2
   correct_ri: true
-  #whether to remove galaxies likely to have secondary redshift solutions at high-z
-  remove_pz_outliers: true
   #file for containing a summary of each stage of cleaning
   clean_summary_file: cleaning_summary.txt
+
+###########################################################################################
+
+sampleSelection:
+  #whether to remove galaxies likely to have secondary redshift solutions at high-z
+  remove_pz_outliers: true
+  #file for containing the counts in each sample
+  sample_summary_file: sample_summary.txt
 
 ###########################################################################################
 
