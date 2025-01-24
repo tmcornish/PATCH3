@@ -236,7 +236,7 @@ for g in fields:
 		hdf_basic = f'{OUT}/{cf.cats.basic}'
 		hdf_full = f'{OUT}/{cf.cats.main}'
 		#see if the field has been split into multiple parts
-		fname = f'{cf.paths.data}{cf.prefix}{fd.upper()}{cf.suffix}.fits'
+		fname = f'{cf.paths.data}{cf.dr.upper()}_{fd.upper()}{get_data_suffix()}.fits'
 		#initially enable 'write' mode for output files
 		mode = 'w'
 		if os.path.exists(fname):
