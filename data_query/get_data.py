@@ -1,7 +1,6 @@
 from pdr3_queries import write_frames, write_fieldsearch
 import os
 import sys
-import contextlib
 from astropy.table import Table
 import numpy as np
 #add parent directory to path and import config parameters
