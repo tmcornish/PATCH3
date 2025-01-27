@@ -2,18 +2,17 @@
 # - Creates maps of galaxy counts and galaxy density in each tomographic bin.
 #####################################################################################################
 
-import os
-import config
-import healpy as hp
+import sys
+from configuration import PipelineConfig as PC
 import healsparse as hsp
 import numpy as np
 from output_utils import colour_string
 from map_utils import *
 import h5py
 
-
 ### SETTINGS ###
-cf = config.makeGalaxyMaps
+config_file = sys.argv[1]
+cf = PC(config_file, stage='makeGalaxyMaps')
 
 
 ###################
@@ -44,16 +43,14 @@ def makeNgalMaps(cat, footprint):
 
 	print('Creating galaxy count maps...')
 	#initialise a recarray to contain the maps for each band
-	labels = [f'ngal_{i}' for i in range(len(cf.zbins)-1)]
+	labels = [k for k in cf.samples]
 	ngal_maps, _, _ = initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=footprint.valid_pixels, dtypes='f8')
 
-	#cycle through the tomographic bins and count the galaxies in each pixel
-	for b in range(len(cf.zbins)-1):
-		zmin, zmax = cf.zbins[b:b+2]
-		zmask = (cat[f'{cf.zcol}'][:] >= zmin) * (cat[f'{cf.zcol}'][:] < zmax)
-		_, ngal = countsInPixels(cat[f'ra'][zmask], cat[f'dec'][zmask], cf.nside_lo, cf.nside_hi, footprint.valid_pixels, return_vals=True)
-
-		ngal_maps[labels[b]][footprint.valid_pixels] = np.asarray(ngal, dtype='f8')
+	#cycle through the sample definitions and count the galaxies in each pixel
+	for k in cf.samples:
+		sel = cat[k][:]
+		_, ngal = countsInPixels(cat[f'ra'][sel], cat[f'dec'][sel], cf.nside_lo, cf.nside_hi, footprint.valid_pixels, return_vals=True)
+		ngal_maps[k][footprint.valid_pixels] = np.asarray(ngal, dtype='f8')
 
 	return ngal_maps
 
@@ -83,18 +80,15 @@ def makeDensityMaps(ngal_maps, mask):
 	### have the same valid_pixels
 
 	#initialise a recarray to contain the maps for each band
-	labels = [f'delta_{i}' for i in range(len(cf.zbins)-1)]
+	labels = [k for k in cf.samples]
 	#make a copy of the inputted recarray
 	deltag_maps, *_ = initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=mask.vpix_nest, dtypes='f8')
-	for key in deltag_maps.dtype.names:
+	for k in cf.samples:
 		#calculate the mean galaxy counts and mean weight for pixels being kept
-		#print(np.array(list(set(pix_keep)-set(ngal_maps[key].valid_pixels))))
-		ngal_key = key.replace('delta', 'ngal')
-		#deltag_maps[key][pix_remove] = 0.
-		mu_n = np.mean(ngal_maps[ngal_key][mask.vpix_nest])
+		mu_n = np.mean(ngal_maps[k][mask.vpix_nest])
 		mu_w = np.mean(mask.mask_hsp[mask.vpix_nest])
 		#update the density map with delta_g values
-		deltag_maps[key][mask.vpix_nest] = (ngal_maps[ngal_key][mask.vpix_nest] / (mask.mask_hsp[mask.vpix_nest] * mu_n / mu_w)) - 1.
+		deltag_maps[k][mask.vpix_nest] = (ngal_maps[k][mask.vpix_nest] / (mask.mask_hsp[mask.vpix_nest] * mu_n / mu_w)) - 1.
 
 	return deltag_maps
 
@@ -108,22 +102,22 @@ def makeDensityMaps(ngal_maps, mask):
 #######################################################
 
 #cycle through each of the fields
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	print(colour_string(fd.upper(), 'orange'))
 	#output directory for this field
-	OUT = cf.PATH_OUT + fd
+	OUT = cf.paths.out + fd
 	#load the fully cleaned galaxy catalogue for this field
-	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')['photometry']
+	cat_main = h5py.File(f'{OUT}/{cf.cats.main}', 'r')['photometry']
 	#load the survey footprint and mask
 	footprint = hsp.HealSparseMap.read(f'{OUT}/footprint_{cf.nside_hi}.hsp')
-	survey_mask = MaskData(f'{OUT}/{cf.survey_mask}')
+	survey_mask = MaskData(f'{OUT}/{cf.maps.survey_mask}')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
 	ngal_maps = makeNgalMaps(cat_main, footprint)
 	#write to a file
-	ngal_maps.write(f'{OUT}/{cf.ngal_maps}', clobber=True)
+	ngal_maps.write(f'{OUT}/{cf.maps.ngal_maps}', clobber=True)
 
 	#make the delta_g maps in each redsift bin and store in a single recarray
 	deltag_maps = makeDensityMaps(ngal_maps, survey_mask)
 	#write to a file
-	deltag_maps.write(f'{OUT}/{cf.deltag_maps}', clobber=True)
+	deltag_maps.write(f'{OUT}/{cf.maps.deltag_maps}', clobber=True)
