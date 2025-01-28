@@ -296,6 +296,10 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='', **kwargs
 	else:
 		nside = hp.npix2nside(len(mp))
 	reso = hp.nside2resol(nside, arcmin=True)
+	#determine the xsize and ysize of the figure based on the NSIDE
+	scale_factor = nside // 1024
+	xsize *= scale_factor
+	ysize *= scale_factor
 	#make a copy of the input map to avoid editing in place
 	mp = mp.copy()
 	
