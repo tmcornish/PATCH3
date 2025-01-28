@@ -339,11 +339,11 @@ for g in fields:
 	#cycle through the catalogue types
 	for cat in cats:
 		print(colour_string(cat, 'cyan')) 
-		fname = f'{cf.PATH_OUT}{g}/{cat}'
+		fname = f'{cf.paths.out}{g}/{cat}'
 		with h5py.File(fname, 'w') as fmain:
 			for fd in cf.get_subfields():
 				print(f'Adding data from subfield {fd}...')
-				cat_now = f'{cf.PATH_OUT}{g}/{fd}/{cat}'
+				cat_now = f'{cf.paths.out}{g}/{fd}/{cat}'
 				with h5py.File(cat_now, 'r') as fnow:
 					#check the current structure of the main file
 					paths_current = [p for p,_ in h5py_dataset_iterator(fmain)]
