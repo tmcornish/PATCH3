@@ -2,17 +2,19 @@
 # - 
 #####################################################################################################
 
-import config
+import os
+import sys
+from configuration import PipelineConfig as PC
 import healpy as hp
 import healsparse as hsp
 import numpy as np
-from map_utils import *
+from map_utils import MaskData
 from output_utils import colour_string
-import os
 import glob
 
 ### SETTINGS ###
-cf = config.pcaSystematics
+config_file = sys.argv[1]
+cf = PC(config_file, stage='pcaSystematics')
 
 if cf.plot_eigen:
     import plot_utils as pu
@@ -65,11 +67,11 @@ def load_systmap_hsp(map_path, mask):
 #######################################################
 
 
-for fd in cf.get_global_fields():
+for fd in cf.fields:
     print(colour_string(fd.upper(), 'orange'))
 
     #relevant directories
-    PATH_MAPS = cf.PATH_OUT + f'{fd}/'
+    PATH_MAPS = cf.paths.out + f'{fd}/'
     PATH_SYST = PATH_MAPS + 'systmaps/'
     PATH_PCA = PATH_SYST + 'pca/'
 
