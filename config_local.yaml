@@ -73,6 +73,10 @@ global:
     ngal_maps: ngal_maps
     deltag_maps: deltag_maps
   
+  #important files located in the data directory (without file extension)
+  data_files:
+    metadata: PDR3_WIDE_frames
+  
   #n(z) files (without file extensions)
   nofz_files:
     nz_dir: nz_dists_dir
