@@ -109,6 +109,7 @@ global:
   #auxiliary pipeline files
   auxfiles:
     required_cols: required_cols.txt
+    flags: flags.yaml
     decasu_config: decasu_config_hpix_hsc_dr3.yaml
 
   #tomographic sample definitions (semi-colon separated)
