@@ -73,6 +73,10 @@ global:
     ngal_maps: ngal_maps
     deltag_maps: deltag_maps
   
+  #important files located in the data directory (without file extension)
+  data_files:
+    metadata: PDR3_WIDE_frames
+  
   #n(z) files (without file extensions)
   nofz_files:
     nz_dir: nz_dists_dir
@@ -105,6 +109,7 @@ global:
   #auxiliary pipeline files
   auxfiles:
     required_cols: required_cols.txt
+    flags: flags.yaml
     decasu_config: decasu_config_hpix_hsc_dr3.yaml
 
   #tomographic sample definitions (semi-colon separated)
@@ -141,7 +146,7 @@ getData: &getData
 
 ###########################################################################################
 
-splitMetadata:
+splitMetadata: &splitMetadata
   #boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
   bounds:
     aegis: [212., 216., 51.6, 53.6]
@@ -155,7 +160,7 @@ splitMetadata:
 ###########################################################################################
 
 cleanCats:
-  <<: *getData
+  <<: *getData  
   #types of flag to apply during basic cleaning (list containing 'main' and/or 'strict' or empty)
   remove_if_flagged: [main]
   #logged blending cut (maximum allowed flux estimated to be from blending)
@@ -176,6 +181,7 @@ sampleSelection:
 ###########################################################################################
 
 makeMapsFromMetadata:
+  <<: *splitMetadata
   #number of cores to use for multiprocessing
   ncores: 18
 
