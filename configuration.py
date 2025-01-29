@@ -71,6 +71,10 @@ class PipelineConfig():
 			else:
 				self.config_dict['maps'][key] = self.maps[key] + f'_nside{self.nside_hi}{self.suffix}.hsp'
 		
+		#data files
+		for key in self.data_files:
+			self.config_dict['data_files'][key] = self.paths.data + self.data_files[key] + '.fits'
+
 		#n(z) hdf5 files
 		for key in self.nofz_files:
 			self.config_dict['nofz_files'][key] = self.nofz_files[key] + self.suffix + '.hdf5'
