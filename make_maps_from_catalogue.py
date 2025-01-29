@@ -15,7 +15,7 @@ import healpy as hp
 import healsparse as hsp
 import numpy as np
 from output_utils import colour_string
-from map_utils import *
+import map_utils as mu
 import h5py
 
 ### SETTINGS ###
@@ -82,7 +82,7 @@ def makeDustMap(cat, band='i'):
 	print(f'Creating dust map (band {band})...')
 
 	#cycle through the bands and calculate the mean dust attenuation in each pixel
-	dust_map, _ = createMeanStdMap(cat[f'ra'][:], cat[f'dec'][:], cat[f'a_{band}'][:], cf.nside_lo, cf.nside_hi)
+	dust_map, _ = mu.createMeanStdMap(cat[f'ra'][:], cat[f'dec'][:], cat[f'a_{band}'][:], cf.nside_lo, cf.nside_hi)
 
 	return dust_map
 
@@ -110,7 +110,7 @@ def makeBOMask(cat):
 	flags = cf.flags.brightstar
 	flags = [cat[flag][:] for flag in flags] 
 
-	bo_mask = createMask(ra, dec, flags, cf.nside_lo, cf.nside_hi)
+	bo_mask = mu.createMask(ra, dec, flags, cf.nside_lo, cf.nside_hi)
 
 	return bo_mask
 
@@ -149,9 +149,9 @@ def makeMaskedFrac(cat, nside):
 	vpix = makeFootprint(cat, nside).valid_pixels
 
 	#create counts map of all sources
-	Ntotal_map = countsInPixels(ra, dec, cf.nside_lo, nside, vpix)
+	Ntotal_map = mu.countsInPixels(ra, dec, cf.nside_lo, nside, vpix)
 	#create counts map of flagged sources
-	Nflagged_map = countsInPixels(ra[flagged], dec[flagged], cf.nside_lo, nside, vpix)
+	Nflagged_map = mu.countsInPixels(ra[flagged], dec[flagged], cf.nside_lo, nside, vpix)
 	#calculate the fraction of masked sources in each pixel
 	mf_map = hsp.HealSparseMap.make_empty(cf.nside_lo, nside, dtype=np.float64)
 	mf_map[vpix] = Nflagged_map[vpix] / Ntotal_map[vpix]
@@ -185,7 +185,7 @@ def makeStarMap(cat, footprint):
 	#identify pixels in the survey footprint
 	vpix = footprint.valid_pixels
 	#count the stars in each pixel
-	star_map = countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix)
+	star_map = mu.countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix)
 
 	return star_map
 
@@ -238,16 +238,16 @@ def makeDepthMap(cat, stars_only=True, min_sources=0, footprint=None):
 	snr_thresh = int(cf.sn_pri)
 
 	#create a map containing the mean fluxerr multiplied by the SNR threshold
-	depth_map, _ = createMeanStdMap(ra, dec, snr_thresh * fluxerr, cf.nside_lo, cf.nside_hi)
+	depth_map, _ = mu.createMeanStdMap(ra, dec, snr_thresh * fluxerr, cf.nside_lo, cf.nside_hi)
 
 	#if a minimum number of sources is required, use interpolation to fill in the
 	#values for pixels with fewer sources
 	if min_sources > 0:
 		if footprint:
 			vpix_fp = footprint.valid_pixels
-			counts = countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix_fp)
+			counts = mu.countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix_fp)
 		else:
-			counts = pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
+			counts = mu.pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
 			vpix_fp = counts.valid_pixels 
 		#identify valid pixels with fewer sources than the limit 
 		pix_few = vpix_fp[counts[vpix_fp] < min_sources]
@@ -393,7 +393,7 @@ for fd in cf.fields:
 	bo_mask = makeBOMask(cat_basic)
 	#write to a file
 	bo_mask.write(f'{OUT}/{cf.maps.bo_mask}', clobber=True)
-	healsparseToHDF(bo_mask, f'{OUT}/{cf.maps.bo_mask[:-4]}.hdf5', group='maps/mask')
+	mu.healsparseToHDF(bo_mask, f'{OUT}/{cf.maps.bo_mask[:-4]}.hdf5', group='maps/mask')
 
 	#make the masked fraction map
 	mf_map = makeMaskedFrac(cat_basic, cf.nside_hi)
@@ -415,6 +415,6 @@ for fd in cf.fields:
 	#write to a file
 	survey_mask.write(f'{OUT}/{cf.maps.survey_mask}', clobber=True)
 	#calculate the area above the mask threshold and the fractional sky coverage
-	A_unmasked, f_sky = maskAreaSkyCoverage(survey_mask, thresh=cf.weight_thresh)
+	A_unmasked, f_sky = mu.maskAreaSkyCoverage(survey_mask, thresh=cf.weight_thresh)
 	mask_meta = {'area' : A_unmasked, 'f_sky': f_sky}
-	healsparseToHDF(survey_mask, f'{OUT}/{cf.maps.survey_mask[:-4]}.hdf5', group='maps/mask', metadata=mask_meta)
+	mu.healsparseToHDF(survey_mask, f'{OUT}/{cf.maps.survey_mask[:-4]}.hdf5', group='maps/mask', metadata=mask_meta)
