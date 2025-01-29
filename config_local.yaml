@@ -145,7 +145,7 @@ getData: &getData
 
 ###########################################################################################
 
-splitMetadata:
+splitMetadata: &splitMetadata
   #boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
   bounds:
     aegis: [212., 216., 51.6, 53.6]
@@ -180,6 +180,7 @@ sampleSelection:
 ###########################################################################################
 
 makeMapsFromMetadata:
+  <<: *splitMetadata
   #number of cores to use for multiprocessing
   ncores: 18
 
