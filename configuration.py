@@ -142,3 +142,36 @@ class PipelineConfig():
 				samp_mask *= eval(ex)
 			sample_masks.append(samp_mask)
 		return sample_masks
+	
+
+	@staticmethod
+	def get_field_boundaries(field):
+		'''
+		Given the name of an HSC field, will return the approximate corner coordinates of
+		a rectangular boundary encompassing the field. These coordinates are listed as
+		[RA_min, RA_max, Dec_min, Dec_max].
+
+		Parameters
+		----------
+		field: str
+			Name of the field whose boundaries are to be returned. Must be either 'hectomap',
+			'spring', 'autumn', or 'aegis'.
+		
+		Returns
+		-------
+		bounds: list[float]
+			Coordinates defining the boundary of the field, given as [RA_min, RA_max, Dec_min,
+			Dec_max]. In the event that the field crosses RA=0, RA_min will lie westward of 
+			this longitude, and RA_max will lie eastward (in this situation, RA_min > RA_max).
+		'''
+		if field == 'hectomap':
+			bounds = [195., 255., 41.5, 45.]
+		elif field == 'spring':
+			bounds = [326.25, 41.25, -8., 8.]
+		elif field == 'autumn':
+			bounds = [125., 227.5, -4., 7.]
+		elif field == 'aegis':
+			bounds = [212., 216., 51.6, 53.6]
+		else:
+			raise ValueError('field must be either "hectomap", "spring", "autumn", or "aegis".')
+		return bounds
