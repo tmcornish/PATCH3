@@ -4,12 +4,17 @@
 #####################################################################################################
 
 import os
-import config
+import sys
+from configuration import PipelineConfig as PC
 import healsparse as hsp
 import glob
 import map_utils as mu
 from functools import reduce
 import numpy as np
+
+### SETTINGS ###
+config_file = sys.argv[1]
+cf = PC(config_file, stage='combineFields')
 
 #############################
 ######### FUNCTIONS #########
@@ -36,9 +41,9 @@ def combine_maps(map_name, fields):
     '''
 
     #load the maps
-    maps = [hsp.HealSparseMap.read(f'{cf.PATH_OUT}{fd}/{map_name}') 
+    maps = [hsp.HealSparseMap.read(f'{cf.paths.out}{fd}/{map_name}') 
             for fd in fields
-            if os.path.exists(f'{cf.PATH_OUT}{fd}/{map_name}')
+            if os.path.exists(f'{cf.paths.out}{fd}/{map_name}')
             ]
     #if map only exists for one field, return that as is
     if len(maps) == 1:
@@ -75,37 +80,22 @@ def combine_maps(map_name, fields):
 ###############    START OF SCRIPT    #################
 #######################################################
 
-cf = config.combineFields
 
 #make a directory for the combined maps if necessary
-OUT_MAIN = cf.PATH_OUT + 'combined/'
+OUT_MAIN = cf.paths.out + 'combined/'
 OUT_SYSTS = OUT_MAIN + 'systmaps/'
 if not os.path.exists(OUT_SYSTS):
     os.system(f'mkdir -p {OUT_SYSTS}')
 
 #list of the fields being analysed
-fields = cf.get_global_fields()
+fields = cf.fields
 
-#use the first field to identify the quantities that have been mapped (should be the same for all fields)
-PATH_MAPS = cf.PATH_OUT + fields[0] + '/'
-PATH_SYST = PATH_MAPS + 'systmaps/'
 #lists of quantities and systematics that have been mapped at the desired resolution
-'''quants = sorted(
-    [os.path.basename(m) for m in glob.glob(f'{PATH_MAPS}*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{PATH_MAPS}*_{cf.nside_hi}_*.hsp')]
-)
-quants.extend(
-    sorted(
-        ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp')]
-    )
-)'''
-
 add = lambda x,y : x + y
-quants = [[os.path.basename(m) for m in glob.glob(f'{cf.PATH_OUT}{fd}/*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{cf.PATH_OUT}{fd}/*_{cf.nside_hi}_*.hsp')]
-            + ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{cf.PATH_OUT}{fd}/systmaps/*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{cf.PATH_OUT}{fd}/systmaps/*_{cf.nside_hi}_*.hsp')]
+quants = [[os.path.basename(m) for m in glob.glob(f'{cf.paths.out}{fd}/*_{cf.nside_hi}.hsp') 
+                                   + glob.glob(f'{cf.paths.out}{fd}/*_{cf.nside_hi}_*.hsp')]
+            + ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{cf.paths.out}{fd}/systmaps/*_{cf.nside_hi}.hsp') 
+                                   + glob.glob(f'{cf.paths.out}{fd}/systmaps/*_{cf.nside_hi}_*.hsp')]
             for fd in fields
             ]
 quants = sorted(np.unique(reduce(add, quants)))
