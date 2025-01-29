@@ -7,7 +7,7 @@ from configuration import PipelineConfig as PC
 import healsparse as hsp
 import numpy as np
 from output_utils import colour_string
-from map_utils import *
+import map_utils as mu
 import h5py
 
 ### SETTINGS ###
@@ -44,12 +44,12 @@ def makeNgalMaps(cat, footprint):
 	print('Creating galaxy count maps...')
 	#initialise a recarray to contain the maps for each band
 	labels = [k for k in cf.samples]
-	ngal_maps, _, _ = initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=footprint.valid_pixels, dtypes='f8')
+	ngal_maps, _, _ = mu.initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=footprint.valid_pixels, dtypes='f8')
 
 	#cycle through the sample definitions and count the galaxies in each pixel
 	for k in cf.samples:
 		sel = cat[k][:]
-		_, ngal = countsInPixels(cat[f'ra'][sel], cat[f'dec'][sel], cf.nside_lo, cf.nside_hi, footprint.valid_pixels, return_vals=True)
+		_, ngal = mu.countsInPixels(cat[f'ra'][sel], cat[f'dec'][sel], cf.nside_lo, cf.nside_hi, footprint.valid_pixels, return_vals=True)
 		ngal_maps[k][footprint.valid_pixels] = np.asarray(ngal, dtype='f8')
 
 	return ngal_maps
@@ -82,7 +82,7 @@ def makeDensityMaps(ngal_maps, mask):
 	#initialise a recarray to contain the maps for each band
 	labels = [k for k in cf.samples]
 	#make a copy of the inputted recarray
-	deltag_maps, *_ = initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=mask.vpix_nest, dtypes='f8')
+	deltag_maps, *_ = mu.initialiseRecMap(cf.nside_lo, cf.nside_hi, labels, pixels=mask.vpix_nest, dtypes='f8')
 	for k in cf.samples:
 		#calculate the mean galaxy counts and mean weight for pixels being kept
 		mu_n = np.mean(ngal_maps[k][mask.vpix_nest])
@@ -110,7 +110,7 @@ for fd in cf.fields:
 	cat_main = h5py.File(f'{OUT}/{cf.cats.main}', 'r')['photometry']
 	#load the survey footprint and mask
 	footprint = hsp.HealSparseMap.read(f'{OUT}/footprint_{cf.nside_hi}.hsp')
-	survey_mask = MaskData(f'{OUT}/{cf.maps.survey_mask}')
+	survey_mask = mu.MaskData(f'{OUT}/{cf.maps.survey_mask}')
 
 	#make the galaxy count maps in each redsift bin and store in a single recarray
 	ngal_maps = makeNgalMaps(cat_main, footprint)
