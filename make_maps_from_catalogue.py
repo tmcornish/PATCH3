@@ -9,20 +9,19 @@
 #####################################################################################################
 
 import os
-import config
+import sys
+from configuration import PipelineConfig as PC
 import healpy as hp
 import healsparse as hsp
-from astropy.table import Table
 import numpy as np
 from output_utils import colour_string
 from map_utils import *
 import h5py
-import flags as fl
 
 ### SETTINGS ###
-cf = config.makeMapsFromCat
+config_file = sys.argv[1]
+cf = PC(config_file, stage='makeMapsFromCat')
 npix = hp.nside2npix(cf.nside_hi)
-
 
 ###################
 #### FUNCTIONS ####
@@ -108,7 +107,7 @@ def makeBOMask(cat):
 	ra = cat[f'ra'][:]
 	dec = cat[f'dec'][:]
 	#get the columns containing bright-object flags
-	flags = fl.get_flags(cf.band, cf.bands, types=['brightstar'], incl_channelstop=cf.incl_channelstop)
+	flags = cf.flags.brightstar
 	flags = [cat[flag][:] for flag in flags] 
 
 	bo_mask = createMask(ra, dec, flags, cf.nside_lo, cf.nside_hi)
@@ -140,9 +139,11 @@ def makeMaskedFrac(cat, nside):
 	ra = cat['ra'][:]
 	dec = cat['dec'][:]
 	#get the columns containing the flags to be incorporated in the mask
-	flags = fl.get_flags(cf.band, cf.bands, types=cf.flags_to_mask, incl_channelstop=cf.incl_channelstop)
-	#combine the flags
-	flagged = fl.combine_flags(cat, flags)
+	flags = []
+	for fl in cf.flags_to_mask:
+		flags.extend(cf.flags[fl])
+	#combine the flags (OR operation)
+	flagged = cf.combine_flags(cat, flags)
 
 	#get the valid pixels at the desired resolution
 	vpix = makeFootprint(cat, nside).valid_pixels
@@ -185,7 +186,6 @@ def makeStarMap(cat, footprint):
 	vpix = footprint.valid_pixels
 	#count the stars in each pixel
 	star_map = countsInPixels(ra, dec, cf.nside_lo, cf.nside_hi, vpix)
-	#pixelCountsFromCoords(ra, dec, cf.nside_lo, cf.nside_hi)
 
 	return star_map
 
@@ -233,7 +233,7 @@ def makeDepthMap(cat, stars_only=True, min_sources=0, footprint=None):
 	dec = cat[f'dec'][star_mask]
 
 	#retrieve the flux error in the primary band for each source
-	fluxerr = cat[f'{cf.band}_cmodel_fluxerr'][star_mask]
+	fluxerr = cat[f'{cf.bands.primary}_cmodel_fluxerr'][star_mask]
 	#retrieve the SNR threshold
 	snr_thresh = int(cf.sn_pri)
 
@@ -336,7 +336,7 @@ def makeSurveyMask(cat, depth_map=None):
 		#set up a list of maps to be combined into a binary map
 		nexp_bin = []
 		#load the N_exp maps for each band
-		for b in cf.bands:
+		for b in cf.bands.all:
 			nexp = hsp.HealSparseMap.read(f'{PATH_SYST}/decasu_{cf.nside_hi}_{b}_nexp_sum.hsp')
 			#set all pixels with n_exp > 1 equal to 1
 			nexp[nexp.valid_pixels] = 1
@@ -362,28 +362,28 @@ def makeSurveyMask(cat, depth_map=None):
 #######################################################
 
 #cycle through each of the fields
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	print(colour_string(fd.upper(), 'orange'))
 	#output directory for this field
-	OUT = cf.PATH_OUT + fd
+	OUT = cf.paths.out + fd
 	#path for systematics maps (create if it doesn't exist already)
 	PATH_SYST = OUT + '/systmaps'
 	if not os.path.exists(PATH_SYST):
 		os.system(f'mkdir -p {PATH_SYST}')
 
 	#load the basic and fully cleaned galaxy/star catalogues for this field
-	cat_basic = h5py.File(f'{OUT}/{cf.cat_basic}', 'r')['photometry']
-	cat_main = h5py.File(f'{OUT}/{cf.cat_main}', 'r')['photometry']
-	cat_stars = h5py.File(f'{OUT}/{cf.cat_stars}', 'r')['photometry']
+	cat_basic = h5py.File(f'{OUT}/{cf.cats.basic}', 'r')['photometry']
+	cat_main = h5py.File(f'{OUT}/{cf.cats.main}', 'r')['photometry']
+	cat_stars = h5py.File(f'{OUT}/{cf.cats.stars}', 'r')['photometry']
 
 	#make the footprint for the current field
 	footprint = makeFootprint(cat_basic, cf.nside_hi)
 	#write to a file
-	footprint.write(f'{OUT}/{cf.footprint}', clobber=True)
+	footprint.write(f'{OUT}/{cf.maps.footprint}', clobber=True)
 	#retrieve the IDs of the occupied pixels
 	vpix = footprint.valid_pixels
 
-	for b,dm in zip(cf.bands, cf.dustmaps):
+	for b,dm in zip(cf.bands.all, cf.maps.dustmaps):
 		#make the dust maps in the current band
 		dust_map = makeDustMap(cat_basic, band=b)
 		#write to a file
@@ -392,29 +392,29 @@ for fd in cf.get_global_fields():
 	#make the bright object mask
 	bo_mask = makeBOMask(cat_basic)
 	#write to a file
-	bo_mask.write(f'{OUT}/{cf.bo_mask}', clobber=True)
-	healsparseToHDF(bo_mask, f'{OUT}/{cf.bo_mask[:-4]}.hdf5', group='maps/mask')
+	bo_mask.write(f'{OUT}/{cf.maps.bo_mask}', clobber=True)
+	healsparseToHDF(bo_mask, f'{OUT}/{cf.maps.bo_mask[:-4]}.hdf5', group='maps/mask')
 
 	#make the masked fraction map
 	mf_map = makeMaskedFrac(cat_basic, cf.nside_hi)
 	#write to a file
-	mf_map.write(f'{OUT}/{cf.masked_frac}', clobber=True)
+	mf_map.write(f'{OUT}/{cf.maps.masked_frac}', clobber=True)
 
 	#make the star counts map
 	star_map = makeStarMap(cat_stars, footprint)
 	#write to a file
-	star_map.write(f'{PATH_SYST}/{cf.star_map}', clobber=True)
+	star_map.write(f'{PATH_SYST}/{cf.maps.star_map}', clobber=True)
 
 	#make the depth map
 	depth_map = makeDepthMap(cat_basic, stars_only=cf.stars_for_depth, min_sources=cf.min_sources, footprint=footprint)
 	#write to a file
-	depth_map.write(f'{OUT}/{cf.depth_map}', clobber=True)
+	depth_map.write(f'{OUT}/{cf.maps.depth_map}', clobber=True)
 
 	#make a survey mask by applying a masked fraction threshold
 	survey_mask = makeSurveyMask(cat_basic, depth_map=depth_map)
 	#write to a file
-	survey_mask.write(f'{OUT}/{cf.survey_mask}', clobber=True)
+	survey_mask.write(f'{OUT}/{cf.maps.survey_mask}', clobber=True)
 	#calculate the area above the mask threshold and the fractional sky coverage
 	A_unmasked, f_sky = maskAreaSkyCoverage(survey_mask, thresh=cf.weight_thresh)
 	mask_meta = {'area' : A_unmasked, 'f_sky': f_sky}
-	healsparseToHDF(survey_mask, f'{OUT}/{cf.survey_mask[:-4]}.hdf5', group='maps/mask', metadata=mask_meta)
+	healsparseToHDF(survey_mask, f'{OUT}/{cf.maps.survey_mask[:-4]}.hdf5', group='maps/mask', metadata=mask_meta)
