@@ -41,6 +41,8 @@ class PipelineConfig():
 		self._set_output_names()
 		#identify the machine or cluster on which this is being run
 		self._set_platform()
+		#identify the various flags to be applied when removing sources
+		self._set_flags()		
 
 
 	def __getattr__(self, name):
@@ -114,6 +116,32 @@ class PipelineConfig():
 		
 		#set the name of the node as a property of the class
 		self.config_dict['platform'] = node
+	
+
+	def _set_flags(self):
+		'''
+		Retrieves the column names for all flags to be used when excluding sources from analysis,
+		using names listed in the file specified as self.auxfiles.flags.
+		'''
+		self.config_dict['flags'] = {}
+		with open(self.auxfiles.flags) as f:
+			flags_dict = yaml.safe_load(f)
+
+		#brightstar flags are assumed to be associated with the primary band unless they begin with the band name
+		self.config_dict['flags']['brightstar'] = [f'{self.bands.primary}{fl}' if fl.startswith('_') else fl 
+											 		for fl in flags_dict['brightstar']]
+		
+		#'main' flags are associated with the primary band
+		self.config_dict['flags']['main'] = [f'{self.bands.primary}{fl}' for fl in flags_dict['main']]
+
+		#'strict' flags are associated with all bands
+		import itertools
+		self.config_dict['flags']['strict'] = list(
+			itertools.chain.from_iterable(
+				[f'{b}{fl}' for fl in flags_dict['strict']]
+				for b in self.bands.all
+			)
+		)
 
 
 	def get_subfields(self):
@@ -199,3 +227,42 @@ class PipelineConfig():
 		else:
 			raise ValueError('field must be either "hectomap", "spring", "autumn", or "aegis".')
 		return bounds
+	
+
+	@staticmethod
+	def combine_flags(dataset, flagcols, combine_type='or'):
+		'''
+		Combines flag columns with the specified operation ('and' or 'or').
+
+		Parameters
+		----------
+		dataset: HDF5 Dataset or Group
+			Dataset containing the relevant flags.
+
+		flagcols: list
+			List of all columns containing the flags to be combined.
+
+		combine_type: str
+			Operation to be used to combine the flags ('and' or 'or').
+
+		Returns
+		-------
+		flags_comb: array-like
+			The result of combining the flags.
+		'''
+
+		#see if valid combine_type has been chosen
+		combine_type = combine_type.lower()
+		if combine_type not in ['or', 'and']:
+			raise TypeError('combine_type must be either "and" or "or" (capital letters allowed).')
+
+		if combine_type == 'or':
+			combine = lambda x,y : x + y
+		else:
+			combine = lambda x,y : x * y
+
+		flags_comb = [dataset[fl][:] for fl in flagcols]
+		from functools import reduce
+		flags_comb = reduce(combine, flags_comb)
+
+		return flags_comb
