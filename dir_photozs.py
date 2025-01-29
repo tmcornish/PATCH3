@@ -7,19 +7,20 @@
 #	- Adapt script so that the data can be automatically retrieved if they do not exist?
 #####################################################################################################
 
-import config
+import os
+import sys
+from configuration import PipelineConfig as PC
 import h5py
 import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from astropy.io import fits
 from astropy.table import Table, hstack
 from sklearn.neighbors import NearestNeighbors
 import scipy.spatial as spatial
-import os
 
 ### SETTINGS ###
-cf = config.dirPhotozs
+config_file = sys.argv[1]
+cf = PC(config_file, stage='dirPhotozs')
 
 
 #######################################################
@@ -35,7 +36,7 @@ if os.path.exists(cf.hsc_cosmos_cat):
 		gp = hf['photometry']
 		#columns to include in the Table
 		cols_hsc = ['ra', 'dec']
-		cols_hsc += [f'{b}_cmodel_mag' for b in cf.bands]
+		cols_hsc += [f'{b}_cmodel_mag' for b in cf.bands.all]
 		cols_hsc += [f'pz_{s}_dnnz' for s in ['mean', 'mode', 'best', 'mc', 'err68_min', 'err68_max', 'err95_min', 'err95_max']]
 		hsc_data = Table([gp[col][:] for col in cols_hsc], names=cols_hsc)
 else:
@@ -92,7 +93,7 @@ del cosmos_data, hsc_matched, cosmos_matched
 
 print('Computing colour-space weights...')
 ##########################################
-train_sample = np.array([np.array(cat_matched[f'{b}_cmodel_mag']) for b in cf.bands]).T
+train_sample = np.array([np.array(cat_matched[f'{b}_cmodel_mag']) for b in cf.bands.all]).T
 train_z = np.array(cat_matched['lp_zMinChi2'])
 photoz_sample = np.array([hsc_data[f'{b}_cmodel_mag'] for b in cf.bands]).T
 #find k nearest neighbours in 5D colour space
@@ -110,15 +111,12 @@ weights = (num_photoz / 20) * (len(train_sample) / len(photoz_sample))
 
 print('Computing n(z) for each tomographic bin...')
 ###################################################
-nbins = len(cf.zbins) - 1
-zbin_masks = [(cat_matched[cf.zcol] >= cf.zbins[i]) * (cat_matched[cf.zcol] < cf.zbins[i+1])
-			  for i in range(nbins)
-			  ]
+zbin_masks = cf.get_samples(cat_matched)
 #bin edges and centres for the n(z) distributions
-bins = bins = np.arange(0., 7.+cf.dz, cf.dz) 
+bins = np.arange(0., 7.+cf.dz, cf.dz) 
 bin_centres = (bins[1:] + bins[:-1]) / 2
 #calculate and ave outputs to file
-with h5py.File(cf.nz_dir_file, 'w') as hf:
+with h5py.File(cf.nofz_files.nz_dir, 'w') as hf:
 	hf.create_dataset('z', data=bin_centres)
 	for i,zb in enumerate(zbin_masks):
 		nz, _ = np.histogram(cat_matched['lp_zMinChi2'][zb], bins, weights=weights[zb], density=True)

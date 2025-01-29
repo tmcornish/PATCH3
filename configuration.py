@@ -37,6 +37,9 @@ class PipelineConfig():
 		#define a new property containing all bands
 		self.config_dict['bands']['all'] = [self.bands.primary] + self.bands.secondary
 
+		#get the number of samples and set it as a property
+		self.config_dict['nsamples'] = len(self.samples)
+
 		#set the map and catalogue names
 		self._set_output_names()
 		#identify the machine or cluster on which this is being run
@@ -81,7 +84,7 @@ class PipelineConfig():
 
 		#n(z) hdf5 files
 		for key in self.nofz_files:
-			self.config_dict['nofz_files'][key] = self.nofz_files[key] + self.suffix + '.hdf5'
+			self.config_dict['nofz_files'][key] = self.paths.out + self.nofz_files[key] + self.suffix + '.hdf5'
 		
 		#power spectra hdf5 files
 		for key in self.cell_files:
