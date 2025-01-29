@@ -39,6 +39,8 @@ class PipelineConfig():
 
 		#set the map and catalogue names
 		self._set_output_names()
+		#identify the machine or cluster on which this is being run
+		self._set_platform()
 
 
 	def __getattr__(self, name):
@@ -94,6 +96,24 @@ class PipelineConfig():
 			self.config_dict['cache_files']['hods'][key] = self.cache_files.hods[key] + \
 																f'_nside{self.nside_hi}{self.suffix}.txt'
 
+
+	def _set_platform(self):
+		'''
+		Identifies the machine or cluster on which the pipeline is being run, and sets it as
+		a property of the class.
+		'''
+		import platform as pf
+		#get the name of the node on which this is being run
+		node = pf.node()
+		if node.startswith('comp'):
+			node = 'glamdring'
+		elif node.startswith('nid'):
+			node = 'nersc'
+		else:
+			node = 'local'
+		
+		#set the name of the node as a property of the class
+		self.config_dict['platform'] = node
 
 
 	def get_subfields(self):
