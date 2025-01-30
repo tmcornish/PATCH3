@@ -59,11 +59,18 @@ def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
 	spacing: str (optional)
 		String specifying the desired type of spacing between bandpowers. Must be one
 		of either 'linear', 'log' or 'N19' (Nicola+19 bandpower edges). NOTE: selecting
-		'N19' will overwrite all other settings.
+		'N19' will overwrite ell_min and nbpws.
+	
+	Returns
+	-------
+	bpw_edges: np.ndarray[int]
+		Array containing the edges of each bandpower.
 	'''
 	if spacing == 'N19':
 		bpw_edges = np.array([100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
 			 3800, 4600, 6200, 7800, 9400, 12600, 15800]).astype(int)
+		#remove any bin edges higher then ell_max
+		bpw_edges = bpw_edges[bpw_edges <= ell_max]
 	elif spacing == 'linear':
 		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws+1).astype(int))
 	elif spacing == 'log':
