@@ -10,8 +10,9 @@ global:
   
   #column names corresponding to key quantities in the catalogue
   key_cols:
-    zphot: pz_best_dnnz
     mag: cmodel_mag
+    zphot: pz_best_dnnz
+    zphot_mc: pz_mc_dnnz
 
   #data release
   dr: pdr3_wide
@@ -249,10 +250,6 @@ theoryPredictions:
   <<: *dirPhotozs
   #whether to use the n(z) distributions caculated using DIR
   use_dir: true
-
-  #column in the catalogues containing the random MC draws from the redshift distribution
-  #(only relevant if use_dir == False)
-  z_mc_col: pz_mc_dnnz
 
 ###########################################################################################
 
