@@ -38,8 +38,8 @@ for fd in cf.fields:
 		with open(f'{OUT}/{cf.sample_summary_file}', 'w') as outfile:
 			outfile.write('Sample\tCounts\n')
 			#cycle through the samples
-			for sm, key in zip(sample_masks, cf.samples):
-				sm *= outlier_mask
+			for key in sample_masks:
+				sm = sample_masks[key] * outlier_mask
 				#create a dataset for each of these masks
 				d = gp.require_dataset(key, sm.shape, dtype=bool)
 				d[:] = sm

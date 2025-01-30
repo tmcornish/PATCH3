@@ -177,13 +177,13 @@ class PipelineConfig():
 		
 		Returns
 		-------
-		sample_masks: list[numpy.array]
-			List of boolean arrays identifying which sources in the catalogue
+		sample_masks: dict[numpy.array]
+			Dictionary of boolean arrays identifying which sources in the catalogue
 			belong to each sample.
 		'''
 		import numpy as np
 
-		sample_masks = []
+		sample_masks = {}
 		for s in self.samples:
 			samp = self.samples[s]
 			#replace any references to key columns with their actual names
@@ -195,7 +195,7 @@ class PipelineConfig():
 			samp_mask = np.ones_like(cat[next(iter(cat.keys()))][:], dtype=bool)
 			for ex in samp:
 				samp_mask *= eval(ex)
-			sample_masks.append(samp_mask)
+			sample_masks[s] = samp_mask
 		return sample_masks
 	
 
