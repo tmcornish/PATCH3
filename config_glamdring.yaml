@@ -7,11 +7,12 @@ global:
     data: /mnt/extraspace/tmcornish/Datasets/HSC_DR3/
     out: /mnt/extraspace/tmcornish/pHSC3_out/
     figures: /mnt/extraspace/tmcornish/pHSC3_out/figures/
-  
+   
   #column names corresponding to key quantities in the catalogue
   key_cols:
-    zphot: pz_best_dnnz
     mag: cmodel_mag
+    zphot: pz_best_dnnz
+    zphot_mc: pz_mc_dnnz
 
   #data release
   dr: pdr3_wide
@@ -100,7 +101,11 @@ global:
       mcmc_backend: hod_mcmc_backend
 
   #base name for SACC files produced by the pipeline (without file extension)
-  sacc_out: gc_sacc
+  sacc_files: 
+    main: gc_sacc
+    noise: noise_sacc
+    bias: deproj_bias_sacc
+    nodeproj: gc_sacc_nodeproj
 
   #base names for the plots produced by the pipeline (without file extensions)
   plots:
@@ -250,10 +255,6 @@ theoryPredictions:
   #whether to use the n(z) distributions caculated using DIR
   use_dir: true
 
-  #column in the catalogues containing the random MC draws from the redshift distribution
-  #(only relevant if use_dir == False)
-  z_mc_col: pz_mc_dnnz
-
 ###########################################################################################
 
 computePowerSpectra:
@@ -263,10 +264,10 @@ computePowerSpectra:
   #(optional) maximum number of systematics to deproject - uses all provided if set to null
   Nsyst_max: null
 
-  #whether to use the pseudo-log spaced bandpowers from Nicola+19
-  use_N19_bpws: false
+  #bandpower spacing to use - must be linear, log, or N19 (Nicola+19 pseudo-log spacing)
+  bpw_spacing: linear
   #number of bandpowers to use if not using edges from Nicola+19
-  nbpws: 18
+  nbpws: 17
   #minimum ell (i.e. largest scale) to use
   ell_min: 1
   #whether to use linear or log spacing for the bandpowers
@@ -288,7 +289,8 @@ covariances:
 ###########################################################################################
 
 makeSaccFiles:
-  foo: null
+  #whether to use the n(z) distributions caculated using DIR
+  use_dir: true
 
 ###########################################################################################
 
