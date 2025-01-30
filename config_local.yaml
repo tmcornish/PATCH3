@@ -260,10 +260,10 @@ computePowerSpectra:
   #(optional) maximum number of systematics to deproject - uses all provided if set to null
   Nsyst_max: null
 
-  #whether to use the pseudo-log spaced bandpowers from Nicola+19
-  use_N19_bpws: false
+  #bandpower spacing to use - must be linear, log, or N19 (Nicola+19 pseudo-log spacing)
+  bpw_spacing: linear
   #number of bandpowers to use if not using edges from Nicola+19
-  nbpws: 18
+  nbpws: 17
   #minimum ell (i.e. largest scale) to use
   ell_min: 1
   #whether to use linear or log spacing for the bandpowers
