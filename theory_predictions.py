@@ -72,8 +72,8 @@ def compute_nofz(fd):
 	nofz = {'z' : bin_centres}
 
 	#generate the histograms and store them in the dictionary
-	for samp, mask in zip(cf.samples, masks):
-		nofz[f'nz_{samp}'] = np.histogram(z_mc[mask], bins=bins, density=True)[0]
+	for samp in masks:
+		nofz[f'nz_{samp}'] = np.histogram(z_mc[masks[samp]], bins=bins, density=True)[0]
 	
 	return nofz
 
