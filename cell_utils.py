@@ -65,9 +65,9 @@ def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
 		bpw_edges = np.array([100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
 			 3800, 4600, 6200, 7800, 9400, 12600, 15800]).astype(int)
 	elif spacing == 'linear':
-		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws).astype(int))
+		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws+1).astype(int))
 	elif spacing == 'log':
-		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws).astype(int))
+		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
 	else:
 		raise ValueError('spacing must be one of "linear", "log", or "N19".')
 	
