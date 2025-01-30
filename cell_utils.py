@@ -7,35 +7,35 @@ import numpy as np
 
 
 def get_bin_pairings(nbins, auto_only=False):
-		'''
-		Returns pairs of IDs for each tomographic bin being analysed. Also
-		returns comma-separated string versions of the ID pairs.
+	'''
+	Returns pairs of IDs for each tomographic bin being analysed. Also
+	returns comma-separated string versions of the ID pairs.
 
-		Parameters
-		----------
-		nbins: int
-			Number of bins being considered.
-		
-		auto_only: bool
-			If True, will only return each bin paired with itself.
-		
-		Returns
-		-------
-		pairings: list[tuple]
-			List of possible bin pairings.
-		
-		pairings_s: list[str]
-			List of comma-separated string versions of the ID pairs.
-		'''
-		import itertools
+	Parameters
+	----------
+	nbins: int
+		Number of bins being considered.
+	
+	auto_only: bool
+		If True, will only return each bin paired with itself.
+	
+	Returns
+	-------
+	pairings: list[tuple]
+		List of possible bin pairings.
+	
+	pairings_s: list[str]
+		List of comma-separated string versions of the ID pairs.
+	'''
+	import itertools
 
-		l = list(range(nbins))
-		if auto_only:
-			pairings = [(i,i) for i in l]
-		else:
-			pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
-		return pairings, pairings_s
+	l = list(range(nbins))
+	if auto_only:
+		pairings = [(i,i) for i in l]
+	else:
+		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+	pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+	return pairings, pairings_s
 
 
 def get_data_from_sacc(s, auto_only=False):
