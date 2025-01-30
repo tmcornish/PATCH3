@@ -38,6 +38,42 @@ def get_bin_pairings(nbins, auto_only=False):
 	return pairings, pairings_s
 
 
+def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
+	'''
+	Returns an array of bandpower edges for use in pseudo-Cl computation, based on the
+	specified maximum and (optional) minimum multipole, and the type of spacing between 
+	bandpowers.
+
+	Parameters
+	----------
+
+	ell_max: int
+		Maximum multipole to be considered.
+	
+	ell_min: int (optional)
+		Minimum multipole to be considered (assumed to be 1 by default).
+	
+	nbpws: int
+		Desired number of bandpowers.
+	
+	spacing: str (optional)
+		String specifying the desired type of spacing between bandpowers. Must be one
+		of either 'linear', 'log' or 'N19' (Nicola+19 bandpower edges). NOTE: selecting
+		'N19' will overwrite all other settings.
+	'''
+	if spacing == 'N19':
+		bpw_edges = np.array([100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
+			 3800, 4600, 6200, 7800, 9400, 12600, 15800]).astype(int)
+	elif spacing == 'linear':
+		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws).astype(int))
+	elif spacing == 'log':
+		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws).astype(int))
+	else:
+		raise ValueError('spacing must be one of "linear", "log", or "N19".')
+	
+	return bpw_edges
+
+
 def get_data_from_sacc(s, auto_only=False):
 	'''
 	Retrieves the relevant covariance information, which depends on the
