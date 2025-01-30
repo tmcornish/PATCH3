@@ -2,28 +2,25 @@
 # - Fits a halo occupation distribution model to the measured angular power spectra.
 #####################################################################################################
 
-import config
+import os
+import sys
+from configuration import PipelineConfig as PC
 import emcee
-import sacc
 import numpy as np
-import itertools
 import pyccl as ccl
-import h5py
 import multiprocessing as mp
 from scipy.optimize import minimize
-from output_utils import colour_string, select_from_sacc
-import os
+from output_utils import colour_string
+from cell_utils import select_from_sacc, get_bin_pairings
 
 ### SETTINGS ###
-cf = config.fitHods
+config_file = sys.argv[1]
+cf = PC(config_file, stage='fitHods')
 #fiducial comsology
 cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
 
 #determine the bin pairings
-if cf.auto_only:
-	pairings = [(i,i) for i in range(cf.nbins)]
-else:
-	pairings, _ = cf.get_bin_pairings()
+pairings, _ = get_bin_pairings(cf.nsamples, cf.auto_only)
 
 #range of wavenumbers and scale factors over which theory power spectra will be computed
 lk_arr = np.log(np.geomspace(1E-4, 100, 256))
@@ -44,8 +41,7 @@ hmc = ccl.halos.HMCalculator(
 prof2pt = ccl.halos.Profile2ptHOD()
 
 #for redshift-dependent parameters
-z_pivot = 0.65
-a_pivot = 1 / (1 + z_pivot)
+a_pivot = 1 / (1 + cf.z_pivot)
 
 #############################
 ######### FUNCTIONS #########
@@ -304,21 +300,17 @@ def nll(*args):
 #######################################################
 
 
-#determine the bin pairings
-if cf.auto_only:
-	pairings = [(i,i) for i in range(cf.nbins)]
-else:
-	pairings, _ = cf.get_bin_pairings()
+#determine the tracer combinations
 tracer_combos = [(f'cl{i}', f'cl{j}') for i,j in pairings]
 ncombos = len(tracer_combos)
 
 #cycle through the fields being analysed
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	
-	PATH_FD = cf.PATH_OUT + fd + '/'
+	PATH_FD = cf.paths.out + fd + '/'
 
 	#load the Sacc file containing the power spectrum info
-	s = select_from_sacc(PATH_FD + cf.outsacc, tracer_combos, 'cl_00')
+	s = select_from_sacc(PATH_FD + cf.sacc_files.main, tracer_combos, 'cl_00')
 	#get ells and cells (no scale cuts applied at this stage)
 	ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()]
 	ells_all = [ell_cl[i][0] for i in range(len(ell_cl))]
@@ -371,22 +363,22 @@ for fd in cf.get_global_fields():
 		nwalkers = 2 * ncores
 
 		#initial positions for the walkers
-		p0 = [soln.x + np.array([cf.dmu_min * np.random.rand(),
-								cf.dmu_1 * np.random.rand(),
-								cf.dmu_minp * np.random.rand(),
-								cf.dmu_1p * np.random.rand(),
-								cf.dalpha_smooth * np.random.rand()])
+		p0 = [soln.x + np.array([cf.dmax.mu_min * np.random.rand(),
+								cf.dmax.mu_1 * np.random.rand(),
+								cf.dmax.mu_minp * np.random.rand(),
+								cf.dmax.mu_1p * np.random.rand(),
+								cf.dmax.alpha_smooth * np.random.rand()])
 								for _ in range(nwalkers)]
 		p0 = np.array(p0)
-		p0 -= np.array([cf.dmu_min/2.,
-				  cf.dmu_1/2., 
-				  cf.dmu_minp/2.,
-				  cf.dmu_1p/2.,
-				  cf.dalpha_smooth/2.])
+		p0 -= np.array([cf.dmax.mu_min/2.,
+				  cf.dmax.mu_1/2., 
+				  cf.dmax.mu_minp/2.,
+				  cf.dmax.mu_1p/2.,
+				  cf.dmax.alpha_smooth/2.])
 
 		
 		#set up an HDF5 backend
-		backend = emcee.backends.HDFBackend(PATH_FD + cf.backend_file)
+		backend = emcee.backends.HDFBackend(PATH_FD + cf.cache_files.hods.mcmc_backend)
 		backend.reset(nwalkers, ndim)
 		
 
