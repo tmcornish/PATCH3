@@ -100,6 +100,11 @@ class PipelineConfig():
 		for key in self.cache_files.hods:
 			self.config_dict['cache_files']['hods'][key] = self.cache_files.hods[key] + \
 																f'_nside{self.nside_hi}{self.suffix}.txt'
+		
+		#output SACC files
+		for key in self.sacc_files:
+			self.config_dict['sacc_files'][key] = self.sacc_files[key] + \
+													f'_nside{self.nside_hi}{self.suffix}.fits'
 
 
 	def _set_platform(self):

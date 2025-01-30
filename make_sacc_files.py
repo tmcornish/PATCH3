@@ -159,7 +159,7 @@ for fd in cf.fields:
 	s_main.add_covariance(covar_all)
 	s_nodeproj.add_covariance(covar_all_nodeproj)
 
-	s_main.save_fits(f'{PATH_INFO}{cf.sacc_out}', overwrite=True)
-	s_nodeproj.save_fits(f'{PATH_INFO}{cf.sacc_out[:-5]}_nodeproj.fits', overwrite=True)
-	s_noise.save_fits(f'{PATH_INFO}{cf.sacc_out[:-5]}_noise.fits', overwrite=True)
-	s_bias.save_fits(f'{PATH_INFO}{cf.sacc_out[:-5]}_deprojbias.fits', overwrite=True)
+	s_main.save_fits(f'{PATH_INFO}{cf.sacc_files.main}', overwrite=True)
+	s_nodeproj.save_fits(f'{PATH_INFO}{cf.sacc_files.nodeproj}', overwrite=True)
+	s_noise.save_fits(f'{PATH_INFO}{cf.sacc_files.noise}', overwrite=True)
+	s_bias.save_fits(f'{PATH_INFO}{cf.sacc_files.bias}', overwrite=True)

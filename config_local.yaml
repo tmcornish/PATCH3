@@ -101,7 +101,11 @@ global:
       mcmc_backend: hod_mcmc_backend
 
   #base name for SACC files produced by the pipeline (without file extension)
-  sacc_out: gc_sacc
+  sacc_files: 
+    main: gc_sacc
+    noise: noise_sacc
+    bias: deproj_bias_sacc
+    nodeproj: gc_sacc_nodeproj
 
   #base names for the plots produced by the pipeline (without file extensions)
   plots:
