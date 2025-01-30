@@ -393,7 +393,6 @@ for fd in cf.fields:
 	bo_mask = makeBOMask(cat_basic)
 	#write to a file
 	bo_mask.write(f'{OUT}/{cf.maps.bo_mask}', clobber=True)
-	mu.healsparseToHDF(bo_mask, f'{OUT}/{cf.maps.bo_mask[:-4]}.hdf5', group='maps/mask')
 
 	#make the masked fraction map
 	mf_map = makeMaskedFrac(cat_basic, cf.nside_hi)
@@ -414,7 +413,3 @@ for fd in cf.fields:
 	survey_mask = makeSurveyMask(cat_basic, depth_map=depth_map)
 	#write to a file
 	survey_mask.write(f'{OUT}/{cf.maps.survey_mask}', clobber=True)
-	#calculate the area above the mask threshold and the fractional sky coverage
-	A_unmasked, f_sky = mu.maskAreaSkyCoverage(survey_mask, thresh=cf.weight_thresh)
-	mask_meta = {'area' : A_unmasked, 'f_sky': f_sky}
-	mu.healsparseToHDF(survey_mask, f'{OUT}/{cf.maps.survey_mask[:-4]}.hdf5', group='maps/mask', metadata=mask_meta)
