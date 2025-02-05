@@ -131,7 +131,7 @@ submit_pyjob "-q cmb -m 40" sample_selection.py
 #metamaps_job "-q cmb -n 1x24 -m 7 -s" make_maps_from_metadata.py
 
 ### making maps from the catalogue data
-#submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
+#submit_pyjob "-q cmb -n 1x10 -m 4" make_maps_from_catalogue.py
 
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py
