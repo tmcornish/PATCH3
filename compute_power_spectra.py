@@ -131,7 +131,7 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_couple
 
 #retrieve the pairing being analysed from the arguments if provided
 try:
-	pairings = [sys.argv[1]]
+	pairings = [sys.argv[2]]
 	per_tomo = True
 except IndexError:
 	_, pairings = cu.get_bin_pairings(cf.nsamples)
