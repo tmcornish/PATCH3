@@ -26,6 +26,9 @@ configfile = cf.auxfiles.decasu_config
 #create Configuration object for Decasu
 CONF = Configuration.load_yaml(configfile)
 
+#overwrite the output file basenames and NSIDE to match pipeline config
+CONF.outbase = f'decasu_nside{cf.nside_hi}'
+CONF.nside = cf.nside_hi
 
 #the rest of the script now depends on whether it is being run locally or on glamdring
 if cf.platform == 'local':
