@@ -69,7 +69,7 @@ function metamaps_job () {
 
     #see if pipeline configured to split metadata
     pya="from configuration import PipelineConfig as PC; "
-    pyb="cf = PC($config_file, 'makeMapsFromMetadata'); "
+    pyb="cf = PC('$config_file', 'makeMapsFromMetadata'); "
     pyc="print(cf.split_by_band)"
     if [[ $($PYEX -c "$pya$pyb$pyc") == "True" ]]
     then
@@ -77,13 +77,13 @@ function metamaps_job () {
         pyc="print(' '.join(cf.bands.all))"
         for b in $($PYEX -c "$pya$pyb$pyc")
         do
-            addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
+            addqueue $1 "$runafter" $PYEX -u $2 $config_file $b > $jobfile
         done
     else
         #get the list of all bands and run them simultaneously
         pyc="print(','.join(cf.bands.all))"
         b=$($PYEX -c "$pya$pyb$pyc")
-        addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
+        addqueue $1 "$runafter" $PYEX -u $2 $config_file $b > $jobfile
     fi
 }
 
@@ -99,10 +99,15 @@ function power_spectra_job () {
         runafter=""
     fi
 
-    for p in $($PYEX -c "from configuration import PipelineConfig as PC; print(' '.join(cf.computePowerSpectra.get_bin_pairings()[1]))")
+    pya="from configuration import PipelineConfig as PC; "
+    pyb="cf = PC('$config_file', 'computePowerSpectra'); "
+    pyc="n=cf.nsamples; "
+    pyd="from cell_utils import get_bin_pairings; "
+    pye="print(' '.join(get_bin_pairings(n)[1]))"
+    for p in $($PYEX -c "$pya$pyb$pyc$pyd$pye")
     do
         #submit the job to the queue
-        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX $3 $p > $jobfile
+        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX -u $3 $config_file $p > $jobfile
     done
 }
 
