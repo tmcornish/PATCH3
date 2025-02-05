@@ -121,13 +121,16 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 20" split_metadata.py
 
 ### applying various cuts to clean the catalogues
-submit_pyjob "-q cmb -m 40" clean_catalogues.py
+#submit_pyjob "-q cmb -m 40" clean_catalogues.py
 
-### making maps from the catalogue data
-#submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
+### selecting galaxy samples for analysis
+submit_pyjob "-q cmb -m 40" sample_selection.py
 
 ### making maps from the frame metadata
 #metamaps_job "-q cmb -n 1x24 -m 7 -s" make_maps_from_metadata.py
+
+### making maps from the catalogue data
+#submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
 
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py
