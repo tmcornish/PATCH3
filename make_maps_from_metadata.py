@@ -29,6 +29,10 @@ CONF = Configuration.load_yaml(configfile)
 #overwrite the output file basenames and NSIDE to match pipeline config
 CONF.outbase = f'decasu_nside{cf.nside_hi}'
 CONF.nside = cf.nside_hi
+#do the same with replacements for band names
+for k in cf.bands.altnames:
+	for j in cf.bands.altnames[k]:
+		CONF.band_replacement[j] = k
 
 #the rest of the script now depends on whether it is being run locally or on glamdring
 if cf.platform == 'local':
