@@ -337,7 +337,7 @@ def makeSurveyMask(cat, depth_map=None):
 		nexp_bin = []
 		#load the N_exp maps for each band
 		for b in cf.bands.all:
-			nexp = hsp.HealSparseMap.read(f'{PATH_SYST}/decasu_{cf.nside_hi}_{b}_nexp_sum.hsp')
+			nexp = hsp.HealSparseMap.read(f'{PATH_SYST}/decasu_nside{cf.nside_hi}_{b}_nexp_sum.hsp')
 			#set all pixels with n_exp > 1 equal to 1
 			nexp[nexp.valid_pixels] = 1
 			nexp_bin.append(nexp)
