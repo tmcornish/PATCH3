@@ -179,7 +179,7 @@ cleanCats:
 
 sampleSelection:
   #whether to remove galaxies likely to have secondary redshift solutions at high-z
-  remove_pz_outliers: true
+  remove_pz_outliers: false
   #file for containing the counts in each sample
   sample_summary_file: sample_summary.txt
 
