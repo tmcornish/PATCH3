@@ -214,7 +214,7 @@ for fd in cf.fields:
 	systs.append(str(cf.lite))
 
 	#file containing list of systematics maps deprojected in the previous run
-	deproj_file = PATH_CACHE + cf.cache_files.deproj.deproj_file
+	deproj_file = PATH_CACHE + cf.cache_files.deproj.deprojected
 	if not per_tomo:
 		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
