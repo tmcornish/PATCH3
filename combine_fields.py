@@ -92,10 +92,8 @@ fields = cf.fields
 
 #lists of quantities and systematics that have been mapped at the desired resolution
 add = lambda x,y : x + y
-quants = [[os.path.basename(m) for m in glob.glob(f'{cf.paths.out}{fd}/*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{cf.paths.out}{fd}/*_{cf.nside_hi}_*.hsp')]
-            + ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{cf.paths.out}{fd}/systmaps/*_{cf.nside_hi}.hsp') 
-                                   + glob.glob(f'{cf.paths.out}{fd}/systmaps/*_{cf.nside_hi}_*.hsp')]
+quants = [[os.path.basename(m) for m in glob.glob(f'{cf.paths.out}{fd}/*_nside{cf.nside_hi}*.hsp')]
+            + ['systmaps/'+os.path.basename(m) for m in glob.glob(f'{cf.paths.out}{fd}/systmaps/*_nside{cf.nside_hi}*.hsp')]
             for fd in fields
             ]
 quants = sorted(np.unique(reduce(add, quants)))
