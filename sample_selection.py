@@ -32,7 +32,7 @@ for fd in cf.fields:
 			outlier_mask = ((gp['pz_err95_max_dnnz'][:] - gp['pz_err95_min_dnnz'][:] < 2.7)
 						* (gp['pz_err95_max_mizu'][:] - gp['pz_err95_min_mizu'][:] < 2.7))
 		else:
-			outlier_mask = np.ones_like(sample_masks[0], dtype=bool)
+			outlier_mask = np.ones_like(gp['ra'][:], dtype=bool)
 		
 		#open the summary file to write outputs as they are determined
 		with open(f'{OUT}/{cf.sample_summary_file}', 'w') as outfile:
