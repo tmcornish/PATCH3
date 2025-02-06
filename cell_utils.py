@@ -238,3 +238,89 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None, retu
 
 
 	return (*to_return,)
+
+
+def apply_scale_cuts(ells, cells, cov, lmin, lmax, labels=None):
+	'''
+	Applies scale cuts to the data involved in the fit.
+
+	Parameters
+	----------
+	ells: list[numpy.ndarray]
+		List of arrays containing the effective multipoles for each 
+		bin pairing.
+	
+	cells: list[numpy.ndarray]
+		List of arrays containing the angular power spectra for each 
+		bin pairing.
+	
+	cov: numpy.ndarray or None
+		Covariance matrix for the angular power spectra.
+	
+	lmin: int or list[int]
+		Minimum multipole to include for each power spectrum. If a single value,
+		will apply to all power spectra provided; otherwise, lmin must be a list
+		with length equal to the number of power spectra. 
+	
+	lmax: int or list[int]
+		Maximum multipole to include for each power spectrum. If a single value,
+		will apply to all power spectra provided; otherwise, lmin must be a list
+		with length equal to the number of power spectra. 
+	
+	labels: list[str] or None
+		List of labels to assign to each scale cut. If None, will simply label
+		each cut with an index ranging from 0 to N(C_ells)-1.
+		
+	Returns
+	-------
+	ells_cut: list[numpy.ndarray]
+		List of effective multipoles after applying the scale cuts.
+	
+	cells_cut: list[numpy.ndarray]
+		List of C_ells after applying the scale cuts.
+	
+	cov_cut: numpy.ndarray
+		Covariance matrix after applying the scale cuts.
+	'''
+
+	#determine number of power spectra provided
+	if np.ndim(ells) > 1:
+		N_cells = len(ells)
+	else:
+		N_cells = 1
+		ells = [ells]
+		cells = [cells]
+
+	#set up a dictionary for the cuts
+	if labels is None:
+		labels = list(range(N_cells))
+	
+	#if lmin and lmax are single values, fill arrays of length N_cells with them
+	if type(lmin) == int:
+		lmin = np.full(N_cells, lmin)
+	if type(lmax) == int:
+		lmax = np.full(N_cells, lmax)
+
+	#copy the inputs to avoid overwriting them
+	ells_cut = ells.copy()
+	cells_cut = cells.copy()
+	cov_cut = cov.copy()
+
+	#set up a list for containing the masks for each bin pairing
+	masks = []
+	#cycle through the bin pairings
+	for i in range(N_cells):
+		#mask the multipoles above/below lmax/lmin
+		lmask = (ells_cut[i] <= lmax[i]) * (ells_cut[i] > lmin[i])
+		ells_cut[i] = ells_cut[i][lmask]
+		cells_cut[i] = cells_cut[i][lmask]
+		#append the mask to the list
+		masks.append(lmask)
+	#to mask the covariance matrix, combine and flatten all masks, then
+	#take the outer product with itself
+	masks = np.array(masks).flatten()
+	nkeep = int(masks.sum())
+	covmask = np.outer(masks, masks)
+	cov_cut = cov[covmask].reshape((nkeep, nkeep))
+	
+	return ells_cut, cells_cut, cov_cut
