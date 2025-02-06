@@ -9,7 +9,7 @@ import sacc
 import pymaster as nmt
 import numpy as np
 from output_utils import colour_string
-from cell_utils import get_bin_pairings
+from cell_utils import get_bin_pairings, get_bpw_edges
 
 ### SETTINGS ###
 config_file = sys.argv[1]
@@ -24,7 +24,7 @@ nbins = cf.nsamples
 pairings, _ = get_bin_pairings(nbins)
 ncross = len(pairings)
 #bandpower edges and maximum ell at which the c_ells are defined
-bpw_edges = cf.get_bpw_edges()
+bpw_edges = get_bpw_edges(3*cf.nside_hi, ell_min=cf.ell_min, nbpws=cf.nbpws, spacing=cf.bpw_spacing)
 ell_max = bpw_edges[-1]
 #get the effective ells
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
@@ -66,7 +66,7 @@ for fd in cf.fields:
 		#add tracers to the Sacc object (one for each redshift bin)
 		for i, samp in enumerate(cf.samples):
 			#get the n(z) distribution for this bin
-			nz = hf[f'nz_{samp}'][:]
+			nz = hf[f'nz_{i}'][:]
 			s_main.add_tracer('NZ',	#n(z)-type tracer
 						f'cl{i}',	#tracer name
 						quantity='galaxy_density', #quantity
