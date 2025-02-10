@@ -6,6 +6,7 @@ decasu_files
 .ipynb_checkpoints
 data_query/sql_files
 txpipe_logs
+legacy
 
 #files to ignore
 .repo_PAT.txt
