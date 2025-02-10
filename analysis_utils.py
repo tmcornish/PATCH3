@@ -3,8 +3,22 @@
 ###########################################################################################################
 
 import numpy as np
+from scipy import special
 
-def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False, return_chi2nu=False):
+def percentiles_nsig(n):
+	'''
+	Returns the lower and upper percentiles corresponding to the n-sigma bounds for a normal distribution.
+		n: The multiple of sigma for which the percentiles are to be calculated.
+	'''
+	#fraction of population within the range [mu-n*sigma, mu+n*sigma]
+	f = special.erf(n / np.sqrt(2.))
+	#percentiles
+	p_lo = 0.5 * (1. - f) * 100.
+	p_hi = 0.5 * (1. + f) * 100.
+	return (p_lo, p_hi)
+
+
+def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False, return_chi2nu=False, return_ci=False):
 	'''
 	Uses linear algebra to analytically fit a polynomial of degree n to data.
 
@@ -28,6 +42,9 @@ def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False, return_chi2nu
 	
 	return_chi2nu: bool
 		Whether to return the reduced chi^2 value.
+	
+	return_ci: bool
+		Whether to return a 1-sigma confidence interval at each value of x.
 		
 	Returns
 	-------
@@ -40,6 +57,10 @@ def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False, return_chi2nu
 	
 	chi2_red: float
 		Reduced chi^2 value (only returned if return_chi2nu is True).
+	
+	CI: numpy.ndarray
+		Array containing the bounds of the 1-sigma confidence interval at each value
+		of x (only returned if return_ci is True).
 	'''
 
 	#construct an array where each column is x^0, x^1, ... x^n
@@ -56,9 +77,10 @@ def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False, return_chi2nu
 	BF = np.linalg.inv(M1) @ M2
 	to_return = [BF]
 
+	#covariance matrix for the best-fit coefficients
+	cov_bf = np.linalg.inv(M1)
+	
 	if return_cov:
-		#covariance matrix for the best-fit coefficients
-		cov_bf = np.linalg.inv(M1)
 		to_return.append(cov_bf)
 	
 	if return_chi2nu:
@@ -67,5 +89,15 @@ def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False, return_chi2nu
 		chi2 = M3.T @ icov @ M3
 		chi2_red = chi2 / (len(y) - n)
 		to_return.append(chi2_red)
+	
+	if return_ci:
+		#randomly draw 10000 values from a multivariate gaussian
+		bf_rand = np.random.multivariate_normal(BF, cov_bf, size=10000)
+		#compute the corresponding values of the function
+		y_rand = (bf_rand @ A.T)
+		#get the ~16th and 84th percentiles
+		CI = np.percentile(y_rand, percentiles_nsig(1), axis=0)
+		to_return.append(CI)
+
 	
 	return (*to_return,)
