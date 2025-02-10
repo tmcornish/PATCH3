@@ -84,7 +84,7 @@ class PipelineConfig():
 
 		#n(z) hdf5 files
 		for key in self.nofz_files:
-			self.config_dict['nofz_files'][key] = self.paths.out + self.nofz_files[key] + self.suffix + '.hdf5'
+			self.config_dict['nofz_files'][key] = self.nofz_files[key] + self.suffix + '.hdf5'
 		
 		#power spectra hdf5 files
 		for key in self.cell_files:

@@ -55,13 +55,14 @@ def compute_nofz(fd):
 			gr = hf['photometry']
 			z_best.append(gr[f'{cf.key_cols.zphot}'][:])
 			z_mc.append(gr[f'{cf.key_cols.zphot_mc}'][:])
-			for k in masks:
-				masks[k].append(cf.get_samples(gr))
+			sample_masks = cf.get_samples(gr)
+			for k in cf.samples:
+				masks[k].append(sample_masks[k])
 	
 	#concatenate the lists of arrays
 	z_best = np.concatenate(z_best)
 	z_mc = np.concatenate(z_mc)
-	for k in cf.masks:
+	for k in masks:
 		masks[k] = np.concatenate(masks[k])
 
 	#determine the bin edges and centres to use for the n(z) histograms
@@ -72,8 +73,8 @@ def compute_nofz(fd):
 	nofz = {'z' : bin_centres}
 
 	#generate the histograms and store them in the dictionary
-	for samp in masks:
-		nofz[f'nz_{samp}'] = np.histogram(z_mc[masks[samp]], bins=bins, density=True)[0]
+	for i,samp in enumerate(masks):
+		nofz[f'nz_{i}'] = np.histogram(z_mc[masks[samp]], bins=bins, density=True)[0]
 	
 	return nofz
 
@@ -221,7 +222,7 @@ for fd in cf.fields:
 		#compute estimates of the n(z) distributions in each bin
 		nofz = compute_nofz(fd)
 		#save the n(z) info to a file
-		outfile = f'{cf.paths.out}{fd}/{cf.nofz_files.nz_dists_mc}'
+		outfile = f'{cf.paths.out}{fd}/{cf.nofz_files.nz_mc}'
 		with h5py.File(outfile, 'w') as hf:
 			for k in nofz.keys():
 				hf.create_dataset(k, data=nofz[k])
