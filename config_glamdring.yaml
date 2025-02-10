@@ -172,6 +172,8 @@ cleanCats:
   log_blend_cut: -0.375
   #whether to correct recorded r/i photometry to equivalent in r2/i2
   correct_ri: false
+  #whether to remove intermediate catalogues after concatenating
+  remove_intermediate: true
   #file for containing a summary of each stage of cleaning
   clean_summary_file: cleaning_summary.txt
 

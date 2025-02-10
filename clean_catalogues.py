@@ -357,6 +357,8 @@ for g in fields:
 							dset_main[-N:] = dset[:]
 						else:
 							dset = fmain.create_dataset(path, shape=(N,), data=dset[:], maxshape=(None,), dtype=dt)
+				if cf.remove_intermediate:
+					os.system(f'rm -f {cat_now}')
 
 
 
