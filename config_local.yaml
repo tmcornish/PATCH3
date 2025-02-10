@@ -171,7 +171,7 @@ cleanCats:
   #logged blending cut (maximum allowed flux estimated to be from blending)
   log_blend_cut: -0.375
   #whether to correct recorded r/i photometry to equivalent in r2/i2
-  correct_ri: true
+  correct_ri: false
   #file for containing a summary of each stage of cleaning
   clean_summary_file: cleaning_summary.txt
 
@@ -250,10 +250,10 @@ dirPhotozs: &dirPhotozs
 
 ###########################################################################################
 
-theoryPredictions: 
+theoryPredictions: &computePowerSpectra
   <<: *dirPhotozs
   #whether to use the n(z) distributions caculated using DIR
-  use_dir: true
+  use_dir: false
 
 ###########################################################################################
 
@@ -289,8 +289,9 @@ covariances:
 ###########################################################################################
 
 makeSaccFiles:
+  <<: *computePowerSpectra
   #whether to use the n(z) distributions caculated using DIR
-  use_dir: true
+  use_dir: false
 
 ###########################################################################################
 
