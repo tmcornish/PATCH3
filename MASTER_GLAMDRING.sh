@@ -4,10 +4,12 @@
 # Configure and run this file when running the pipeline on glamdring. #
 #######################################################################
 
-#first activate the virtual environment
-source /mnt/zfsusers/tcornish/venvs/phsc3_new/bin/activate
+#first activate the conda environment
+source /mnt/users/tcornish/miniconda/etc/profile.d/conda.sh
+conda activate phsc3
 
-PIPEDIR=$(pwd)
+config_file=$1          #config file passed as argument
+PIPEDIR=$(pwd)          #current directory
 PYEX=$(which python)    #get the Python executable path
 jobfile="$PIPEDIR/prevjob.txt"   #file to which job ID will be output
 
@@ -48,9 +50,9 @@ function submit_pyjob () {
     if [ -f $jobfile ]
     then
         jobID=$(getID)
-        addqueue $1 --runafter $jobID $PYEX -u $2 $3 > $jobfile
+        addqueue $1 --runafter $jobID $PYEX -u $2 $config_file $3 > $jobfile
     else
-        addqueue $1 $PYEX -u $2 $3 > $jobfile
+        addqueue $1 $PYEX -u $2 $config_file $3 > $jobfile
     fi    
 }
 
@@ -67,17 +69,22 @@ function metamaps_job () {
     fi
 
     #see if pipeline configured to split metadata
-    if [ $($PYEX -c "import config as cf; print(cf.makeMapsFromMetadata.split_by_band)")="True" ]
+    pya="from configuration import PipelineConfig as PC; "
+    pyb="cf = PC('$config_file', 'makeMapsFromMetadata'); "
+    pyc="print(cf.split_by_band)"
+    if [[ $($PYEX -c "$pya$pyb$pyc") == "True" ]]
     then
         #get the band and run the script for each one
-        for b in $($PYEX -c "import config as cf; print(' '.join(cf.cf_global.bands))")
+        pyc="print(' '.join(cf.bands.all))"
+        for b in $($PYEX -c "$pya$pyb$pyc")
         do
-            addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
+            addqueue $1 "$runafter" $PYEX -u $2 $config_file $b > $jobfile
         done
     else
         #get the list of all bands and run them simultaneously
-        b=$($PYEX -c "import config as cf; print(','.join(cf.cf_global.bands))")
-        addqueue $1 "$runafter" $PYEX -u $2 $b > $jobfile
+        pyc="print(','.join(cf.bands.all))"
+        b=$($PYEX -c "$pya$pyb$pyc")
+        addqueue $1 "$runafter" $PYEX -u $2 $config_file $b > $jobfile
     fi
 }
 
@@ -93,10 +100,15 @@ function power_spectra_job () {
         runafter=""
     fi
 
-    for p in $($PYEX -c "import config as cf; print(' '.join(cf.computePowerSpectra.get_bin_pairings()[1]))")
+    pya="from configuration import PipelineConfig as PC; "
+    pyb="cf = PC('$config_file', 'computePowerSpectra'); "
+    pyc="n=cf.nsamples; "
+    pyd="from cell_utils import get_bin_pairings; "
+    pye="print(' '.join(get_bin_pairings(n)[1]))"
+    for p in $($PYEX -c "$pya$pyb$pyc$pyd$pye")
     do
         #submit the job to the queue
-        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX $3 $p > $jobfile
+        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX -u $3 $config_file $p > $jobfile
     done
 }
 
@@ -110,13 +122,16 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 20" split_metadata.py
 
 ### applying various cuts to clean the catalogues
-submit_pyjob "-q cmb -m 40" clean_catalogues.py
+#submit_pyjob "-q cmb -m 40" clean_catalogues.py
 
-### making maps from the catalogue data
-#submit_pyjob "-q cmb -m 40" make_maps_from_catalogue.py
+### selecting galaxy samples for analysis
+submit_pyjob "-q cmb -m 40" sample_selection.py
 
 ### making maps from the frame metadata
 #metamaps_job "-q cmb -n 1x24 -m 7 -s" make_maps_from_metadata.py
+
+### making maps from the catalogue data
+#submit_pyjob "-q cmb -n 1x10 -m 4 -s" make_maps_from_catalogue.py
 
 ### making galaxy count and overdensity maps in tomographic bins
 #submit_pyjob "-q cmb -m 40" make_galaxy_maps.py

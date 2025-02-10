@@ -6,11 +6,15 @@
 import pyccl as ccl
 import h5py
 import numpy as np
+from functools import reduce
 from output_utils import colour_string
-import config
+import cell_utils as cu
+import sys
+from configuration import PipelineConfig as PC
 
 ### SETTINGS ###
-cf = config.theoryPredictions
+config_file = sys.argv[1]
+cf = PC(config_file, stage='theoryPredictions')
 
 
 ###################
@@ -35,25 +39,31 @@ def compute_nofz(fd):
 	'''
 
 
-	#define lists to contain the best z estimates and the random MC draws
+	#lists for the best z estimates and the random MC draws
 	z_best, z_mc = [], []
+	#dictionary for containing the masks for selecting each sample
+	masks = {k : [] for k in cf.samples}
 
 	#if provided field is 'combined', need to load data from all fields
 	if fd == 'combined':
-		for f in ['hectomap', 'spring', 'autumn']:
-			with h5py.File(cf.PATH_OUT + f + '/' + cf.cat_main, 'r') as hf:
-				gr = hf['photometry']
-				z_best.append(gr[f'{cf.zcol}'][:])
-				z_mc.append(gr[f'{cf.z_mc_col}'][:])
+		fd = ['hectomap', 'spring', 'autumn']
 	else:
-		with h5py.File(cf.PATH_OUT + fd + '/' + cf.cat_main, 'r') as hf:
+		fd = [fd]
+	
+	for f in fd:
+		with h5py.File(cf.paths.out + f + '/' + cf.cats.main, 'r') as hf:
 			gr = hf['photometry']
-			z_best.append(gr[f'{cf.zcol}'][:])
-			z_mc.append(gr[f'{cf.z_mc_col}'][:])
+			z_best.append(gr[f'{cf.key_cols.zphot}'][:])
+			z_mc.append(gr[f'{cf.key_cols.zphot_mc}'][:])
+			sample_masks = cf.get_samples(gr)
+			for k in cf.samples:
+				masks[k].append(sample_masks[k])
 	
 	#concatenate the lists of arrays
 	z_best = np.concatenate(z_best)
 	z_mc = np.concatenate(z_mc)
+	for k in masks:
+		masks[k] = np.concatenate(masks[k])
 
 	#determine the bin edges and centres to use for the n(z) histograms
 	bins = np.arange(0., z_mc.max()+cf.dz, cf.dz)
@@ -63,9 +73,8 @@ def compute_nofz(fd):
 	nofz = {'z' : bin_centres}
 
 	#generate the histograms and store them in the dictionary
-	for i in range(cf.nbins):
-		zmask = (z_best >= cf.zbins[i]) * (z_best < cf.zbins[i+1])
-		nofz[f'nz_{i}'] = np.histogram(z_mc[zmask], bins=bins, density=True)[0]
+	for i,samp in enumerate(masks):
+		nofz[f'nz_{i}'] = np.histogram(z_mc[masks[samp]], bins=bins, density=True)[0]
 	
 	return nofz
 
@@ -98,7 +107,7 @@ def get_tracers(nofz, cosmo):
 											dndz=(nofz['z'], nofz[f'nz_{i}']), 
 											bias=(nofz['z'], np.ones_like(nofz['z']))
 											)
-		for i in range(cf.nbins)
+		for i in range(cf.nsamples)
 	}
 
 	return tracers
@@ -154,7 +163,7 @@ def get_theory_cells(tracers, pairings, ells, cosmo, pk):
 #######################################################
 
 #retrieve the bin pairings
-pairings, pairings_s = cf.get_bin_pairings()
+pairings, pairings_s = cu.get_bin_pairings(cf.nsamples)
 
 #define the fiducial cosmology
 cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
@@ -197,7 +206,7 @@ pk = ccl.halos.halomod_Pk2D(
 #if using DIR outputs, load them now
 if cf.use_dir:
 	print('Retrieving DIR n(z) distributions...')
-	with h5py.File(cf.nz_dir_file, 'r') as hf:
+	with h5py.File(cf.nofz_files.nz_dir, 'r') as hf:
 		nofz = {k : hf[k][:] for k in hf.keys()}
 	#create a dictionary containing the tracers in each redshift bin
 	tracers = get_tracers(nofz, cosmo)
@@ -206,14 +215,14 @@ if cf.use_dir:
 	theory_cells = get_theory_cells(tracers, pairings, ells, cosmo, pk)
 	
 #cycle through the specified fields
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	print(colour_string(fd.upper(), 'orange'))
 	if not cf.use_dir:
 		print('Computing n(z) distributions from Monte-Carlo draws...')
 		#compute estimates of the n(z) distributions in each bin
 		nofz = compute_nofz(fd)
 		#save the n(z) info to a file
-		outfile = f'{cf.PATH_OUT}{fd}/{cf.nz_mc_file}'
+		outfile = f'{cf.paths.out}{fd}/{cf.nofz_files.nz_mc}'
 		with h5py.File(outfile, 'w') as hf:
 			for k in nofz.keys():
 				hf.create_dataset(k, data=nofz[k])
@@ -225,7 +234,7 @@ for fd in cf.get_global_fields():
 
 	print('Saving theory C_ells...')
 	#open the output file, compute and save the theory cells
-	outfile = f'{cf.PATH_OUT}{fd}/{cf.theory_out}' 
+	outfile = f'{cf.paths.out}{fd}/{cf.cell_files.theory}' 
 	with h5py.File(outfile, 'w') as psfile:
 		for k in theory_cells.keys():
 			psfile.create_dataset(k, data=theory_cells[k])

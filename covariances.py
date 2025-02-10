@@ -3,18 +3,21 @@
 # - density fields and compute the covariances for each power spectrum.
 #####################################################################################################
 
-import config
+import os
+import sys
 import healpy as hp
 import numpy as np
 import pymaster as nmt
 from output_utils import colour_string
 import pandas as pd
 import h5py
-import os
+from configuration import PipelineConfig as PC
 from map_utils import MaskData, load_tomographic_maps, load_map
+from cell_utils import get_bin_pairings
 
 ### SETTINGS ###
-cf = config.covariances
+config_file = sys.argv[1]
+cf = PC(config_file, stage='covariances')
 
 #############################
 ######### FUNCTIONS #########
@@ -103,32 +106,32 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_couple
 #######################################################
 
 #get the bin pairings for which C_ells were computed in the previous stage
-pairings, _ = cf.get_bin_pairings()
+pairings, _ = get_bin_pairings(cf.nsamples)
 
 #healpix parameters
 npix = hp.nside2npix(cf.nside_hi)
 
 #cycle through the fields being analysed
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	print(colour_string(fd.upper(), 'orange'))
 
 	#path to the directory containing the outputs for this field
-	PATH_FD = f'{cf.PATH_OUT}{fd}/'
+	PATH_FD = f'{cf.paths.out}{fd}/'
 	#path to directory containing systematics maps
 	PATH_SYST = PATH_FD + 'systmaps/'
 	#directory of cached data from computing power spectra
 	PATH_CACHE = PATH_FD + 'cache/'
 
 	#load relevant workspaces from file
-	wsp_path = PATH_CACHE + cf.wsp_file
-	covwsp_path = PATH_CACHE + cf.covwsp_file
+	wsp_path = PATH_CACHE + cf.cache_files.workspaces.wsp
+	covwsp_path = PATH_CACHE + cf.cache_files.workspaces.covwsp
 	w = nmt.NmtWorkspace()
 	cw = nmt.NmtCovarianceWorkspace()
 	w.read_from(wsp_path)
 	cw.read_from(covwsp_path)
 
 	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_FD + cf.survey_mask)
+	mask = MaskData(PATH_FD + cf.maps.survey_mask)
 	#retrieve relevant quantities from the mask data
 	above_thresh = mask.vpix_ring
 	sum_w_above_thresh = mask.sum
@@ -136,14 +139,14 @@ for fd in cf.get_global_fields():
 	mu_w2 = mask.meansq
 	
 	#load the delta_g maps
-	deltag_maps = load_tomographic_maps(PATH_FD + cf.deltag_maps)
+	deltag_maps = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps)
 	#create NmtFields without deprojection
 	density_fields_nd = [nmt.NmtField(mask.mask_full, [dg], templates=None) for dg in deltag_maps]
 
 	#load (as DataFrames) the best-fit coefficients
 	alpha_dfs = []
-	for i in range(cf.nbins):
-		alphas_path = PATH_FD + cf.alphas_file[:-4] + f'_bin{i}.txt'
+	for i in range(cf.nsamples):
+		alphas_path = PATH_FD + cf.cache_files.deproj.alphas[:-4] + f'_bin{i}.txt'
 		if os.path.exists(alphas_path):
 			alpha_dfs.append(pd.read_csv(alphas_path, sep='\t', index_col=0))
 		else:
@@ -152,15 +155,13 @@ for fd in cf.get_global_fields():
 	density_fields = [make_deprojected_field(dg, al) for dg, al in zip(deltag_maps, alpha_dfs)]
 
 	#file for containing the covariance matrices
-	covar_file = f'{PATH_FD}{cf.covar_file}'
-	#number of different fields
-	nfields = len(cf.zbins) - 1
+	covar_file = f'{PATH_FD}{cf.cell_files.covariances}'
 	with h5py.File(covar_file, 'w') as cvfile:
 		#cycle through all possible combinations of pairs of fields
-		for i1 in range(nfields):
-			for i2 in range(i1, nfields):
-				for j1 in range(nfields):
-					for j2 in range(j1, nfields):
+		for i1 in range(cf.nsamples):
+			for i2 in range(i1, cf.nsamples):
+				for j1 in range(cf.nsamples):
+					for j2 in range(j1, cf.nsamples):
 						#create group in the hdf5 file for this pairing
 						gp = cvfile.create_group(f'{i1}{i2}-{j1}{j2}')
 						#compute the covariance

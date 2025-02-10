@@ -1,0 +1,339 @@
+###########################################################################################
+
+global:
+  #relevant directories
+  paths:
+    pipeline: /home/cornisht/LSST_clustering/pHSC3/
+    data: /home/cornisht/LSST_clustering/Data/HSC_DR3/
+    out: /home/cornisht/LSST_clustering/pHSC3/out/
+    figures: /home/cornisht/LSST_clustering/pHSC3/out/figures/
+  
+  #column names corresponding to key quantities in the catalogue
+  key_cols:
+    mag: cmodel_mag
+    zphot: pz_best_dnnz
+    zphot_mc: pz_mc_dnnz
+
+  #data release
+  dr: pdr3_wide
+
+  #fields to run
+  fields: [hectomap]
+
+  #NSIDE parameter for the low- and high-resolution components of the maps
+  nside_lo: 32
+  nside_hi: 1024
+  #low-resolution NSIDE parameter to use for splitting the data
+  nside_cover: 8
+
+  #photometric bands
+  bands:
+    #main band
+    primary: i
+    #list of all other bands
+    secondary: [g, r, z, y]
+    #alternative names for some bands
+    altnames:
+      i: [i2]
+      r: [r2]
+
+  #S/N thresholds in primary band and other bands
+  sn_pri: 10.
+  sn_sec: 5.
+  #depth limit in primary band
+  depth_cut: 24.5
+
+  #threshold below which pixels in the survey mask will be considered masked
+  weight_thresh: 0.5
+  #whether to smooth the mask
+  smooth_mask: true
+  #width (in arcmin) of the smoothing kernel
+  smooth_fwhm: 60.
+  #threshold to apply to smoothed mask
+  smooth_thresh: 0.4
+
+  #suffix to add to filenames produced from this run
+  suffix: ''
+
+  #catalogue names (without file extensions)
+  cats:
+    basic: basicclean_catalogue
+    main: clean_catalogue
+    stars: star_catalogue
+    tomography: tomography_catalogue
+
+  #base names for various maps (without file extensions)
+  maps:
+    dustmaps: dustmaps
+    footprint: footprint
+    bo_mask: bo_mask
+    masked_frac: masked_fraction
+    survey_mask: survey_mask
+    star_map: star_counts
+    depth_map: depth_map
+    ngal_maps: ngal_maps
+    deltag_maps: deltag_maps
+  
+  #important files located in the data directory (without file extension)
+  data_files:
+    metadata: PDR3_WIDE_frames
+  
+  #n(z) files (without file extensions)
+  nofz_files:
+    nz_dir: nz_dists_dir
+    nz_mc: nz_dists_mc
+  
+  #base names files for containing various power spectra (without file extensions)
+  cell_files:
+    theory: cells_theory
+    main: cells_measured
+    covariances: covariance_matrices
+  
+  #base names for files cached whrn computing power spectra (without file extensions)
+  cache_files:
+    workspaces:
+      wsp: workspace
+      covwsp: covworkspace
+    deproj:
+      deprojected: deprojected
+      alphas: deprojection_alphas
+    hods:
+      mcmc_backend: hod_mcmc_backend
+
+  #base name for SACC files produced by the pipeline (without file extension)
+  sacc_files: 
+    main: gc_sacc
+    noise: noise_sacc
+    bias: deproj_bias_sacc
+    nodeproj: gc_sacc_nodeproj
+
+  #base names for the plots produced by the pipeline (without file extensions)
+  plots:
+    cells: power_spectra
+
+  #auxiliary pipeline files
+  auxfiles:
+    required_cols: required_cols.txt
+    flags: flags.yaml
+    decasu_config: decasu_config_hpix_hsc_dr3.yaml
+
+  #tomographic sample definitions (semi-colon separated)
+  samples:
+    bin0: '0.3 <= zphot ; zphot < 0.6'
+    bin1: '0.6 <= zphot ; zphot < 0.9'
+    bin2: '0.9 <= zphot ; zphot < 1.2'
+    bin3: '1.2 <= zphot ; zphot < 1.5'
+
+  #fiducial cosmology parameters
+  cosmo_fiducial:
+    Omega_c: 0.26066676
+    Omega_b: 0.048974682
+    h: 0.6766
+    n_s: 0.9665
+    sigma8: 0.8102
+
+###########################################################################################
+
+getData: &getData
+  #submit/download data requests
+  submit: true
+  download: true
+  #include photo-z information
+  photoz: true
+  #include stellar masses and SFRs from MIZUKI
+  mizuki_mstar_sfrs: true
+  #apply cuts based on existing flags in the catalogues
+  apply_cuts: false
+  strict_cuts: false
+
+  #maximum number of sources allowed before catalogues split for field
+  Nmax: 5_000_000
+
+###########################################################################################
+
+splitMetadata: &splitMetadata
+  #boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
+  bounds:
+    aegis: [212., 216., 51.6, 53.6]
+    spring: [326.25, 41.25, -8., 8.]
+    autumn: [125., 227.5, -4., 7.]
+    hectomap: [195., 255., 41.5, 45.]
+
+  #whether to further split the metadata by filter (can help Decasu avoid memory issues)
+  split_by_band: true
+
+###########################################################################################
+
+cleanCats:
+  <<: *getData  
+  #types of flag to apply during basic cleaning (list containing 'main' and/or 'strict' or empty)
+  remove_if_flagged: [main]
+  #logged blending cut (maximum allowed flux estimated to be from blending)
+  log_blend_cut: -0.375
+  #whether to correct recorded r/i photometry to equivalent in r2/i2
+  correct_ri: false
+  #whether to remove intermediate catalogues after concatenating
+  remove_intermediate: true
+  #file for containing a summary of each stage of cleaning
+  clean_summary_file: cleaning_summary.txt
+
+###########################################################################################
+
+sampleSelection:
+  #whether to remove galaxies likely to have secondary redshift solutions at high-z
+  remove_pz_outliers: false
+  #file for containing the counts in each sample
+  sample_summary_file: sample_summary.txt
+
+###########################################################################################
+
+makeMapsFromMetadata:
+  <<: *splitMetadata
+  #number of cores to use for multiprocessing
+  ncores: 18
+
+###########################################################################################
+
+makeMapsFromCat:
+  #whether or not to initially make the map at high resolution and degrade
+  highres_first: false
+  #NSIDE for the upgraded-resolution version of the bright object mask
+  nside_mask: 8192
+
+  #types of flag to include in the mask 
+  #(list containing 'brightstar', 'main' and/or 'strict; see flags.py for definitions)
+  flags_to_mask: [brightstar]
+  #whether or not to include the y-band channel stop in the brightstar flags
+  incl_channelstop: false
+
+  #if only stars should be used for creating depth map
+  stars_for_depth: true
+  #minimum number of sources required to calculate depth in a pixel
+  min_sources: 4
+
+  #radius (in deg) of the Guassian kernel used to smooth certain maps
+  r_smooth: 2.
+
+  #use N_exp maps to define an extra cut?
+  use_nexp_maps: true
+
+###########################################################################################
+
+makeGalaxyMaps:
+  foo: null
+
+###########################################################################################
+
+combineFields:
+  foo: null
+
+###########################################################################################
+
+pcaSystematics:
+  #plot eigenvalues of the principal components
+  plot_eigen: true
+  #fraction of total variance to keep with principal components
+  var_thresh: 0.98
+
+###########################################################################################
+
+dirPhotozs: &dirPhotozs
+  #catalogue containing the HSC photometry for galaxies in the COSMOS field
+  hsc_cosmos_cat: /home/cornisht/LSST_clustering/pHSC3/out/cosmos/clean_catalogue.hdf5
+  #COSMOS2020 catalogue
+  cosmos_cat: /home/cornisht/LSST_clustering/Data/COSMOS/COSMOS2020_CLASSIC_R1_v2.0.fits
+
+  #maximum separation (in arcsec) for cross-matching
+  cross_tol: 1.
+  #furthest neighbour to use when computing weights in colour space
+  kNN: 20
+  #width of the redshift bins
+  dz: 0.03
+
+###########################################################################################
+
+theoryPredictions: &computePowerSpectra
+  <<: *dirPhotozs
+  #whether to use the n(z) distributions caculated using DIR
+  use_dir: false
+
+###########################################################################################
+
+computePowerSpectra:
+  #list of maps to deproject (add 'all' to the list if wanting to deproject all
+  #maps in the systematics directory)
+  systs: [all]
+  #(optional) maximum number of systematics to deproject - uses all provided if set to null
+  Nsyst_max: null
+
+  #bandpower spacing to use - must be linear, log, or N19 (Nicola+19 pseudo-log spacing)
+  bpw_spacing: linear
+  #number of bandpowers to use if not using edges from Nicola+19
+  nbpws: 17
+  #minimum ell (i.e. largest scale) to use
+  ell_min: 1
+  #whether to use linear or log spacing for the bandpowers
+  log_spacing: false
+
+  #apply a multiplicative correction to delta_g due to star contamination
+  correct_for_stars: true
+  #fiducial estimate for the fraction of stars making it into the final sample (from Nicola+19)
+  Fs_fiducial: 0.02
+
+  #create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
+  lite: false
+
+###########################################################################################
+
+covariances: 
+  foo: null
+
+###########################################################################################
+
+makeSaccFiles:
+  <<: *computePowerSpectra
+  #whether to use the n(z) distributions caculated using DIR
+  use_dir: false
+
+###########################################################################################
+
+fitHods:
+  #whether to fit for auto-correlations only
+  auto_only: true
+  #maximum number of iterations for the sampler
+  niter_max: 100_000
+  #maximum distances the initial walker positions can be from the initial best fit for each parameter
+  dmax:
+    mu_min: 1.
+    mu_1: 1.
+    mu_minp: 1.
+    mu_1p: 1.
+    alpha_smooth: 1.
+  #pivot redshift for redshift-dependent parameters
+  z_pivot: 0.65
+  #whether to compute scale cuts based on redshift and a maximum k (in Mpc^{-1})
+  compute_scale_cuts: true
+  kmax: 1
+  #hard-coded ell_max to use if compute_scale_cuts is false
+  hard_lmax: 2000
+
+###########################################################################################
+
+plotPowerSpectra:
+  #whether to multiply the C_ells by l(l+1)/(2*pi) for the figure
+  normalise: false
+  #show the C_ells pre-debiasing
+  show_pre_debias: false
+  #show the C_ells without deprojection
+  show_no_deproj: true
+  #show the theory predictions
+  show_theory: true
+  #make a figure showing all C_ells simultaneously
+  make_combined: false
+
+###########################################################################################
+
+makeTXPipeInputs: 
+  foo: null
+
+###########################################################################################

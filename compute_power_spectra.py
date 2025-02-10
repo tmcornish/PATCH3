@@ -3,24 +3,25 @@
 #   systematics templates in the process.
 #####################################################################################################
 
-import config
+import os
+import sys
 import healpy as hp
-import healsparse as hsp
 import numpy as np
-from map_utils import *
+import map_utils as mu
+import cell_utils as cu
 import h5py
 import pymaster as nmt
 from output_utils import colour_string
-import os
-import sys
 import glob
+from configuration import PipelineConfig as PC
 
 import faulthandler
 faulthandler.enable()
 ### SETTINGS ###
-cf = config.computePowerSpectra
+config_file = sys.argv[1]
+cf = PC(config_file, stage='computePowerSpectra')
 
-if not cf.LOCAL and cf.NERSC:
+if cf.platform == 'nersc':
 	os.system(f'taskset -pc 0-255 {os.getpid()}')
 
 #############################
@@ -51,13 +52,13 @@ def make_density_fields(deproj_file, systs, idx=None):
 		
 
 	#load the delta_g maps
-	deltag_maps = load_tomographic_maps(PATH_MAPS + cf.deltag_maps, idx=idx)
+	deltag_maps = mu.load_tomographic_maps(PATH_MAPS + cf.maps.deltag_maps, idx=idx)
 
 
 	print('Loading systematics maps...')
 	if len(systs) > 1:
 		#load the systematics maps and convert to full-sky realisations
-		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in systs[:-1]]
+		systmaps = [mu.load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in systs[:-1]]
 		#reshape the resultant list to have dimensions (nsyst, 1, npix)
 		nsyst = len(systmaps)
 		systmaps = np.array(systmaps).reshape([nsyst, 1, npix])
@@ -130,10 +131,10 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, return_cl_couple
 
 #retrieve the pairing being analysed from the arguments if provided
 try:
-	pairings = [sys.argv[1]]
+	pairings = [sys.argv[2]]
 	per_tomo = True
 except IndexError:
-	_, pairings = cf.get_bin_pairings()
+	_, pairings = cu.get_bin_pairings(cf.nsamples)
 	per_tomo = False
 
 #maximum ell allowed by the resolution
@@ -143,17 +144,8 @@ Apix = hp.nside2pixarea(cf.nside_hi)
 #get the number of pixels in a full-sky map at the required resolution
 npix = hp.nside2npix(cf.nside_hi)
 
-
-if cf.use_N19_bps:
-	#retrieve bandpower edges from config
-	bpw_edges = np.array(cf.bpw_edges).astype(int)
-	#only include bandpowers < 3 * NSIDE
-	bpw_edges = bpw_edges[bpw_edges <= ell_max]
-else:
-	if cf.log_spacing:
-		bpw_edges = np.geomspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
-	else:
-		bpw_edges = np.linspace(cf.ell_min, ell_max, cf.nbpws).astype(int)
+#set the bandpower edges
+bpw_edges = cu.get_bpw_edges(ell_max, ell_min=cf.ell_min, nbpws=cf.nbpws, spacing=cf.bpw_spacing)
 #create pymaster NmtBin object using these bandpower objects
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 
@@ -163,20 +155,20 @@ ell_effs = b.get_effective_ells()
 
 
 #cycle through the fields being analysed
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	print(colour_string(fd.upper(), 'orange'))
 
 	#path to the directory containing the maps
-	PATH_MAPS = f'{cf.PATH_OUT}{fd}/'
+	PATH_MAPS = f'{cf.paths.out}{fd}/'
 	#path to the file containing theory predictions
-	theory_file = PATH_MAPS + cf.theory_out
+	theory_file = PATH_MAPS + cf.cell_files.theory
 	theory_exists = os.path.exists(theory_file)
 	if theory_exists:
 		with h5py.File(theory_file, 'r') as psfile:
 			theory_keys = list(psfile.keys())
 
 	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_MAPS + cf.survey_mask)
+	mask = mu.MaskData(PATH_MAPS + cf.maps.survey_mask)
 	#retrieve relevant quantities from the mask data
 	above_thresh = mask.vpix_ring
 	sum_w_above_thresh = mask.sum
@@ -194,8 +186,8 @@ for fd in cf.get_global_fields():
 		os.system(f'mkdir -p {PATH_CACHE}')
 	
 	#see if workspaces have already been created from a previous run
-	wsp_path = PATH_CACHE + cf.wsp_file
-	covwsp_path = PATH_CACHE + cf.covwsp_file
+	wsp_path = PATH_CACHE + cf.cache_files.workspaces.wsp
+	covwsp_path = PATH_CACHE + cf.cache_files.workspaces.covwsp
 	if os.path.exists(wsp_path):
 		w.read_from(wsp_path)
 		calc = False
@@ -212,7 +204,7 @@ for fd in cf.get_global_fields():
 	systs = []
 	#check for 'All' in systmaps and convert this to a list of all systematics maps
 	if 'all' in map(str.lower, cf.systs):
-		systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
+		systs = [os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_nside{cf.nside_hi}*.hsp')]
 	
 	#if given a max number of systematics to deproject, slice the list accordingly
 	if cf.Nsyst_max is not None:
@@ -222,17 +214,17 @@ for fd in cf.get_global_fields():
 	systs.append(str(cf.lite))
 
 	#file containing list of systematics maps deprojected in the previous run
-	deproj_file = PATH_CACHE + cf.deproj_file
+	deproj_file = PATH_CACHE + cf.cache_files.deproj.deprojected
 	if not per_tomo:
 		density_fields, density_fields_nd, nsyst = make_density_fields(deproj_file, systs)
 		if density_fields is None:
 			continue
 	
 	#set up dictionary for recording whether deprojection coefficients have been saved
-	alphas_saved = {i : False for i in range(cf.nbins)}
+	alphas_saved = {i : False for i in range(cf.nsamples)}
 
 	#full path to the output file
-	outfile_main = f'{PATH_MAPS}{cf.outfile}'	
+	outfile_main = f'{PATH_MAPS}{cf.cell_files.main}'	
 	for p in pairings:
 		i,j = [int(x) for x in p.strip('()').split(',')]
 		outfile_now = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
@@ -259,13 +251,13 @@ for fd in cf.get_global_fields():
 			w.compute_coupling_matrix(f_i, f_j, b)
 			print('Done!')
 			#write the workspace to the cache directory
-			w.write_to(f'{PATH_CACHE}{cf.wsp_file}')
+			w.write_to(f'{PATH_CACHE}{cf.cache_files.workspaces.wsp}')
 
 			print('Calculating coupling coefficients...')
 			#compute coupling coefficients
 			cw.compute_coupling_coefficients(f_i, f_j)
 			#write the workspace to the cache directory
-			cw.write_to(f'{PATH_CACHE}{cf.covwsp_file}')
+			cw.write_to(f'{PATH_CACHE}{cf.cache_files.workspaces.covwsp}')
 			print('Done!')
 
 			#set calc to False for future iterations
@@ -330,7 +322,7 @@ for fd in cf.get_global_fields():
 		#Only calculate for autocorrelations
 		if i == j:
 			#load the N_g map and calculate the mean weighted by the mask
-			mu_N = load_tomographic_maps(PATH_MAPS + cf.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
+			mu_N = mu.load_tomographic_maps(PATH_MAPS + cf.maps.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
 			#calculate the noise power spectrum
 			N_ell_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
 			#decouple
@@ -376,14 +368,14 @@ for fd in cf.get_global_fields():
 			alphas_j = f_j.alphas
 			if not alphas_saved[i]:
 				#write to a file, with the name of each systematic
-				with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
+				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
 					alphas_file.write('Sytematic\talpha\n')
 					for k in range(nsyst):
 						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
 				alphas_saved[i] = True
 			if not alphas_saved[j]:
 				#write to a file, with the name of each systematic
-				with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{j}.txt', 'w') as alphas_file:
+				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_bin{j}.txt', 'w') as alphas_file:
 					alphas_file.write('Sytematic\talpha\n')
 					for k in range(nsyst):
 						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')

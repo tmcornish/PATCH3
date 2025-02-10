@@ -2,33 +2,35 @@
 # - Reads output from compute_power_spectra and plots the results.
 #####################################################################################################
 
-import config
+import sys
+from configuration import PipelineConfig as PC
 import numpy as np
-from map_utils import *
+import map_utils as mu
 import h5py
 from matplotlib import pyplot as plt
 import plot_utils as pu
+import cell_utils as cu
 from output_utils import colour_string
-import itertools
 
 ### SETTINGS ###
-cf = config.plotPowerSpectra
-plt.style.use(pu.styledict)
+config_file = sys.argv[1]
+cf = PC(config_file, stage='plotPowerSpectra')
 
+plt.style.use(pu.styledict)
 
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
 
 #retrieve the number of redshift bins
-nbins = len(cf.zbins) - 1
+nbins = cf.nsamples
 #use this to define the size of the power spectra figures
 xsize = nbins * 4
 ysize = nbins * 3.5
 
 #also get all possible pairings of bins
 l = list(range(nbins))
-pairings, pairings_s = cf.get_bin_pairings()
+pairings, pairings_s = cu.get_bin_pairings()
 
 #ylabel for figure(s) depends on normalisation of the C_ells
 if cf.normalise:
@@ -61,7 +63,7 @@ if cf.make_combined:
     
 
 #cycle through the fields being analysed 
-for idx, fd in enumerate(cf.get_global_fields()):
+for idx, fd in enumerate(cf.fields):
     print(colour_string(fd.upper(), 'orange'))
 
     #set up a figure for the power spectra from each redshift bin
@@ -70,7 +72,7 @@ for idx, fd in enumerate(cf.get_global_fields()):
 
 
     #full path to the output file
-    outfile_main = f'{cf.PATH_OUT}{fd}/{cf.outfile}'
+    outfile_main = f'{cf.paths.out}{fd}/{cf.cell_files.main}'
 
     #cycle through all possible pairings of redshift bins
     for ip, (p, p_str) in enumerate(zip(pairings, pairings_s)):
@@ -215,9 +217,9 @@ for idx, fd in enumerate(cf.get_global_fields()):
         handles.insert(1, bias_plot)
         labels.insert(1, 'Deprojection bias')
         #figure name also depends on whether deprojection has occurred
-        figname = f'{cf.PATH_PLOTS}power_spectra_{fd}_{cf.nside_hi}.png'
+        figname = f'{cf.paths.figures}power_spectra_{fd}_nside{cf.nside_hi}.png'
     else:
-        figname = f'{cf.PATH_PLOTS}power_spectra_raw_{fd}_{cf.nside_hi}.png'
+        figname = f'{cf.paths.figures}power_spectra_raw_{fd}_nside{cf.nside_hi}.png'
 
     if cf.show_pre_debias:
         handles.insert(1, cell_plot_pre)
@@ -241,6 +243,6 @@ if cf.make_combined:
     by_label = dict(zip(labels_all, handles_all))
     fig_comb.legend(by_label.values(), by_label.keys(), loc='upper right', ncols=idx+1, fontsize=19)
 
-    figname = f'{cf.PATH_PLOTS}power_spectra_all_{cf.nside_hi}.png'
+    figname = f'{cf.PATH_PLOTS}power_spectra_all_nside{cf.nside_hi}.png'
     fig_comb.tight_layout()
     fig_comb.savefig(figname, dpi=300)

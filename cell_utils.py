@@ -7,35 +7,78 @@ import numpy as np
 
 
 def get_bin_pairings(nbins, auto_only=False):
-		'''
-		Returns pairs of IDs for each tomographic bin being analysed. Also
-		returns comma-separated string versions of the ID pairs.
+	'''
+	Returns pairs of IDs for each tomographic bin being analysed. Also
+	returns comma-separated string versions of the ID pairs.
 
-		Parameters
-		----------
-		nbins: int
-			Number of bins being considered.
-		
-		auto_only: bool
-			If True, will only return each bin paired with itself.
-		
-		Returns
-		-------
-		pairings: list[tuple]
-			List of possible bin pairings.
-		
-		pairings_s: list[str]
-			List of comma-separated string versions of the ID pairs.
-		'''
-		import itertools
+	Parameters
+	----------
+	nbins: int
+		Number of bins being considered.
+	
+	auto_only: bool
+		If True, will only return each bin paired with itself.
+	
+	Returns
+	-------
+	pairings: list[tuple]
+		List of possible bin pairings.
+	
+	pairings_s: list[str]
+		List of comma-separated string versions of the ID pairs.
+	'''
+	import itertools
 
-		l = list(range(nbins))
-		if auto_only:
-			pairings = [(i,i) for i in l]
-		else:
-			pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
-		return pairings, pairings_s
+	l = list(range(nbins))
+	if auto_only:
+		pairings = [(i,i) for i in l]
+	else:
+		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+	pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+	return pairings, pairings_s
+
+
+def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
+	'''
+	Returns an array of bandpower edges for use in pseudo-Cl computation, based on the
+	specified maximum and (optional) minimum multipole, and the type of spacing between 
+	bandpowers.
+
+	Parameters
+	----------
+
+	ell_max: int
+		Maximum multipole to be considered.
+	
+	ell_min: int (optional)
+		Minimum multipole to be considered (assumed to be 1 by default).
+	
+	nbpws: int
+		Desired number of bandpowers.
+	
+	spacing: str (optional)
+		String specifying the desired type of spacing between bandpowers. Must be one
+		of either 'linear', 'log' or 'N19' (Nicola+19 bandpower edges). NOTE: selecting
+		'N19' will overwrite ell_min and nbpws.
+	
+	Returns
+	-------
+	bpw_edges: np.ndarray[int]
+		Array containing the edges of each bandpower.
+	'''
+	if spacing == 'N19':
+		bpw_edges = np.array([100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
+			 3800, 4600, 6200, 7800, 9400, 12600, 15800]).astype(int)
+		#remove any bin edges higher then ell_max
+		bpw_edges = bpw_edges[bpw_edges <= ell_max]
+	elif spacing == 'linear':
+		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws+1).astype(int))
+	elif spacing == 'log':
+		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
+	else:
+		raise ValueError('spacing must be one of "linear", "log", or "N19".')
+	
+	return bpw_edges
 
 
 def get_data_from_sacc(s, auto_only=False):
