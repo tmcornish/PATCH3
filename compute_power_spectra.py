@@ -227,6 +227,8 @@ for fd in cf.fields:
 	outfile_main = f'{PATH_MAPS}{cf.cell_files.main}'	
 	for p in pairings:
 		i,j = [int(x) for x in p.strip('()').split(',')]
+		label_i = list(cf.samples)[i]
+		label_j = list(cf.samples)[j]
 		outfile_now = f'{outfile_main[:-5]}_{i}_{j}.hdf5'
 
 		print(colour_string(p, 'green'))
@@ -357,9 +359,9 @@ for fd in cf.fields:
 			_ = gp.create_dataset('cl_bias_decoupled', data=cl_bias_decoupled)
 			_ = gp.create_dataset('cl_decoupled_debiased', data=cl_decoupled_debiased)
 			#see if theoretical predictions exist for this pairing
-			if theory_exists and (f'bin{i}-bin{j}' in theory_keys):
+			if theory_exists and (f'{label_i}-{label_j}' in theory_keys):
 				gp['ells_theory'] = h5py.ExternalLink(theory_file, 'ells')
-				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'bin{i}-bin{j}')
+				gp['cl_theory'] = h5py.ExternalLink(theory_file, f'{label_i}-{label_j}')
 	
 		#save the best-fit coefficients for deprojection ()
 		if (nsyst > 0):
@@ -368,14 +370,14 @@ for fd in cf.fields:
 			alphas_j = f_j.alphas
 			if not alphas_saved[i]:
 				#write to a file, with the name of each systematic
-				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
+				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
 					alphas_file.write('Sytematic\talpha\n')
 					for k in range(nsyst):
 						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
 				alphas_saved[i] = True
 			if not alphas_saved[j]:
 				#write to a file, with the name of each systematic
-				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_bin{j}.txt', 'w') as alphas_file:
+				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'{label_j}.txt', 'w') as alphas_file:
 					alphas_file.write('Sytematic\talpha\n')
 					for k in range(nsyst):
 						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
