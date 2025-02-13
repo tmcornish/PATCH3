@@ -6,10 +6,12 @@ import pymaster as nmt
 import numpy as np
 
 
-def get_bin_pairings(nbins, auto_only=False):
+def get_bin_pairings(nbins, auto_only=False, labels=None):
 	'''
 	Returns pairs of IDs for each tomographic bin being analysed. Also
-	returns comma-separated string versions of the ID pairs.
+	returns comma-separated string versions of the ID pairs, or if specific
+	labels have been provided will return those labels paired in the same
+	order as the bin indices.
 
 	Parameters
 	----------
@@ -18,6 +20,10 @@ def get_bin_pairings(nbins, auto_only=False):
 	
 	auto_only: bool
 		If True, will only return each bin paired with itself.
+	
+	labels: list[str] or None
+		(Optional) Specific labels to assign to each bin. If None, will
+		return string versions of the indices assigned to each bin.
 	
 	Returns
 	-------
@@ -34,7 +40,11 @@ def get_bin_pairings(nbins, auto_only=False):
 		pairings = [(i,i) for i in l]
 	else:
 		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
-	pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+	
+	if labels is None:
+		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+	else:
+		pairings_s = [f'{labels[p[0]]},{labels[p[1]]}' for p in pairings]
 	return pairings, pairings_s
 
 
