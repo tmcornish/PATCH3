@@ -27,11 +27,14 @@ def get_bin_pairings(nbins, auto_only=False, labels=None):
 	
 	Returns
 	-------
-	pairings: list[tuple]
+	pairings: list[tuple[int]]
 		List of possible bin pairings.
 	
 	pairings_s: list[str]
 		List of comma-separated string versions of the ID pairs.
+	
+	label_pairs: list[tuple[str]]
+		List of bin label pairings.
 	'''
 	import itertools
 
@@ -40,12 +43,13 @@ def get_bin_pairings(nbins, auto_only=False, labels=None):
 		pairings = [(i,i) for i in l]
 	else:
 		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
+	pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
 	
 	if labels is None:
-		pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
+		return pairings, pairings_s
 	else:
-		pairings_s = [f'{labels[p[0]]},{labels[p[1]]}' for p in pairings]
-	return pairings, pairings_s
+		label_pairs = [(labels[p[0]],labels[p[1]]) for p in pairings]
+		return pairings, pairings_s, label_pairs
 
 
 def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
