@@ -118,6 +118,6 @@ bin_centres = (bins[1:] + bins[:-1]) / 2
 #calculate and ave outputs to file
 with h5py.File(cf.nofz_files.nz_dir, 'w') as hf:
 	hf.create_dataset('z', data=bin_centres)
-	for i,zb in enumerate(zbin_masks):
+	for zb in zbin_masks:
 		nz, _ = np.histogram(cat_matched['lp_zMinChi2'][zbin_masks[zb]], bins, weights=weights[zbin_masks[zb]], density=True)
-		hf.create_dataset(f'nz_{i}', data=nz)
+		hf.create_dataset(f'nz_{zb}', data=nz)

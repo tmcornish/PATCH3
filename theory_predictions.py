@@ -73,8 +73,8 @@ def compute_nofz(fd):
 	nofz = {'z' : bin_centres}
 
 	#generate the histograms and store them in the dictionary
-	for i,samp in enumerate(masks):
-		nofz[f'nz_{i}'] = np.histogram(z_mc[masks[samp]], bins=bins, density=True)[0]
+	for samp in masks:
+		nofz[f'nz_{samp}'] = np.histogram(z_mc[masks[samp]], bins=bins, density=True)[0]
 	
 	return nofz
 
@@ -101,13 +101,13 @@ def get_tracers(nofz, cosmo):
 
 	#create a dictionary containing the tracers in each redshift bin
 	tracers = {
-		f'bin{i}' : ccl.NumberCountsTracer(
+		k : ccl.NumberCountsTracer(
 											cosmo, 
 											has_rsd=False, 
-											dndz=(nofz['z'], nofz[f'nz_{i}']), 
+											dndz=(nofz['z'], nofz[f'nz_{k}']), 
 											bias=(nofz['z'], np.ones_like(nofz['z']))
 											)
-		for i in range(cf.nsamples)
+		for k in cf.samples
 	}
 
 	return tracers
@@ -125,7 +125,7 @@ def get_theory_cells(tracers, pairings, ells, cosmo, pk):
 		bin.
 	
 	pairings: list
-		List of tuples, with each tuple containing the indices of the bins
+		List of tuples, with each tuple containing the labels of the bins
 		being paired.
 	
 	ells: array-like
@@ -148,12 +148,12 @@ def get_theory_cells(tracers, pairings, ells, cosmo, pk):
 	for i,j in pairings:
 		c_ell = ccl.angular_cl(
 							cosmo,
-							tracers[f'bin{i}'],
-							tracers[f'bin{j}'],
+							tracers[i],
+							tracers[j],
 							ells,
 							p_of_k_a=pk
 						)
-		theory_cells[f'bin{i}-bin{j}'] = c_ell
+		theory_cells[f'{i}-{j}'] = c_ell
 	
 	return theory_cells
 
@@ -163,7 +163,7 @@ def get_theory_cells(tracers, pairings, ells, cosmo, pk):
 #######################################################
 
 #retrieve the bin pairings
-pairings, pairings_s = cu.get_bin_pairings(cf.nsamples)
+pairings, _, pairings_s = cu.get_bin_pairings(cf.nsamples, labels=[k for k in cf.samples])
 
 #define the fiducial cosmology
 cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
@@ -212,7 +212,7 @@ if cf.use_dir:
 	tracers = get_tracers(nofz, cosmo)
 	print('Computing theory C_ells...')
 	#compute theory C_ells
-	theory_cells = get_theory_cells(tracers, pairings, ells, cosmo, pk)
+	theory_cells = get_theory_cells(tracers, pairings_s, ells, cosmo, pk)
 	
 #cycle through the specified fields
 for fd in cf.fields:
@@ -230,7 +230,7 @@ for fd in cf.fields:
 		tracers = get_tracers(nofz, cosmo)
 		print('Computing theory C_ells...')
 		#compute theory C_ells
-		theory_cells = get_theory_cells(tracers, pairings, ells, cosmo, pk)
+		theory_cells = get_theory_cells(tracers, pairings_s, ells, cosmo, pk)
 
 	print('Saving theory C_ells...')
 	#open the output file, compute and save the theory cells
