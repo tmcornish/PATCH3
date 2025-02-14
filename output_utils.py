@@ -60,6 +60,27 @@ def string_important(s):
 	return '\n'.join([pad_newline, textline, pad_newline])
 
 
+def error_message(module, message):
+	'''
+	Prints a nicely formatted error message. For use within other modules as a means of identifying
+	issues. 
+
+	Parameters
+	----------
+	module: str
+		The name of the module being debugged.
+
+	message: str
+		The body of the error message to print.
+	'''
+	err_str = [
+		colour_string(f'{module}\n', 'cyan'),
+		colour_string('Error: '),
+		colour_string(message, 'white')]
+	print(''.join(err_str))
+
+
+
 def array_to_fits(data, filename, CTYPE1='RA', CTYPE2='DEC', CRPIX=[1,1], CRVAL=[0,0], CDELT=[1,1]):
 	'''
 	Takes an array and details describing a coordinate system and creates a FITS file.
