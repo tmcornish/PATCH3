@@ -5,12 +5,12 @@
 # - include possibility that number of nodes < number of bin pairings 
 #####################################################################################################
 
-import config
+from configuration import PipelineConfig as PC
 import healpy as hp
 import healsparse as hsp
 import numpy as np
 from map_utils import load_map, load_tomographic_maps, MaskData
-from cell_utils import get_bpw_edges, compute_covariance
+import cell_utils as cu
 import h5py
 import pymaster as nmt
 from output_utils import colour_string
@@ -22,9 +22,10 @@ import sacc
 import pandas as pd
 
 ### SETTINGS ###
-cf = config.computePowerSpectra
+config_file = sys.argv[1]
+cf = PC(config_file, stage='computePowerSpectra')
 
-if not cf.LOCAL and cf.NERSC:
+if cf.platform == 'nersc':
 	os.system(f'taskset -pc 0-255 {os.getpid()}')
 
 #############################
@@ -137,23 +138,18 @@ size = comm.Get_size()
 rank = comm.Get_rank()
 
 #all possible pairings of tomographic bins (as tuples and as strings)
-pairings, pairings_s = cf.get_bin_pairings()
+pairings, _, label_pairs = cu.get_bin_pairings(cf.nsamples, labels=list(cf.samples))
 npairs = len(pairings)
 
 #maximum ell allowed by the resolution
-ell_max = 3 * cf.nside_hi - 1
+ell_max = 3 * cf.nside_hi
 #get pixel area in units of steradians
 Apix = hp.nside2pixarea(cf.nside_hi)
 #get the number of pixels in a full-sky map at the required resolution
 npix = hp.nside2npix(cf.nside_hi)
 
-if cf.use_N19_bps:
-	#retrieve bandpower edges from config
-	bpw_edges = np.array(cf.bpw_edges).astype(int)
-	#only include bandpowers < 3 * NSIDE (NOTE: NaMaster treats the upper edges as exclusive)
-	bpw_edges = bpw_edges[bpw_edges <= ell_max+1]
-else:
-	bpw_edges = get_bpw_edges(cf.nside_hi, cf.nbpws, ell_min=cf.ell_min, log_spacing=cf.log_spacing)
+#set the bandpower edges
+bpw_edges = cu.get_bpw_edges(ell_max, ell_min=cf.ell_min, nbpws=cf.nbpws, spacing=cf.bpw_spacing)
 #create pymaster NmtBin object using these bandpower objects
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
 #get the effective ells
@@ -161,19 +157,19 @@ ell_effs = b.get_effective_ells()
 
 
 #cycle through the fields being analysed
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	#path to the directory containing the maps
-	PATH_FD = f'{cf.PATH_OUT}{fd}/'
+	PATH_FD = f'{cf.paths.out}{fd}/'
 	#path to directory of cached outputs from this script
 	PATH_CACHE = PATH_FD + 'cache/'
-	wsp_path = PATH_CACHE + cf.wsp_file
-	covwsp_path = PATH_CACHE + cf.covwsp_file
+	wsp_path = PATH_CACHE + cf.cache_files.wsp_file
+	covwsp_path = PATH_CACHE + cf.cache_files.covwsp_file
 	#set up NmtWorkspace and NmtCovarianceWorkspace
 	w = nmt.NmtWorkspace()
 	cw = nmt.NmtCovarianceWorkspace()
 	
 	#load the survey mask and convert to full-sky realisation
-	mask = MaskData(PATH_FD + cf.survey_mask)
+	mask = MaskData(PATH_FD + cf.maps.survey_mask)
 	#retrieve relevant quantities from the mask data
 	above_thresh = mask.vpix_ring
 	sum_w_above_thresh = mask.sum
@@ -224,7 +220,7 @@ for fd in cf.get_global_fields():
 		#add the boolean 'lite' to the end of the list of systematics
 		systs.append(str(cf.lite))
 		#file containing list of systematics maps deprojected in the previous run
-		deproj_file = PATH_CACHE + cf.deproj_file
+		deproj_file = PATH_CACHE + cf.cache_files.deproj.deprojected
 		#load the systematics maps
 		systmaps = load_systematics(deproj_file, systs)
 		
@@ -253,8 +249,9 @@ for fd in cf.get_global_fields():
 
 	#current bin pairing
 	i, j = pairings[rank]
+	label_i, label_j = label_pairs[rank]
 	#load tomographic maps for this pairing
-	dg_i, dg_j = load_tomographic_maps(PATH_FD + cf.deltag_maps, idx=[i,j])
+	dg_i, dg_j = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=[i,j])
 	
 	print(f'Creating NmtFields for pairing {i},{j} (without deprojection)...')
 	##########################################################################
@@ -306,7 +303,7 @@ for fd in cf.get_global_fields():
 		print(f'Saving deprojection coefficients for bin {i}...')
 		##############################################################
 		alphas = f_i.alphas
-		with open(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{i}.txt', 'w') as alphas_file:
+		with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
 			alphas_file.write('Sytematic\talpha\n')
 			for k in range(nsyst):
 				alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
@@ -314,13 +311,13 @@ for fd in cf.get_global_fields():
 		print(f'Calculating shot noise for bin {i}...')
 		###############################################
 		#load the N_g map and calculate the mean weighted by the mask
-		mu_N = load_tomographic_maps(PATH_FD + cf.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
+		mu_N = load_tomographic_maps(PATH_FD + cf.maps.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
 		#calculate the noise power spectrum
-		cl_noise_coupled = np.full(ell_max+1, Apix * mu_w / mu_N).reshape((1,ell_max+1))
+		cl_noise_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
 		#decouple
 		cl_noise_decoupled = w.decouple_cell(cl_noise_coupled)
 	else:
-		cl_noise_coupled = np.zeros((1, ell_max+1))
+		cl_noise_coupled = np.zeros((1, ell_max))
 		cl_noise_decoupled = np.zeros((1, cf.nbpws))
 
 
@@ -356,9 +353,9 @@ for fd in cf.get_global_fields():
 		###################################
 
 		#reload maps and deproject using saved information
-		dg_maps = load_tomographic_maps(PATH_FD + cf.deltag_maps)
-		alphas_dfs = [pd.read_csv(PATH_CACHE + cf.alphas_file[:-4] + f'_bin{k}.txt', sep='\t', index_col=0)
-						for k in range(cf.nbins)]
+		dg_maps = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps)
+		alphas_dfs = [pd.read_csv(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{k}.txt', sep='\t', index_col=0)
+						for k in cf.samples]
 		density_fields_nd = [nmt.NmtField(mask.mask_full, [dg], templates=None) for dg in dg_maps]
 		density_fields = [make_deprojected_field(dg, al) for dg, al in zip(dg_maps, alphas_dfs)]
 
@@ -368,18 +365,18 @@ for fd in cf.get_global_fields():
 
 		#cycle through the possible combinations of pairs of fields
 		id_i = 0
-		for i1 in range(cf.nbins):
-			for i2 in range(i1, cf.nbins):
+		for i1 in range(cf.nsamples):
+			for i2 in range(i1, cf.nsamples):
 				id_j = 0
-				for j1 in range(cf.nbins):
-					for j2 in range(j1, cf.nbins):
-						covar_all[id_i, :, id_j, :] = compute_covariance(w, cw,
+				for j1 in range(cf.nsamples):
+					for j2 in range(j1, cf.nsamples):
+						covar_all[id_i, :, id_j, :] = cu.compute_covariance(w, cw,
 													   density_fields[i1],
 													   density_fields[i2],
 													   density_fields[j1],
 													   density_fields[j2]
 													   )[0]
-						covar_all_nd[id_i, :, id_j, :] = compute_covariance(w, cw,
+						covar_all_nd[id_i, :, id_j, :] = cu.compute_covariance(w, cw,
 													   density_fields_nd[i1],
 													   density_fields_nd[i2],
 													   density_fields_nd[j1],
@@ -396,7 +393,7 @@ for fd in cf.get_global_fields():
 		##############################
 		#get the bandpower window functions
 		wins = w.get_bandpower_windows()[0, :, 0, :].T
-		wins = sacc.BandpowerWindow(np.arange(ell_max+1), wins)
+		wins = sacc.BandpowerWindow(np.arange(ell_max), wins)
 
 		#set up the various SACC files
 		s_main = sacc.Sacc()		# main results (i.e. w/ deprojection)
@@ -406,14 +403,14 @@ for fd in cf.get_global_fields():
 
 		#get the n(z) distributions
 		if cf.use_dir:
-			nofz_info = cf.nz_dir_file
+			nofz_info = cf.nofz_files.nz_dir
 		else:
-			nofz_info = f'{PATH_FD}{cf.nz_mc_file}'
+			nofz_info = f'{PATH_FD}{cf.nofz_files.nz_mc}'
 		with h5py.File(nofz_info, 'r') as hf:
 			#get the redshifts at which n(z) distributions are defined
 			z = hf['z'][:]
 			#add tracers to the Sacc object (one for each redshift bin)
-			for i in range(len(cf.zbins)-1):
+			for i in range(cf.nsamples):
 				#get the n(z) distribution for this bin
 				nz = hf[f'nz_{i}'][:]
 				s_main.add_tracer('NZ',	#n(z)-type tracer
@@ -477,7 +474,7 @@ for fd in cf.get_global_fields():
 		s_nodeproj.add_covariance(covar_all_nd)
 
 		#save the SACC files
-		s_main.save_fits(f'{PATH_FD}{cf.outsacc}', overwrite=True)
-		s_nodeproj.save_fits(f'{PATH_FD}{cf.outsacc[:-5]}_nodeproj.fits', overwrite=True)
-		s_noise.save_fits(f'{PATH_FD}{cf.outsacc[:-5]}_noise.fits', overwrite=True)
-		s_bias.save_fits(f'{PATH_FD}{cf.outsacc[:-5]}_deprojbias.fits', overwrite=True)
+		s_main.save_fits(f'{PATH_FD}{cf.sacc_files.main}', overwrite=True)
+		s_nodeproj.save_fits(f'{PATH_FD}{cf.sacc_files.nodeproj}', overwrite=True)
+		s_noise.save_fits(f'{PATH_FD}{cf.sacc_files.noise}', overwrite=True)
+		s_bias.save_fits(f'{PATH_FD}{cf.sacc_files.bias}', overwrite=True)
