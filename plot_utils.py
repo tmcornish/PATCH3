@@ -296,6 +296,10 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='', **kwargs
 	else:
 		nside = hp.npix2nside(len(mp))
 	reso = hp.nside2resol(nside, arcmin=True)
+	#determine the xsize and ysize of the figure based on the NSIDE
+	scale_factor = nside // 1024
+	xsize *= scale_factor
+	ysize *= scale_factor
 	#make a copy of the input map to avoid editing in place
 	mp = mp.copy()
 	
@@ -401,7 +405,7 @@ def setup_cl_plot(nbins, auto_only=False, label_subplots=False, xlabel=None, yla
 	return fig, axes
 
 
-def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', label=None, return_handle=False, return_label=False, **kwargs):
+def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='o', linestyle='-', linestyle_nve='--', label=None, **kwargs):
 	'''
 	Convenience function for plotting C_ells on an existing set	of axes. 
 
@@ -436,17 +440,17 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	label: str
 		Legend label for the data.
 	
-	return_handle: bool
-		Whether or not to return the legend handle for the data.
-	
-	return_label: bool
-		Whether or not to return the legend label for the data.
-		
 	'''
 
-	#determine which data are positive and which are negative
-	mask_pve = cells >= 0
-	mask_nve = ~mask_pve
+	if binned:
+		#determine which data are positive and which are negative
+		mask_pve = cells >= 0
+		mask_nve = ~mask_pve
+	else:
+		#unbinned data requires different treatment
+		import numpy as np
+		mask_pve = np.ones_like(cells, dtype=bool)
+		mask_nve = mask_pve
 	#split data into two subsets
 	ells_pve = ells[mask_pve]
 	ells_nve = ells[mask_nve]
@@ -463,6 +467,7 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	#if C_ells are binned into bandpowers, remove the linestyle
 	if binned:
 		linestyle = 'none'
+		linestyle_nve = 'none'
 	#if they are not binned, remove the markers
 	else:
 		marker = 'none'
@@ -482,18 +487,13 @@ def plot_cells(ax, ells, cells, err_cells=None, binned=True, color='k', marker='
 	ax.errorbar(ells_nve, 
 				-cells_nve,
 				yerr=err_cells_nve,
+				color=color,
 				mec=color,
 				ecolor=color,
 				marker=marker,
-				linestyle=linestyle,
+				linestyle=linestyle_nve,
 				mfc='none',
 				**kwargs
 				)
 
-	to_return = [None]
-	if return_handle:
-		to_return.append(cell_plot)
-	if return_label and label:
-		to_return.append(label)
-	
-	return (*to_return,)
+	return cell_plot, label

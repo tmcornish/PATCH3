@@ -2,26 +2,29 @@
 # - Consolidates all information about the C_ells into SACC files.
 #####################################################################################################
 
-import config
+import sys
+from configuration import PipelineConfig as PC
 import h5py
 import sacc
 import pymaster as nmt
 import numpy as np
 from output_utils import colour_string
+from cell_utils import get_bin_pairings, get_bpw_edges
 
 ### SETTINGS ###
-cf = config.makeSaccFiles
+config_file = sys.argv[1]
+cf = PC(config_file, stage='makeSaccFiles')
 
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
 
 #get the possible bin pairings
-pairings, _ = cf.get_bin_pairings()
-nbins = len(cf.zbins) - 1
+nbins = cf.nsamples
+pairings, _ = get_bin_pairings(nbins)
 ncross = len(pairings)
 #bandpower edges and maximum ell at which the c_ells are defined
-bpw_edges = cf.get_bpw_edges()
+bpw_edges = get_bpw_edges(3*cf.nside_hi, ell_min=cf.ell_min, nbpws=cf.nbpws, spacing=cf.bpw_spacing)
 ell_max = bpw_edges[-1]
 #get the effective ells
 b = nmt.NmtBin.from_edges(bpw_edges[:-1], bpw_edges[1:])
@@ -30,18 +33,18 @@ n_ells = len(ell_effs)
 
 
 #cycle through the fields being analysed
-for fd in cf.get_global_fields():
+for fd in cf.fields:
 	print(colour_string(fd.upper(), 'orange'))
 
 	#relevant directories
-	PATH_INFO = f'{cf.PATH_OUT}{fd}/'
+	PATH_INFO = f'{cf.paths.out}{fd}/'
 	PATH_CACHE = f'{PATH_INFO}cache/'
 
 	#load the relevant workspaces from the cache
 	w = nmt.NmtWorkspace()
 	cw = nmt.NmtCovarianceWorkspace()
-	w.read_from(f'{PATH_CACHE}{cf.wsp_file}')
-	cw.read_from(f'{PATH_CACHE}{cf.covwsp_file}')
+	w.read_from(f'{PATH_CACHE}{cf.cache_files.workspaces.wsp}')
+	cw.read_from(f'{PATH_CACHE}{cf.cache_files.workspaces.covwsp}')
 	#get the bandpower window functions
 	wins = w.get_bandpower_windows()[0, :, 0, :].T
 	wins = sacc.BandpowerWindow(np.arange(1, ell_max+1), wins)
@@ -54,14 +57,14 @@ for fd in cf.get_global_fields():
 
 	#get the n(z) distributions
 	if cf.use_dir:
-		nofz_info = cf.nz_dir_file
+		nofz_info = cf.nofz_files.nz_dir
 	else:
-		nofz_info = f'{PATH_INFO}{cf.nz_mc_file}'
+		nofz_info = f'{PATH_INFO}{cf.nofz_files.nz_mc}'
 	with h5py.File(nofz_info, 'r') as hf:
 		#get the redshifts at which n(z) distributions are defined
 		z = hf['z'][:]
 		#add tracers to the Sacc object (one for each redshift bin)
-		for i in range(len(cf.zbins)-1):
+		for i, samp in enumerate(cf.samples):
 			#get the n(z) distribution for this bin
 			nz = hf[f'nz_{i}'][:]
 			s_main.add_tracer('NZ',	#n(z)-type tracer
@@ -96,7 +99,7 @@ for fd in cf.get_global_fields():
 	#cycle through the bin pairings
 	for i,j in pairings:
 		#retrieve the saved c_ell info
-		cell_info = f'{cf.PATH_OUT}{fd}/{cf.outfile[:-5]}_{i}_{j}.hdf5'
+		cell_info = f'{cf.paths.out}{fd}/{cf.cell_files.main[:-5]}_{i}_{j}.hdf5'
 		with h5py.File(cell_info, 'r') as hf:
 			gp = hf[f'{i},{j}']
 			#retrieve the relevant c_ell info
@@ -136,7 +139,7 @@ for fd in cf.get_global_fields():
 	covar_all = np.zeros((ncross, n_ells, ncross, n_ells))
 	covar_all_nodeproj = np.zeros((ncross, n_ells, ncross, n_ells))
 	#open the file containing all the covariance matrices
-	with h5py.File(f'{PATH_INFO}{cf.covar_file}', 'r') as hf:
+	with h5py.File(f'{PATH_INFO}{cf.cell_files.covariances}', 'r') as hf:
 		#cycle through the possible combinations of pairs of fields
 		id_i = 0
 		for i1 in range(nbins):
@@ -156,7 +159,7 @@ for fd in cf.get_global_fields():
 	s_main.add_covariance(covar_all)
 	s_nodeproj.add_covariance(covar_all_nodeproj)
 
-	s_main.save_fits(f'{PATH_INFO}{cf.outsacc}', overwrite=True)
-	s_nodeproj.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_nodeproj.fits', overwrite=True)
-	s_noise.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_noise.fits', overwrite=True)
-	s_bias.save_fits(f'{PATH_INFO}{cf.outsacc[:-5]}_deprojbias.fits', overwrite=True)
+	s_main.save_fits(f'{PATH_INFO}{cf.sacc_files.main}', overwrite=True)
+	s_nodeproj.save_fits(f'{PATH_INFO}{cf.sacc_files.nodeproj}', overwrite=True)
+	s_noise.save_fits(f'{PATH_INFO}{cf.sacc_files.noise}', overwrite=True)
+	s_bias.save_fits(f'{PATH_INFO}{cf.sacc_files.bias}', overwrite=True)

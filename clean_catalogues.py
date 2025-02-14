@@ -4,18 +4,18 @@
 #####################################################################################################
 
 import os
-import config
-from astropy.table import Table, vstack, Column
-from astropy.io import fits
+import sys
+from astropy.table import Table, vstack
 import numpy as np
 import pandas as pd
 import glob
 import h5py
-from output_utils import colour_string, write_output_hdf, h5py_dataset_iterator
-from gen_utils import error_message
+from configuration import PipelineConfig as PC
+from output_utils import colour_string, write_output_hdf, h5py_dataset_iterator, error_message
 
 ### SETTINGS ###
-cf = config.cleanCats
+config_file = sys.argv[1]
+cf = PC(config_file, stage='cleanCats')
 
 
 ###################
@@ -43,10 +43,11 @@ def basic_clean(t):
 	isnull_names = []
 
 	#see if file exists containing a list of required columns
-	if os.path.exists(cf.required_cols_file):
-		with open(cf.required_cols_file) as file:
+	if os.path.exists(cf.auxfiles.required_cols):
+		with open(cf.auxfiles.required_cols) as file:
 			req_cols = file.readlines()
-		req_cols = [c.replace('\n','') for c in req_cols]
+		#remove newline escape sequences and delete any commented lines
+		req_cols = [c.replace('\n','') for c in req_cols if not c.startswith('#')]
 	else:
 		req_cols = t.colnames
 	#cycle through column names
@@ -55,7 +56,7 @@ def basic_clean(t):
 			sel[t[key]] = 0
 			isnull_names.append(key)
 		else:
-			#want to remove NaNs UNLESS they are photo-zs, SFRs, stellar masses, or r/i-band magnitude corrections
+			#want to remove NaNs UNLESS they are photo-zs, SFRs, stellar masses
 			if not key.startswith('pz_') and not key.startswith('corr_') \
 			and not key.startswith('mstar_') and not key.startswith('sfr_'):
 				sel[np.isnan(t[key])] = 0
@@ -65,14 +66,10 @@ def basic_clean(t):
 
 	#if told to apply 'main' and 'strict'  cuts at this stage, do so
 	if len(cf.remove_if_flagged) > 0:
-		import flags as fl
-		to_remove = fl.combine_flags(
+		import itertools
+		to_remove = cf.combine_flags(
 						t,
-						fl.get_flags(
-							cf.band,
-							cf.secondary_bands(),
-							cf.remove_if_flagged
-						),
+						list(itertools.chain(*[cf.flags[k] for k in cf.flags])),
 						combine_type='or'
 		)
 		sel *= ~to_remove
@@ -107,22 +104,22 @@ def photom_cuts(t):
 
 	#magnitude cut in primary band
 	sel_maglim = np.ones(len(t), dtype=bool)
-	maglim_mask = (t[f'{cf.band}_cmodel_mag'] - t[f'a_{cf.band}']) > cf.depth_cut
+	maglim_mask = (t[f'{cf.bands.primary}_cmodel_mag'] - t[f'a_{cf.bands.primary}']) > cf.depth_cut
 	sel_maglim[maglim_mask] = False
 
 	#blending cut
 	sel_blend = np.ones(len(t), dtype=bool)
-	blend_mask = t[f'{cf.band}_blendedness_abs'] >= cf.blend_cut
+	blend_mask = t[f'{cf.bands.primary}_blendedness_abs'] >= 10 ** cf.log_blend_cut
 	sel_blend[blend_mask] = False
 
 	#S/N cut in primary band
 	sel_sn_pri = np.ones(len(t), dtype=bool)
-	sn_pri_mask = (t[f'{cf.band}_cmodel_flux'] / t[f'{cf.band}_cmodel_fluxerr']) < cf.sn_pri
+	sn_pri_mask = (t[f'{cf.bands.primary}_cmodel_flux'] / t[f'{cf.bands.primary}_cmodel_fluxerr']) < cf.sn_pri
 	sel_sn_pri[sn_pri_mask] = False
 
 	#S/N cut in all other bands
 	sel_sn_sec = []
-	for b in [x for x in cf.bands if x != cf.band]:
+	for b in cf.bands.secondary:
 		sel_sn_now = np.ones(len(t), dtype=bool)
 		sn_sec_mask = (t[f'{b}_cmodel_flux'] / t[f'{b}_cmodel_fluxerr']) < cf.sn_sec
 		sel_sn_now[sn_sec_mask] = False
@@ -155,7 +152,7 @@ def gal_cut(t):
 	'''
 
 	#identify stars via their 'extendedness' in the primary band
-	star_mask = t[f'{cf.band}_extendedness_value'] == 0.
+	star_mask = t[f'{cf.bands.primary}_extendedness_value'] == 0.
 
 	#split the catalogue into stars and galaxies
 	t_stars = t[star_mask]
@@ -177,42 +174,21 @@ def flag_stars(t):
 	'''
 
 	#identify stars via their 'extendedness' in the primary band
-	star_mask = t[f'{cf.band}_extendedness_value'] == 0.
+	star_mask = t[f'{cf.bands.primary}_extendedness_value'] == 0.
 	#add this as a column to the Table
 	t['is_star'] = star_mask
 
 
-def flag_tomo_bins(t):
+def get_data_suffix():
 	'''
-	Adds a column flagging which tomographic bin a galaxy belongs to, using the 
-	bin edges specified in the config file. If the galaxy does not belong to any
-	bin it is flagged as -1.
-
-	Parameters
-	----------
-	t: astropy.table.Table
-		Input catalogue.
-
-	Returns
-	-------
-	counts: list[int]
-		List of the number of galaxies in each bin.
+	Determines the suffix used when saving the downloaded raw data.
 	'''
-	#set up the column
-	t['zbin'] = np.full(len(t), -1, dtype=int)
-	#cycle through the redshift bin edges
-	counts = []
-	for i in range(cf.nbins):
-		zmin, zmax = cf.zbins[i:i+2]
-		#remove galaxies whose best-fit redshifts are not in this bin
-		zmask = (t[cf.zcol] >= zmin) * (t[cf.zcol] < zmax)
-		#optionally remove galaxies with secondary solutions at high redshift
-		if cf.remove_pz_outliers:
-			zmask *= ((t['pz_err95_max_dnnz'] - t['pz_err95_min_dnnz'] < 2.7)
-			 		* (t['pz_err95_max_mizu'] - t['pz_err95_min_mizu'] < 2.7))
-		t['zbin'][zmask] = i
-		counts.append(zmask.sum())
-	return counts
+	suffix = ''
+	if not cf.strict_cuts:
+		suffix += '_shearcat'
+	suffix += '_forced'
+	return suffix
+
 
 #######################################################
 ###############    START OF SCRIPT    #################
@@ -224,27 +200,25 @@ catalogues = [
 	'basic_cleaned',
 	'fully_cleaned',
 	'galaxies',
-	'stars',
-	*[f'zbin{i}' for i in range(cf.nbins)]
+	'stars'
 ]
 
 #get a dictionary of all fields being analysed and their respective subfields
-f_in_g = cf.fields_in_global()
+fields = cf.fields
 
 #cycle through each global field
-for g in f_in_g:
-	PATH_G = f'{cf.PATH_OUT}{g}'
+for g in fields:
+	cf.fields = [g]
+	PATH_G = f'{cf.paths.out}{g}'
 	#counters for keeping track of the cleaning stages in the whole field
 	l_init_fd = 0 			#counter for number of sources in raw data
 	l_bc_fd = 0				#counter for number of sources in basic-cleaned data
 	l_final_fd = 0 			#counter for number of sources in final catalogue
 	l_gals_fd = 0			#counter for number of galaxies in final catalogue
 	l_stars_fd = 0			#counter for number of stars in final catalogue
-	l_zbin_fd = [0] * cf.nbins		#counters for each redshift bin
 	print(colour_string(g.upper(), 'orange'))
 	#cycle through each of the subfields
-	for fd in f_in_g[g]:
-
+	for fd in cf.get_subfields():
 		print(colour_string(fd, 'purple'))
 
 		#create output directory for this field
@@ -254,10 +228,10 @@ for g in f_in_g:
 			os.system(f'mkdir -p {OUT}')
 		
 		#filenames to be given to the HDF format output files
-		hdf_basic = f'{OUT}/{cf.cat_basic}'
-		hdf_full = f'{OUT}/{cf.cat_main}'
+		hdf_basic = f'{OUT}/{cf.cats.basic}'
+		hdf_full = f'{OUT}/{cf.cats.main}'
 		#see if the field has been split into multiple parts
-		fname = f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}{cf.suffix}.fits'
+		fname = f'{cf.paths.data}{cf.dr.upper()}_{fd.upper()}{get_data_suffix()}.fits'
 		#initially enable 'write' mode for output files
 		mode = 'w'
 		if os.path.exists(fname):
@@ -276,7 +250,7 @@ for g in f_in_g:
 			l_final = len(data_all)
 		else: 
 			#see if catalogues exist for separate parts of the field
-			parts = sorted(glob.glob(f'{cf.PATH_DATA}{cf.prefix}{fd.upper()}_part??{cf.suffix}.fits'))
+			parts = sorted(glob.glob(f'{cf.paths.data}{cf.dr.upper()}_{fd.upper()}_part??{get_data_suffix()}.fits'))
 			if len(parts) >= 1:
 				#set up a list to contain data from all catalogues associated with this field
 				data_all = []
@@ -319,13 +293,11 @@ for g in f_in_g:
 		data_gals, data_stars = gal_cut(data_all)
 		l_gals = len(data_gals)
 		l_stars = len(data_stars)
-		#flag the tomographic bins in the galaxy catalogue
-		l_zbin = flag_tomo_bins(data_gals)
 		print(colour_string(f'{l_gals} galaxies; {l_stars} stars.', 'green'))
 
 		#write the catalogues to output files
 		print('Writing outputs...')
-		hdf_stars = f'{OUT}/{cf.cat_stars}'
+		hdf_stars = f'{OUT}/{cf.cats.stars}'
 		write_output_hdf(data_gals, hdf_full, mode='w', group='photometry')
 		write_output_hdf(data_stars, hdf_stars, mode='w', group='photometry')
 
@@ -335,16 +307,12 @@ for g in f_in_g:
 		l_final_fd += l_final
 		l_gals_fd += l_gals
 		l_stars_fd += l_stars
-		for i in range(cf.nbins):
-			l_zbin_fd[i] += l_zbin[i]
 
 	print(colour_string(f'SUMMARY: {g.upper()}', 'orange'))
 	print(colour_string(f'Began with {l_init_fd} sources.', 'green'))
 	print(colour_string(f'{l_bc_fd} remained after basic cleaning.', 'green'))
 	print(colour_string(f'{l_final_fd} sources remaining after full cleaning.', 'green'))
 	print(colour_string(f'{l_gals_fd} galaxies; {l_stars_fd} stars.', 'green'))
-	for i in range(cf.nbins):
-		print(colour_string(f'{l_zbin_fd[i]} galaxies in z bin {i}.', 'green'))
 	
 	#write summary of each stage to file
 	summary_data = [
@@ -352,25 +320,25 @@ for g in f_in_g:
 		l_bc_fd,
 		l_final_fd,
 		l_gals_fd,
-		l_stars_fd,
-		*l_zbin_fd
+		l_stars_fd
 		]
 	summary = {'Catalogue': catalogues, 'N_sources': summary_data}
 	summary = pd.DataFrame(data=summary)
 	summary.to_csv(f'{PATH_G}/{cf.clean_summary_file}', sep='\t', index=False)
 
 print('Consolidating catalogues from subfields...')
-cats = [cf.cat_basic, cf.cat_main, cf.cat_stars]
-for g in f_in_g:
+cats = [cf.cats.basic, cf.cats.main, cf.cats.stars]
+for g in fields:
+	cf.fields = [g]
 	print(colour_string(g.upper(), 'orange'))
 	#cycle through the catalogue types
 	for cat in cats:
 		print(colour_string(cat, 'cyan')) 
-		fname = f'{cf.PATH_OUT}{g}/{cat}'
+		fname = f'{cf.paths.out}{g}/{cat}'
 		with h5py.File(fname, 'w') as fmain:
-			for fd in f_in_g[g]:
+			for fd in cf.get_subfields():
 				print(f'Adding data from subfield {fd}...')
-				cat_now = f'{cf.PATH_OUT}{g}/{fd}/{cat}'
+				cat_now = f'{cf.paths.out}{g}/{fd}/{cat}'
 				with h5py.File(cat_now, 'r') as fnow:
 					#check the current structure of the main file
 					paths_current = [p for p,_ in h5py_dataset_iterator(fmain)]
@@ -384,6 +352,8 @@ for g in f_in_g:
 							dset_main[-N:] = dset[:]
 						else:
 							dset = fmain.create_dataset(path, shape=(N,), data=dset[:], maxshape=(None,), dtype=dt)
+				if cf.remove_intermediate:
+					os.system(f'rm -f {cat_now}')
 
 
 

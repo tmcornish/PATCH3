@@ -6,10 +6,12 @@ import pymaster as nmt
 import numpy as np
 
 
-def get_bin_pairings(nbins, auto_only=False):
+def get_bin_pairings(nbins, auto_only=False, labels=None):
 	'''
 	Returns pairs of IDs for each tomographic bin being analysed. Also
-	returns comma-separated string versions of the ID pairs.
+	returns comma-separated string versions of the ID pairs, or if specific
+	labels have been provided will return those labels paired in the same
+	order as the bin indices.
 
 	Parameters
 	----------
@@ -19,13 +21,20 @@ def get_bin_pairings(nbins, auto_only=False):
 	auto_only: bool
 		If True, will only return each bin paired with itself.
 	
+	labels: list[str] or None
+		(Optional) Specific labels to assign to each bin. If None, will
+		return string versions of the indices assigned to each bin.
+	
 	Returns
 	-------
-	pairings: list[tuple]
+	pairings: list[tuple[int]]
 		List of possible bin pairings.
 	
 	pairings_s: list[str]
 		List of comma-separated string versions of the ID pairs.
+	
+	label_pairs: list[tuple[str]]
+		List of bin label pairings.
 	'''
 	import itertools
 
@@ -35,7 +44,55 @@ def get_bin_pairings(nbins, auto_only=False):
 	else:
 		pairings = [i for i in itertools.product(l,l) if tuple(reversed(i)) >= i]
 	pairings_s = [f'{p[0]},{p[1]}' for p in pairings]
-	return pairings, pairings_s
+	
+	if labels is None:
+		return pairings, pairings_s
+	else:
+		label_pairs = [(labels[p[0]],labels[p[1]]) for p in pairings]
+		return pairings, pairings_s, label_pairs
+
+
+def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
+	'''
+	Returns an array of bandpower edges for use in pseudo-Cl computation, based on the
+	specified maximum and (optional) minimum multipole, and the type of spacing between 
+	bandpowers.
+
+	Parameters
+	----------
+
+	ell_max: int
+		Maximum multipole to be considered.
+	
+	ell_min: int (optional)
+		Minimum multipole to be considered (assumed to be 1 by default).
+	
+	nbpws: int
+		Desired number of bandpowers.
+	
+	spacing: str (optional)
+		String specifying the desired type of spacing between bandpowers. Must be one
+		of either 'linear', 'log' or 'N19' (Nicola+19 bandpower edges). NOTE: selecting
+		'N19' will overwrite ell_min and nbpws.
+	
+	Returns
+	-------
+	bpw_edges: np.ndarray[int]
+		Array containing the edges of each bandpower.
+	'''
+	if spacing == 'N19':
+		bpw_edges = np.array([100, 200, 300, 400, 600, 800, 1000, 1400, 1800, 2200, 3000,
+			 3800, 4600, 6200, 7800, 9400, 12600, 15800]).astype(int)
+		#remove any bin edges higher then ell_max
+		bpw_edges = bpw_edges[bpw_edges <= ell_max]
+	elif spacing == 'linear':
+		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws+1).astype(int))
+	elif spacing == 'log':
+		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
+	else:
+		raise ValueError('spacing must be one of "linear", "log", or "N19".')
+	
+	return bpw_edges
 
 
 def get_bpw_edges(nside, nbpws, ell_min=0, log_spacing=False):
@@ -138,6 +195,61 @@ def get_data_from_sacc(s, auto_only=False):
 	return ells, cells, cov
 	
 
+def select_from_sacc(s, tracer_combos, data_type):
+	'''
+	Given a Sacc object and a set of tracer combinations, will return a new Sacc object
+	containing only the information for those tracer combinations.
+
+	Parameters
+	----------
+	s: sacc.sacc.Sacc or str
+		The Sacc object containing the information for many tracers. If a string, must be 
+		the path to a Sacc file.
+	
+	tracer_combos: list[tuple]
+		List of tuples, with each tuple containing a pair of tracer names.
+	
+	data_type: str
+		Data type for which the information is to be extracted. E.g. 'cl_00' or
+		'galaxy_density_cl'. Use print(sacc.standard_types) to see list of possible
+		values.
+	
+	Returns
+	-------
+	s_new: sacc.sacc.Sacc
+		Sacc object containing only the desired information.
+	'''
+	import sacc
+
+	#check if input is a string
+	if type(s) == str:
+		s = sacc.Sacc.load_fits(s)
+
+	#get the unique tracer names
+	tc_unique = np.unique(tracer_combos)
+	#set up a new Sacc object and add tracers
+	s_new = sacc.Sacc()
+	for tc in tc_unique:
+		s_new.add_tracer_object(s.get_tracer(tc))
+	#now add ell and C_ell info for each desired combination
+	inds_all = []
+	for tc in tracer_combos:
+		ells, cells, inds = s.get_ell_cl(data_type, *tc, return_ind=True)
+		#get the window functions
+		wins = s.get_bandpower_windows(inds)
+		#add the ell_cl info
+		s_new.add_ell_cl(data_type, *tc, ells, cells, window=wins)
+		#add the indices to the list
+		inds_all.extend(list(inds))
+	#add the covariance info
+	if s.covariance is not None:
+		s_new.covariance = sacc.covariance.FullCovariance(s.covariance.covmat[inds_all][:,inds_all])
+	else:
+		s_new.covariance = None
+
+	return s_new
+	
+
 
 def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None, return_cl_coupled=False, return_cl_guess=False):
 	'''
@@ -228,3 +340,89 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None, retu
 
 
 	return (*to_return,)
+
+
+def apply_scale_cuts(ells, cells, cov, lmin, lmax, labels=None):
+	'''
+	Applies scale cuts to the data involved in the fit.
+
+	Parameters
+	----------
+	ells: list[numpy.ndarray]
+		List of arrays containing the effective multipoles for each 
+		bin pairing.
+	
+	cells: list[numpy.ndarray]
+		List of arrays containing the angular power spectra for each 
+		bin pairing.
+	
+	cov: numpy.ndarray or None
+		Covariance matrix for the angular power spectra.
+	
+	lmin: int or list[int]
+		Minimum multipole to include for each power spectrum. If a single value,
+		will apply to all power spectra provided; otherwise, lmin must be a list
+		with length equal to the number of power spectra. 
+	
+	lmax: int or list[int]
+		Maximum multipole to include for each power spectrum. If a single value,
+		will apply to all power spectra provided; otherwise, lmin must be a list
+		with length equal to the number of power spectra. 
+	
+	labels: list[str] or None
+		List of labels to assign to each scale cut. If None, will simply label
+		each cut with an index ranging from 0 to N(C_ells)-1.
+		
+	Returns
+	-------
+	ells_cut: list[numpy.ndarray]
+		List of effective multipoles after applying the scale cuts.
+	
+	cells_cut: list[numpy.ndarray]
+		List of C_ells after applying the scale cuts.
+	
+	cov_cut: numpy.ndarray
+		Covariance matrix after applying the scale cuts.
+	'''
+
+	#determine number of power spectra provided
+	if np.ndim(ells) > 1:
+		N_cells = len(ells)
+	else:
+		N_cells = 1
+		ells = [ells]
+		cells = [cells]
+
+	#set up a dictionary for the cuts
+	if labels is None:
+		labels = list(range(N_cells))
+	
+	#if lmin and lmax are single values, fill arrays of length N_cells with them
+	if type(lmin) == int:
+		lmin = np.full(N_cells, lmin)
+	if type(lmax) == int:
+		lmax = np.full(N_cells, lmax)
+
+	#copy the inputs to avoid overwriting them
+	ells_cut = ells.copy()
+	cells_cut = cells.copy()
+	cov_cut = cov.copy()
+
+	#set up a list for containing the masks for each bin pairing
+	masks = []
+	#cycle through the bin pairings
+	for i in range(N_cells):
+		#mask the multipoles above/below lmax/lmin
+		lmask = (ells_cut[i] <= lmax[i]) * (ells_cut[i] > lmin[i])
+		ells_cut[i] = ells_cut[i][lmask]
+		cells_cut[i] = cells_cut[i][lmask]
+		#append the mask to the list
+		masks.append(lmask)
+	#to mask the covariance matrix, combine and flatten all masks, then
+	#take the outer product with itself
+	masks = np.array(masks).flatten()
+	nkeep = int(masks.sum())
+	covmask = np.outer(masks, masks)
+	cov_cut = cov[covmask].reshape((nkeep, nkeep))
+	
+	return ells_cut, cells_cut, cov_cut

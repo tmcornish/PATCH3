@@ -60,6 +60,27 @@ def string_important(s):
 	return '\n'.join([pad_newline, textline, pad_newline])
 
 
+def error_message(module, message):
+	'''
+	Prints a nicely formatted error message. For use within other modules as a means of identifying
+	issues. 
+
+	Parameters
+	----------
+	module: str
+		The name of the module being debugged.
+
+	message: str
+		The body of the error message to print.
+	'''
+	err_str = [
+		colour_string(f'{module}\n', 'cyan'),
+		colour_string('Error: '),
+		colour_string(message, 'white')]
+	print(''.join(err_str))
+
+
+
 def array_to_fits(data, filename, CTYPE1='RA', CTYPE2='DEC', CRPIX=[1,1], CRVAL=[0,0], CDELT=[1,1]):
 	'''
 	Takes an array and details describing a coordinate system and creates a FITS file.
@@ -202,57 +223,3 @@ def h5py_dataset_iterator(g, prefix=''):
 			yield (path, item)
 		elif isinstance(item, h5py.Group): # test for group (go down)
 			yield from h5py_dataset_iterator(item, path)
-
-
-def select_from_sacc(s, tracer_combos, data_type):
-	'''
-	Given a Sacc object and a set of tracer combinations, will return a new Sacc object
-	containing only the information for those tracer combinations.
-
-	Parameters
-	----------
-	s: sacc.sacc.Sacc or str
-		The Sacc object containing the information for many tracers. If a string, must be 
-		the path to a Sacc file.
-	
-	tracer_combos: list[tuple]
-		List of tuples, with each tuple containing a pair of tracer names.
-	
-	data_type: str
-		Data type for which the information is to be extracted. E.g. 'cl_00' or
-		'galaxy_density_cl'. Use print(sacc.standard_types) to see list of possible
-		values.
-	
-	Returns
-	-------
-	s_new: sacc.sacc.Sacc
-		Sacc object containing only the desired information.
-	'''
-	import sacc
-	import numpy as np
-
-	#check if input is a string
-	if type(s) == str:
-		s = sacc.Sacc.load_fits(s)
-
-	#get the unique tracer names
-	tc_unique = np.unique(tracer_combos)
-	#set up a new Sacc object and add tracers
-	s_new = sacc.Sacc()
-	for tc in tc_unique:
-		s_new.add_tracer_object(s.get_tracer(tc))
-	#now add ell and C_ell info for each desired combination
-	inds_all = []
-	for tc in tracer_combos:
-		ells, cells, inds = s.get_ell_cl(data_type, *tc, return_ind=True)
-		#get the window functions
-		wins = s.get_bandpower_windows(inds)
-		#add the ell_cl info
-		s_new.add_ell_cl(data_type, *tc, ells, cells, window=wins)
-		#add the indices to the list
-		inds_all.extend(list(inds))
-	#add the covariance info
-	s_new.covariance = sacc.covariance.FullCovariance(s.covariance.covmat[inds_all][:,inds_all])
-
-	return s_new
-	

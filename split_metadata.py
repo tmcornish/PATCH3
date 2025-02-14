@@ -3,42 +3,32 @@
 #####################################################################################################
 
 import os
-import config
-import healpy as hp
-import healsparse as hsp
-import numpy as np
+import sys
+from configuration import PipelineConfig as PC
 from astropy.table import Table
 from output_utils import colour_string
 
 
 ### SETTINGS ###
-cf = config.splitMetadata
+config_file = sys.argv[1]
+cf = PC(config_file, stage='splitMetadata')
 
 
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
 
-#get the global fields being analysed
-fields_global = cf.get_global_fields()
-
 #load the metadata
-t = Table.read(cf.metafile)
-#get the extension of the metadata file and its character length
-ext = cf.metafile.split('.')[-1]
-lenext = len(ext)
+t = Table.read(cf.data_files.metadata)
 
+#output directory (same as the directory containing the downloaded data)
+PATH_OUT = cf.paths.data
 #cycle through the global fields
-for g in fields_global:
-	print(colour_string(g, 'orange'))
-	#directory in which the metadata for this field is to be stored
-	PATH_OUT = f'{cf.PATH_OUT}{g}/'
-	#make the host directory if it doesn't exist
-	if not os.path.exists(PATH_OUT):
-		os.system(f'mkdir -p {PATH_OUT}')
+for fd in cf.fields:
+	print(colour_string(fd, 'orange'))
 
 	#define a mask for selecting data within the bounds of the field
-	ra_min, ra_max, dec_min, dec_max = cf.bounds[g]
+	ra_min, ra_max, dec_min, dec_max = cf.get_field_boundaries(fd)
 	if ra_max < ra_min:
 		coord_mask = ((t['ra2000'] >= ra_min) | (t['ra2000'] <= ra_max)) * (t['dec2000'] >= dec_min) * (t['dec2000'] <= dec_max)
 	else:
@@ -46,20 +36,20 @@ for g in fields_global:
 	
 	#determine whether to split the metadata by band (filter)
 	if cf.split_by_band:
-		for b in cf.bands:
-			fname = f'{PATH_OUT}{cf.metasplit[:-(lenext+1)]}_{b}.fits'
+		for b in cf.bands.all:
+			fname = f'{cf.data_files.metadata[:-5]}_{fd}_{b}.fits'
 
 			#only bother with the next steps if the target file doesn't exist
 			if os.path.exists(fname):
-				print(f'Metadata file for {g} in band {b} already exists; skipping...')
+				print(f'Metadata file for {fd} in band {b} already exists; skipping...')
 				continue
 			
 			print(b)
 			#mask to select rows using the current filter
 			band_mask = (t['filter'] == b)
 			#see if other columns might also contain data for this band
-			if b in cf.bands_alt:
-				for b_alt in cf.bands_alt[b]:
+			if b in cf.bands.altnames:
+				for b_alt in cf.bands.altnames[b]:
 					band_mask |= (t['filter'] == b_alt)
 			#combine with the field mask
 			mask = coord_mask * band_mask
@@ -68,10 +58,10 @@ for g in fields_global:
 			t[mask].write(fname, format='fits')
 
 	else:
-		fname = f'{PATH_OUT}{cf.metasplit}'
+		fname = f'{cf.data_files.metadata[:-5]}_{fd}.fits'
 		#only bother with the next steps if the target file doesn't exist
 		if os.path.exists(fname):
-			print(f'Metadata file for {g} already exists; skipping...')
+			print(f'Metadata file for {fd} already exists; skipping...')
 		else:
 			t[coord_mask].write(fname, format='fits')
 
