@@ -52,7 +52,7 @@ def get_bin_pairings(nbins, auto_only=False, labels=None):
 		return pairings, pairings_s, label_pairs
 
 
-def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
+def get_bpw_edges(ell_max, ell_min=1, nbpws=10, spacing='linear'):
 	'''
 	Returns an array of bandpower edges for use in pseudo-Cl computation, based on the
 	specified maximum and (optional) minimum multipole, and the type of spacing between 
@@ -91,53 +91,13 @@ def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
 		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
 	else:
 		raise ValueError('spacing must be one of "linear", "log", or "N19".')
-	
-	return bpw_edges
 
-
-def get_bpw_edges(nside, nbpws, ell_min=0, log_spacing=False):
-	'''
-	Returns bandpower edges for use in power spectra calculation, given
-	the NSIDE of the maps being considered and the desired number of
-	bandpowers. Can be linear or log-spaced. Note that NaMaster treats
-	upper bin edges as exclusive; in order to have the uppermost edge
-	equal to 3 * NSIDE - 1 (as is typically desired), it is necessary
-	to set ell_max = 3 * NSIDE here.
-
-	Parameters
-	----------
-	nside: int
-		NSIDE of the map(s) being considered. 
-	
-	npws: int
-		Desired number of bandpowers.
-	
-	ell_min: int
-		Minimum multipole to consider.
-	
-	log_spacing: bool
-		Whether to use log spacing instead of linear for bandpower edges.
-	
-	Returns
-	-------
-	bpw_edges: numpy.ndarray
-		Array containing the edges of each bandpower. Has length nbpws+1.
-	'''
-	#maximum multipole
-	ell_max = 3 * nside
-	#compute bandpower edges with this information
-	if log_spacing:
-		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
-	else:
-		bpw_edges = np.unique(np.linspace(ell_min, ell_max, nbpws+1).astype(int))
-	
 	#check if any bins were lost due to spacing being too small 
 	n_removed = (nbpws + 1) - len(bpw_edges)
 	if n_removed > 0:
 		print(f'WARNING: {n_removed} bins were lost due to spacing between bins being too small.')
 	
 	return bpw_edges
-
 
 
 def get_data_from_sacc(s, auto_only=False):
