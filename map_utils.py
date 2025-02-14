@@ -5,7 +5,7 @@
 import numpy as np
 import healpy as hp
 import healsparse as hsp
-import gen_utils as gu
+from output_utils import error_message
 
 def initialiseRecMap(nside_cover, nside_sparse, labels, pixels=None, ra=None, dec=None, dtypes='f8', primary=None, return_pix=True, return_unique=True):
 	'''
@@ -77,7 +77,7 @@ def initialiseRecMap(nside_cover, nside_sparse, labels, pixels=None, ra=None, de
 		#identify pixels in the HealSparse map that contain sources from the catalogue
 		pixels = hp.ang2pix(nside_sparse, np.radians(90.-dec), np.radians(ra), nest=True)
 	elif (pixels is None) and (ra is None) and (dec is None):
-		gu.error_message('initialiseRecMap', 'Must provide either pixel IDs, or RA and Dec. coordinates.')
+		error_message('initialiseRecMap', 'Must provide either pixel IDs, or RA and Dec. coordinates.')
 
 	#determine the unique pixels
 	pixels_u = np.unique(pixels)
@@ -534,7 +534,7 @@ def load_tomographic_maps(map_path, fullsky=True, apply_mask=False, mask=None, i
 			elif type(idx) == int:
 				to_read = [hsp_map.dtype.names[idx]]
 			else:
-				gu.error_message('load_tomographic_maps', 'Single values for idx must be either int or str')
+				error_message('load_tomographic_maps', 'Single values for idx must be either int or str')
 				return
 		elif nd_idx == 1:
 			if all([type(x) == str for x in idx]):
@@ -542,10 +542,10 @@ def load_tomographic_maps(map_path, fullsky=True, apply_mask=False, mask=None, i
 			elif all([type(x) == int for x in idx]):
 				to_read = [hsp_map.dtype.names[x] for x in idx]
 			else:
-				gu.error_message('load_tomographic_maps', 'Lists provided for idx must contain either all int or all str')
+				error_message('load_tomographic_maps', 'Lists provided for idx must contain either all int or all str')
 				return
 		else:
-			gu.error_message('load_tomographic_maps', 'idx must be an int, str, or list of either')
+			error_message('load_tomographic_maps', 'idx must be an int, str, or list of either')
 			return
 	else:
 		to_read = hsp_map.dtype.names
