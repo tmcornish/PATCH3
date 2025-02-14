@@ -252,14 +252,14 @@ dirPhotozs: &dirPhotozs
 
 ###########################################################################################
 
-theoryPredictions: &computePowerSpectra
+theoryPredictions:
   <<: *dirPhotozs
   #whether to use the n(z) distributions caculated using DIR
   use_dir: false
 
 ###########################################################################################
 
-computePowerSpectra:
+computePowerSpectra: &computePowerSpectra
   #list of maps to deproject (add 'all' to the list if wanting to deproject all
   #maps in the systematics directory)
   systs: [all]
