@@ -253,13 +253,13 @@ for fd in cf.fields:
 	#load tomographic maps for this pairing
 	dg_i, dg_j = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=[i,j])
 	
-	print(f'Creating NmtFields for pairing {i},{j} (without deprojection)...')
+	print(f'Creating NmtFields for pairing {label_i},{label_j} (without deprojection)...')
 	##########################################################################
 	#current density fields (no deprojection)
 	f_i_nd = nmt.NmtField(mask.mask_full, [dg_i], templates=None, lite=cf.lite)
 	f_j_nd = nmt.NmtField(mask.mask_full, [dg_j], templates=None, lite=cf.lite)
 	
-	print(f'Creating NmtFields for pairing {i},{j} (with deprojection)...')
+	print(f'Creating NmtFields for pairing {label_i},{label_j} (with deprojection)...')
 	##########################################################################
 	#current density fields (with deprojection)
 	f_i = nmt.NmtField(mask.mask_full, [dg_i], templates=systmaps, lite=cf.lite)
@@ -280,7 +280,7 @@ for fd in cf.fields:
 		cl_bias_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			
 
 
-	print(f'Calculating coupled C_ells for pairing {i},{j}...')
+	print(f'Calculating coupled C_ells for pairing {label_i},{label_j}...')
 	###########################################################
 	#without deprojection
 	cl_coupled_nd = nmt.compute_coupled_cell(f_i_nd, f_j_nd)
@@ -300,7 +300,7 @@ for fd in cf.fields:
 		cl_guess *= mult
 	
 	if i == j:
-		print(f'Saving deprojection coefficients for bin {i}...')
+		print(f'Saving deprojection coefficients for {label_i}...')
 		##############################################################
 		alphas = f_i.alphas
 		with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
@@ -308,7 +308,7 @@ for fd in cf.fields:
 			for k in range(nsyst):
 				alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
 	
-		print(f'Calculating shot noise for bin {i}...')
+		print(f'Calculating shot noise for {label_i}...')
 		###############################################
 		#load the N_g map and calculate the mean weighted by the mask
 		mu_N = load_tomographic_maps(PATH_FD + cf.maps.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
@@ -321,7 +321,7 @@ for fd in cf.fields:
 		cl_noise_decoupled = np.zeros((1, cf.nbpws))
 
 
-	print(f'Calculating deprojection bias for pairing {i},{j}...')
+	print(f'Calculating deprojection bias for pairing {label_i},{label_j}...')
 	##############################################################
 	if nsyst > 0 and not cf.lite:
 		cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
@@ -332,7 +332,7 @@ for fd in cf.fields:
 	#delete the NamasterFields to save some memory
 	del f_i, f_j, f_i_nd, f_j_nd
 
-	print(f'Calculating decoupled C_ells for pairing {i},{j}...')
+	print(f'Calculating decoupled C_ells for pairing {label_i},{label_j}...')
 	###########################################################
 	#compute the decoupled C_ell (w/o deprojection)
 	cl_decoupled_nd = w.decouple_cell(cl_coupled_nd)
@@ -410,32 +410,32 @@ for fd in cf.fields:
 			#get the redshifts at which n(z) distributions are defined
 			z = hf['z'][:]
 			#add tracers to the Sacc object (one for each redshift bin)
-			for i in range(cf.nsamples):
+			for samp in cf.samples:
 				#get the n(z) distribution for this bin
-				nz = hf[f'nz_{i}'][:]
+				nz = hf[f'nz_{samp}'][:]
 				s_main.add_tracer('NZ',	#n(z)-type tracer
-							f'cl{i}',	#tracer name
+							samp,	#tracer name
 							quantity='galaxy_density', #quantity
 							spin=0,
 							z=z,
 							nz=nz
 							)
 				s_nodeproj.add_tracer('NZ',	#n(z)-type tracer
-							f'cl{i}',	#tracer name
+							samp,	#tracer name
 							quantity='galaxy_density', #quantity
 							spin=0,
 							z=z,
 							nz=nz
 							)
 				s_noise.add_tracer('NZ',	#n(z)-type tracer
-							f'cl{i}',	#tracer name
+							samp,	#tracer name
 							quantity='galaxy_density', #quantity
 							spin=0,
 							z=z,
 							nz=nz
 							)
 				s_bias.add_tracer('NZ',	#n(z)-type tracer
-							f'cl{i}',	#tracer name
+							samp,	#tracer name
 							quantity='galaxy_density', #quantity
 							spin=0,
 							z=z,
@@ -443,28 +443,28 @@ for fd in cf.fields:
 							)
 
 		#cycle through the bin pairings
-		for ip, (i,j) in enumerate(pairings):
+		for ip, ((i,j), (label_i, label_j)) in enumerate(zip(pairings, label_pairs)):
 			#add the relevant c_ell info to the Sacc
 			s_main.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{j}',
+						label_i, label_j,
 						ell_effs,
 						cl_buff[ip][0],
 						window=wins
 						)
 			s_nodeproj.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{j}',
+						label_i, label_j,
 						ell_effs,
 						cl_nd_buff[ip][0],
 						window=wins
 						)
 			s_bias.add_ell_cl('cl_00',
-							f'cl{i}', f'cl{j}',
+							label_i, label_j,
 							ell_effs,
 							cl_bias_buff[ip][0],
 							window=wins
 							)
 			s_noise.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{j}',
+						label_i, label_j,
 						ell_effs,
 						cl_noise_buff[ip][0],
 						window=wins)
