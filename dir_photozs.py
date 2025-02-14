@@ -95,7 +95,7 @@ print('Computing colour-space weights...')
 ##########################################
 train_sample = np.array([np.array(cat_matched[f'{b}_cmodel_mag']) for b in cf.bands.all]).T
 train_z = np.array(cat_matched['lp_zMinChi2'])
-photoz_sample = np.array([hsc_data[f'{b}_cmodel_mag'] for b in cf.bands]).T
+photoz_sample = np.array([hsc_data[f'{b}_cmodel_mag'] for b in cf.bands.all]).T
 #find k nearest neighbours in 5D colour space
 n_nbrs = NearestNeighbors(n_neighbors=cf.kNN, algorithm='kd_tree', metric='euclidean').fit(train_sample)
 distances, _ = n_nbrs.kneighbors(train_sample)
