@@ -11,8 +11,7 @@ import pandas as pd
 import glob
 import h5py
 from configuration import PipelineConfig as PC
-from output_utils import colour_string, write_output_hdf, h5py_dataset_iterator
-from gen_utils import error_message
+from output_utils import colour_string, write_output_hdf, h5py_dataset_iterator, error_message
 
 ### SETTINGS ###
 config_file = sys.argv[1]
