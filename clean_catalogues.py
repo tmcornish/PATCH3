@@ -66,14 +66,10 @@ def basic_clean(t):
 
 	#if told to apply 'main' and 'strict'  cuts at this stage, do so
 	if len(cf.remove_if_flagged) > 0:
-		import flags as fl
-		to_remove = fl.combine_flags(
+		import itertools
+		to_remove = cf.combine_flags(
 						t,
-						fl.get_flags(
-							cf.bands.primary,
-							cf.bands.secondary,
-							cf.remove_if_flagged
-						),
+						list(itertools.chain(*[cf.flags[k] for k in cf.flags])),
 						combine_type='or'
 		)
 		sel *= ~to_remove
