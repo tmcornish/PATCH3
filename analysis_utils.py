@@ -5,6 +5,32 @@
 import numpy as np
 from scipy import special
 
+
+def round_sigfigs(num, sf):
+	'''
+	Rounds a number to a given number of significant figures
+
+	Parameters
+	----------
+	num: float
+		The number to be rounded
+		
+	sf: int
+		The number of significant figures to which num will be rounded.
+
+	Returns
+	-------
+	num_rounded: float
+		The input number rounded to the desired number of significant figures.
+	'''
+	if num != 0.:
+		i = -int(np.floor(np.log10(abs(num))) - (sf - 1))		#the number of decimal places to round to
+		num_rounded = round(num, i)
+	else:
+		num_rounded = 0.
+	return num_rounded
+
+
 def percentiles_nsig(n):
 	'''
 	Returns the lower and upper percentiles corresponding to the n-sigma bounds for a normal distribution.
