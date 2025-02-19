@@ -69,7 +69,7 @@ def basic_clean(t):
 		import itertools
 		to_remove = cf.combine_flags(
 						t,
-						list(itertools.chain(*[cf.flags[k] for k in cf.flags])),
+						list(itertools.chain(*[cf.flags[k] for k in cf.flags if k in cf.remove_if_flagged])),
 						combine_type='or'
 		)
 		sel *= ~to_remove
