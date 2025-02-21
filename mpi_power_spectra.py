@@ -1,8 +1,6 @@
 #####################################################################################################
 # - Uses NaMaster to compute power spectra from the galaxy delta_g maps, deprojecting any 
 #   systematics templates in the process.
-# TODO: 
-# - include possibility that number of nodes < number of bin pairings 
 #####################################################################################################
 
 from configuration import PipelineConfig as PC
@@ -128,6 +126,31 @@ def make_deprojected_field(dg_map, alphas=None):
 
 	return df
 
+def split_list(a, n):
+	'''
+	Splits a list into n approximately equal parts. For example, a list
+	of length 10 split into 3 parts would be returned as chunks of size
+	(4, 3, 3).
+
+	Parameters
+	----------
+	a: array-like
+		List (or array) to be split.
+	
+	n: int
+		Number of chunks into which the list is to be split.
+	
+	Returns
+	-------
+	a_split: list
+		List containing the separate chunks of the input list.
+	'''
+	#compute the quotient and remainder of the list length divided by the number of chunks
+	k, m = divmod(len(a), n)
+	#split into n approximately equal-sized chunks
+	a_split = [a[i*k+min(i,m):(i+1)*k+min(i+1,m)] for i in range(n)]
+	return a_split
+
 
 #######################################################
 ###############    START OF SCRIPT    #################
@@ -140,6 +163,9 @@ rank = comm.Get_rank()
 #all possible pairings of tomographic bins (as tuples and as strings)
 pairings, _, label_pairs = cu.get_bin_pairings(cf.nsamples, labels=list(cf.samples))
 npairs = len(pairings)
+#split the lists of pairings and labels depending on the comm size
+pairings_split = split_list(pairings, size)
+label_pairs_split = split_list(label_pairs, size)
 
 #maximum ell allowed by the resolution
 ell_max = 3 * cf.nside_hi
@@ -162,8 +188,8 @@ for fd in cf.fields:
 	PATH_FD = f'{cf.paths.out}{fd}/'
 	#path to directory of cached outputs from this script
 	PATH_CACHE = PATH_FD + 'cache/'
-	wsp_path = PATH_CACHE + cf.cache_files.wsp_file
-	covwsp_path = PATH_CACHE + cf.cache_files.covwsp_file
+	wsp_path = PATH_CACHE + cf.cache_files.workspaces.wsp
+	covwsp_path = PATH_CACHE + cf.cache_files.workspaces.covwsp
 	#set up NmtWorkspace and NmtCovarianceWorkspace
 	w = nmt.NmtWorkspace()
 	cw = nmt.NmtCovarianceWorkspace()
@@ -247,26 +273,16 @@ for fd in cf.fields:
 	if np.isnan(systmaps).all():
 		continue
 
-	#current bin pairing
-	i, j = pairings[rank]
-	label_i, label_j = label_pairs[rank]
-	#load tomographic maps for this pairing
-	dg_i, dg_j = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=[i,j])
-	
-	print(f'Creating NmtFields for pairing {label_i},{label_j} (without deprojection)...')
-	##########################################################################
-	#current density fields (no deprojection)
-	f_i_nd = nmt.NmtField(mask.mask_full, [dg_i], templates=None, lite=cf.lite)
-	f_j_nd = nmt.NmtField(mask.mask_full, [dg_j], templates=None, lite=cf.lite)
-	
-	print(f'Creating NmtFields for pairing {label_i},{label_j} (with deprojection)...')
-	##########################################################################
-	#current density fields (with deprojection)
-	f_i = nmt.NmtField(mask.mask_full, [dg_i], templates=systmaps, lite=cf.lite)
-	f_j = nmt.NmtField(mask.mask_full, [dg_j], templates=systmaps, lite=cf.lite)
-
-	#delete systmaps to free up some memory
-	del systmaps
+	#number of iterations required per node to compute all bin pairs
+	niter = int(np.ceil(npairs / size))
+	#select a set of pairings according to the current rank
+	pairings_now = pairings_split[rank]
+	label_pairs_now = label_pairs_split[rank]
+	#set up a arrays for the c_ells calculated on the current node
+	cls_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
+	cls_nd_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
+	cls_noise_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
+	cls_bias_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
 
 	#set up buffers for gathering results
 	cl_buff = None			#buffer for the main C_ells
@@ -274,81 +290,153 @@ for fd in cf.fields:
 	cl_noise_buff = None 	#buffer for the noise power spectra
 	cl_bias_buff = None		#buffer for the deprojection bias
 	if rank == 0:
-		cl_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			
-		cl_nd_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)					
-		cl_noise_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			 	
-		cl_bias_buff = np.empty((npairs, 1, cf.nbpws), dtype=np.float64)			
+		cl_buff = np.empty((size, niter, 1, cf.nbpws), dtype=np.float64)			
+		cl_nd_buff = np.empty((size, niter, 1, cf.nbpws), dtype=np.float64)					
+		cl_noise_buff = np.empty((size, niter, 1, cf.nbpws), dtype=np.float64)			 	
+		cl_bias_buff = np.empty((size, niter, 1, cf.nbpws), dtype=np.float64)
 
+	#set up dictionaries for storing computed fields
+	fdone_nd = {lp: None for lp in cf.samples}
+	fdone = {lp: None for lp in cf.samples}
+	#cycle through the pairings assigned to this node
+	for idx in range(len(pairings_now)):
+		#current bin pairing
+		i, j = pairings_now[idx]
+		label_i, label_j = label_pairs_now[idx]
+		#check if field i has already been computed
+		if fdone[label_i] is None:
+			#delta_g map
+			dg_i = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=i)[0]
 
-	print(f'Calculating coupled C_ells for pairing {label_i},{label_j}...')
-	###########################################################
-	#without deprojection
-	cl_coupled_nd = nmt.compute_coupled_cell(f_i_nd, f_j_nd)
-	cl_guess_nd = cl_coupled_nd / mu_w2
-	
-	#with deprojection
-	if nsyst > 0:
-		cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
-		cl_guess = cl_coupled / mu_w2
-	else:
-		cl_coupled = cl_coupled_nd
-		cl_guess = cl_guess_nd
-	#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
-	if cf.correct_for_stars:
-		mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
-		cl_coupled *= mult
-		cl_guess *= mult
-	
-	if i == j:
-		print(f'Saving deprojection coefficients for {label_i}...')
+			print(f'Creating NmtField for {label_i} (without deprojection)...')
+			##########################################################################
+			f_i_nd = nmt.NmtField(mask.mask_full, [dg_i], templates=None, lite=cf.lite)
+			
+			print(f'Creating NmtField for {label_i} (without deprojection)...')
+			##########################################################################
+			f_i = nmt.NmtField(mask.mask_full, [dg_i], templates=systmaps, lite=cf.lite)
+			
+			#store these in the dictionary iff they are required in later calculations on this node
+			if any([label_i in p for p in label_pairs_now[idx:]]):
+				fdone_nd[label_i] = f_i_nd
+				fdone[label_i] = f_i
+		else:
+			#retrieve the fields from the dictionary rather tna reconstruct them
+			f_i_nd = fdone_nd[label_i]
+			f_i = fdone[label_i]
+		
+		#do the same for field j
+		if fdone[label_j] is None:
+			#delta_g map
+			dg_j = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=i)[0]
+			
+			print(f'Creating NmtField for {label_j} (without deprojection)...')
+			##########################################################################
+			f_j_nd = nmt.NmtField(mask.mask_full, [dg_j], templates=None, lite=cf.lite)
+			
+			print(f'Creating NmtField for {label_j} (without deprojection)...')
+			##########################################################################
+			f_j = nmt.NmtField(mask.mask_full, [dg_j], templates=systmaps, lite=cf.lite)
+
+			#store these in the dictionary iff they are required in later calculations on this node
+			if any([label_j in p for p in label_pairs_now[idx:]]):
+				fdone_nd[label_j] = f_j_nd
+				fdone[label_j] = f_j
+		else:
+			#retrieve the fields from the dictionary rather tna reconstruct them
+			f_j_nd = fdone_nd[label_j]
+			f_j = fdone[label_j]
+
+		print(f'Calculating coupled C_ells for pairing {label_i},{label_j}...')
+		###########################################################
+		#without deprojection
+		cl_coupled_nd = nmt.compute_coupled_cell(f_i_nd, f_j_nd)
+		cl_guess_nd = cl_coupled_nd / mu_w2
+
+		#with deprojection
+		if nsyst > 0:
+			cl_coupled = nmt.compute_coupled_cell(f_i, f_j)
+			cl_guess = cl_coupled / mu_w2
+		else:
+			cl_coupled = cl_coupled_nd
+			cl_guess = cl_guess_nd
+		#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
+		if cf.correct_for_stars:
+			mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
+			cl_coupled *= mult
+			cl_guess *= mult
+
+		if i == j:
+			print(f'Saving deprojection coefficients for {label_i}...')
+			##############################################################
+			alphas = f_i.alphas
+			with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
+				alphas_file.write('Sytematic\talpha\n')
+				for k in range(nsyst):
+					alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
+		
+			print(f'Calculating shot noise for {label_i}...')
+			###############################################
+			#load the N_g map and calculate the mean weighted by the mask
+			mu_N = load_tomographic_maps(PATH_FD + cf.maps.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
+			#calculate the noise power spectrum
+			cl_noise_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
+			#decouple
+			cl_noise_decoupled = w.decouple_cell(cl_noise_coupled)
+		else:
+			cl_noise_coupled = np.zeros((1, ell_max))
+			cl_noise_decoupled = np.zeros((1, cf.nbpws))
+		
+		print(f'Calculating deprojection bias for pairing {label_i},{label_j}...')
 		##############################################################
-		alphas = f_i.alphas
-		with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
-			alphas_file.write('Sytematic\talpha\n')
-			for k in range(nsyst):
-				alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
+		if nsyst > 0 and not cf.lite:
+			cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
+		else:
+			print('No systematics maps provided; skipping deprojection bias calculation.')
+			cl_bias = np.zeros_like(cl_guess)
+		
+		print(f'Calculating decoupled C_ells for pairing {label_i},{label_j}...')
+		###########################################################
+		#compute the decoupled C_ell (w/o deprojection)
+		cl_decoupled_nd = w.decouple_cell(cl_coupled_nd)
+		#compute the decoupled, debiased C_ell (w/ deprojection)
+		cl_decoupled = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
+		#decouple the bias C_ells as well
+		cl_bias_decoupled = w.decouple_cell(cl_bias)
+
+		#check if fields requied for future calculations
+		if not any([label_i in p for p in label_pairs_now[idx:]]):
+			f_i_nd[label_i] = None
+			f_i[label_i] = None
+		if not any([label_j in p for p in label_pairs_now[idx:]]):
+			f_j_nd[label_j] = None
+			f_j[label_j] = None
+
+		#update the relevant arrays with the computed C_ells
+		cls_now[idx,:,:] = cl_decoupled
+		cls_nd_now[idx,:,:] = cl_decoupled_nd
+		cls_noise_now[idx,:,:] = cl_noise_decoupled
+		cls_bias_now[idx,:,:] = cl_bias_decoupled
 	
-		print(f'Calculating shot noise for {label_i}...')
-		###############################################
-		#load the N_g map and calculate the mean weighted by the mask
-		mu_N = load_tomographic_maps(PATH_FD + cf.maps.ngal_maps, idx=i)[0][above_thresh].sum() / sum_w_above_thresh
-		#calculate the noise power spectrum
-		cl_noise_coupled = np.full(ell_max, Apix * mu_w / mu_N).reshape((1,ell_max))
-		#decouple
-		cl_noise_decoupled = w.decouple_cell(cl_noise_coupled)
-	else:
-		cl_noise_coupled = np.zeros((1, ell_max))
-		cl_noise_decoupled = np.zeros((1, cf.nbpws))
-
-
-	print(f'Calculating deprojection bias for pairing {label_i},{label_j}...')
-	##############################################################
-	if nsyst > 0 and not cf.lite:
-		cl_bias = nmt.deprojection_bias(f_i, f_j, cl_guess)
-	else:
-		print('No systematics maps provided; skipping deprojection bias calculation.')
-		cl_bias = np.zeros_like(cl_guess)
-
+	#delete systmaps to free up some memory
+	del systmaps			
 	#delete the NamasterFields to save some memory
 	del f_i, f_j, f_i_nd, f_j_nd
 
-	print(f'Calculating decoupled C_ells for pairing {label_i},{label_j}...')
-	###########################################################
-	#compute the decoupled C_ell (w/o deprojection)
-	cl_decoupled_nd = w.decouple_cell(cl_coupled_nd)
-	#compute the decoupled, debiased C_ell (w/ deprojection)
-	cl_decoupled = w.decouple_cell(cl_coupled, cl_bias=cl_bias)
-	#decouple the bias C_ells as well
-	cl_bias_decoupled = w.decouple_cell(cl_bias)
 
-	
 	#gather (decoupled) results
-	comm.Gather(cl_decoupled, cl_buff, root=0)
-	comm.Gather(cl_decoupled_nd, cl_nd_buff, root=0)
-	comm.Gather(cl_noise_decoupled, cl_noise_buff, root=0)
-	comm.Gather(cl_bias_decoupled, cl_bias_buff, root=0)
+	comm.Gather(cls_now, cl_buff, root=0)
+	comm.Gather(cls_nd_now, cl_nd_buff, root=0)
+	comm.Gather(cls_noise_now, cl_noise_buff, root=0)
+	comm.Gather(cls_bias_now, cl_bias_buff, root=0)
 
 	if rank == 0:
+		#remove all-zero rows from the Gathered arrays 
+		cl_buff = cl_buff[~np.all(cl_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_nd_buff = cl_nd_buff[~np.all(cl_nd_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_noise_buff = cl_noise_buff[~np.all(cl_noise_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_bias_buff = cl_bias_buff[~np.all(cl_bias_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
+
 		print('Calculating covariances...')
 		###################################
 
