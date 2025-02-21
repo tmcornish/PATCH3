@@ -40,6 +40,8 @@ class PipelineConfig():
 		#get the number of samples and set it as a property
 		self.config_dict['nsamples'] = len(self.samples)
 
+		#store the path of the config file
+		self.config_dict['config_file'] = config_file
 		#set the map and catalogue names
 		self._set_output_names()
 		#identify the machine or cluster on which this is being run
@@ -105,6 +107,11 @@ class PipelineConfig():
 		for key in self.sacc_files:
 			self.config_dict['sacc_files'][key] = self.sacc_files[key] + \
 													f'_nside{self.nside_hi}{self.suffix}.fits'
+		
+		#auxiliary files (assumed to be stored in the same directory as the config file)
+		conf_dir = '/'.join(self.config_file.split('/')[:-1]) + '/'
+		for key in self.auxfiles:
+			self.config_dict['auxfiles'][key] = conf_dir + self.auxfiles[key]
 
 
 	def _set_platform(self):
