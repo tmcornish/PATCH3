@@ -116,7 +116,7 @@ zbin_masks = cf.get_samples(cat_matched)
 bins = np.arange(0., 7.+cf.dz, cf.dz) 
 bin_centres = (bins[1:] + bins[:-1]) / 2
 #calculate and ave outputs to file
-with h5py.File(cf.nofz_files.nz_dir, 'w') as hf:
+with h5py.File(cf.paths.out + cf.nofz_files.nz_dir, 'w') as hf:
 	hf.create_dataset('z', data=bin_centres)
 	for zb in zbin_masks:
 		nz, _ = np.histogram(cat_matched['lp_zMinChi2'][zbin_masks[zb]], bins, weights=weights[zbin_masks[zb]], density=True)
