@@ -264,25 +264,29 @@ for fd in cf.fields:
 	#broadcast the list of systematics
 	syst = comm.bcast(systs, root=0)
 	#get the number of systematics
-	nsyst = len(systs) - 1
-	#broadcast the array of systematics maps
-	if rank != 0:
-		systmaps = np.empty((nsyst, 1, npix), dtype=np.float64)
-	comm.Bcast(systmaps, root=0)
-	#if systmaps is all NaN, continue to next field
-	if np.isnan(systmaps).all():
-		continue
+	nsyst = len(syst) - 1
+	#see if no systematics have been provided
+	if nsyst == 0:
+		systmaps = None
+	else:
+		#broadcast the array of systematics maps
+		if rank != 0:
+			systmaps = np.empty((nsyst, 1, npix), dtype=np.float64)
+		comm.Bcast(systmaps, root=0)
+		#if systmaps is all NaN, continue to next field
+		if np.isnan(systmaps).all():
+			continue
 
 	#number of iterations required per node to compute all bin pairs
 	niter = int(np.ceil(npairs / size))
 	#select a set of pairings according to the current rank
 	pairings_now = pairings_split[rank]
 	label_pairs_now = label_pairs_split[rank]
-	#set up a arrays for the c_ells calculated on the current node
-	cls_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
-	cls_nd_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
-	cls_noise_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
-	cls_bias_now = np.zeros((niter, 1, cf.nbpws), dtype=np.float64)
+	#set up arrays for the c_ells calculated on the current node
+	cls_now = np.full((niter, 1, cf.nbpws), np.nan)
+	cls_nd_now = np.full((niter, 1, cf.nbpws), np.nan)
+	cls_noise_now = np.full((niter, 1, cf.nbpws), np.nan)
+	cls_bias_now = np.full((niter, 1, cf.nbpws), np.nan)
 
 	#set up buffers for gathering results
 	cl_buff = None			#buffer for the main C_ells
@@ -312,9 +316,12 @@ for fd in cf.fields:
 			##########################################################################
 			f_i_nd = nmt.NmtField(mask.mask_full, [dg_i], templates=None, lite=cf.lite)
 			
-			print(f'Creating NmtField for {label_i} (without deprojection)...')
-			##########################################################################
-			f_i = nmt.NmtField(mask.mask_full, [dg_i], templates=systmaps, lite=cf.lite)
+			if nsyst == 0:
+				f_i = f_i_nd
+			else:
+				print(f'Creating NmtField for {label_i} (with deprojection)...')
+				##########################################################################
+				f_i = nmt.NmtField(mask.mask_full, [dg_i], templates=systmaps, lite=cf.lite)
 			
 			#store these in the dictionary iff they are required in later calculations on this node
 			if any([label_i in p for p in label_pairs_now[idx:]]):
@@ -334,9 +341,12 @@ for fd in cf.fields:
 			##########################################################################
 			f_j_nd = nmt.NmtField(mask.mask_full, [dg_j], templates=None, lite=cf.lite)
 			
-			print(f'Creating NmtField for {label_j} (without deprojection)...')
-			##########################################################################
-			f_j = nmt.NmtField(mask.mask_full, [dg_j], templates=systmaps, lite=cf.lite)
+			if nsyst == 0:
+				f_j = f_j_nd
+			else:
+				print(f'Creating NmtField for {label_j} (with deprojection)...')
+				##########################################################################
+				f_j = nmt.NmtField(mask.mask_full, [dg_j], templates=systmaps, lite=cf.lite)
 
 			#store these in the dictionary iff they are required in later calculations on this node
 			if any([label_j in p for p in label_pairs_now[idx:]]):
@@ -367,14 +377,15 @@ for fd in cf.fields:
 			cl_guess *= mult
 
 		if i == j:
-			print(f'Saving deprojection coefficients for {label_i}...')
-			##############################################################
-			alphas = f_i.alphas
-			with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
-				alphas_file.write('Sytematic\talpha\n')
-				for k in range(nsyst):
-					alphas_file.write(f'{systs[k]}\t{alphas[k]}\n')
-		
+			if nsyst > 0:
+				print(f'Saving deprojection coefficients for {label_i}...')
+				##############################################################
+				alphas = f_i.alphas
+				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_i}.txt', 'w') as alphas_file:
+					alphas_file.write('Sytematic\talpha\n')
+					for k in range(nsyst):
+						alphas_file.write(f'{syst[k]}\t{alphas[k]}\n')
+			
 			print(f'Calculating shot noise for {label_i}...')
 			###############################################
 			#load the N_g map and calculate the mean weighted by the mask
@@ -432,23 +443,18 @@ for fd in cf.fields:
 
 	if rank == 0:
 		#remove all-zero rows from the Gathered arrays 
-		cl_buff = cl_buff[~np.all(cl_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
-		cl_nd_buff = cl_nd_buff[~np.all(cl_nd_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
-		cl_noise_buff = cl_noise_buff[~np.all(cl_noise_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
-		cl_bias_buff = cl_bias_buff[~np.all(cl_bias_buff == 0, axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_buff = cl_buff[~np.all(np.isnan(cl_buff), axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_nd_buff = cl_nd_buff[~np.all(np.isnan(cl_nd_buff), axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_noise_buff = cl_noise_buff[~np.all(np.isnan(cl_noise_buff), axis=3)].reshape(npairs, 1, cf.nbpws)
+		cl_bias_buff = cl_bias_buff[~np.all(np.isnan(cl_bias_buff), axis=3)].reshape(npairs, 1, cf.nbpws)
 
-		print('Calculating covariances...')
-		###################################
+		print('Calculating covariances (without deprojection)...')
+		##########################################################
 
 		#reload maps and deproject using saved information
 		dg_maps = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps)
-		alphas_dfs = [pd.read_csv(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{k}.txt', sep='\t', index_col=0)
-						for k in cf.samples]
 		density_fields_nd = [nmt.NmtField(mask.mask_full, [dg], templates=None) for dg in dg_maps]
-		density_fields = [make_deprojected_field(dg, al) for dg, al in zip(dg_maps, alphas_dfs)]
-
 		#set up an array for the covariance matrices
-		covar_all = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
 		covar_all_nd = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
 
 		#cycle through the possible combinations of pairs of fields
@@ -458,12 +464,6 @@ for fd in cf.fields:
 				id_j = 0
 				for j1 in range(cf.nsamples):
 					for j2 in range(j1, cf.nsamples):
-						covar_all[id_i, :, id_j, :] = cu.compute_covariance(w, cw,
-													   density_fields[i1],
-													   density_fields[i2],
-													   density_fields[j1],
-													   density_fields[j2]
-													   )[0]
 						covar_all_nd[id_i, :, id_j, :] = cu.compute_covariance(w, cw,
 													   density_fields_nd[i1],
 													   density_fields_nd[i2],
@@ -474,8 +474,40 @@ for fd in cf.fields:
 				id_i += 1
 
 		#reshape the covariance matrix
-		covar_all = covar_all.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
 		covar_all_nd = covar_all_nd.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
+
+		if nsyst > 0:
+			print('Calculating covariances (with deprojection)...')
+			##########################################################
+
+			#retrieve the deprojection coefficients and make deprojected fields
+			alphas_dfs = [pd.read_csv(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{k}.txt', sep='\t', index_col=0)
+							for k in cf.samples]
+			density_fields = [make_deprojected_field(dg, al) for dg, al in zip(dg_maps, alphas_dfs)]
+			#set up an array for the covariance matrices
+			covar_all = np.zeros((npairs, cf.nbpws, npairs, cf.nbpws))
+
+			#cycle through the possible combinations of pairs of fields
+			id_i = 0
+			for i1 in range(cf.nsamples):
+				for i2 in range(i1, cf.nsamples):
+					id_j = 0
+					for j1 in range(cf.nsamples):
+						for j2 in range(j1, cf.nsamples):
+							covar_all[id_i, :, id_j, :] = cu.compute_covariance(w, cw,
+														density_fields[i1],
+														density_fields[i2],
+														density_fields[j1],
+														density_fields[j2]
+														)[0]
+							id_j += 1
+					id_i += 1
+
+			#reshape the covariance matrix
+			covar_all = covar_all.reshape((npairs * cf.nbpws, npairs * cf.nbpws))
+		else:
+			covar_all = covar_all_nd
+		
 	
 		print('Constructing SACCs...')
 		##############################
