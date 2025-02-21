@@ -66,7 +66,7 @@ class PipelineConfig():
 		'''
 		#hdf5 catalogues
 		for key in self.cats:
-			self.config_dict['cats'][key] = self.cats[key] + self.suffix + '.hdf5'
+			self.config_dict['cats'][key] = self.cats[key] + '.hdf5'
 		
 		#healsparse maps
 		for key in self.maps:
