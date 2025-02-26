@@ -328,14 +328,14 @@ for fd in cf.fields:
 				fdone_nd[label_i] = f_i_nd
 				fdone[label_i] = f_i
 		else:
-			#retrieve the fields from the dictionary rather tna reconstruct them
+			#retrieve the fields from the dictionary rather than reconstruct them
 			f_i_nd = fdone_nd[label_i]
 			f_i = fdone[label_i]
 		
 		#do the same for field j
 		if fdone[label_j] is None:
 			#delta_g map
-			dg_j = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=i)[0]
+			dg_j = load_tomographic_maps(PATH_FD + cf.maps.deltag_maps, idx=j)[0]
 			
 			print(f'Creating NmtField for {label_j} (without deprojection)...')
 			##########################################################################
@@ -353,7 +353,7 @@ for fd in cf.fields:
 				fdone_nd[label_j] = f_j_nd
 				fdone[label_j] = f_j
 		else:
-			#retrieve the fields from the dictionary rather tna reconstruct them
+			#retrieve the fields from the dictionary rather than reconstruct them
 			f_j_nd = fdone_nd[label_j]
 			f_j = fdone[label_j]
 
@@ -432,7 +432,7 @@ for fd in cf.fields:
 	#delete systmaps to free up some memory
 	del systmaps			
 	#delete the NamasterFields to save some memory
-	del f_i, f_j, f_i_nd, f_j_nd
+	del f_i, f_j, f_i_nd, f_j_nd, fdone, fdone_nd
 
 
 	#gather (decoupled) results
@@ -498,7 +498,8 @@ for fd in cf.fields:
 														density_fields[i1],
 														density_fields[i2],
 														density_fields[j1],
-														density_fields[j2]
+														density_fields[j2],
+														f_sky=mu_w2
 														)[0]
 							id_j += 1
 					id_i += 1
@@ -568,13 +569,13 @@ for fd in cf.fields:
 			s_main.add_ell_cl('cl_00',
 						label_i, label_j,
 						ell_effs,
-						cl_buff[ip][0],
+						cl_buff[ip][0]-cl_noise_buff[ip][0],
 						window=wins
 						)
 			s_nodeproj.add_ell_cl('cl_00',
 						label_i, label_j,
 						ell_effs,
-						cl_nd_buff[ip][0],
+						cl_nd_buff[ip][0]-cl_noise_buff[ip][0],
 						window=wins
 						)
 			s_bias.add_ell_cl('cl_00',
