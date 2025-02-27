@@ -239,7 +239,7 @@ for fd in cf.fields:
 		systs = []
 		#check for 'All' in systmaps and convert this to a list of all systematics maps
 		if 'all' in map(str.lower, cf.systs):
-			systs = [os.path.basename(m) for m in (glob.glob(f'{PATH_SYST}*_{cf.nside_hi}.hsp') + glob.glob(f'{PATH_SYST}*_{cf.nside_hi}_*.hsp'))]
+			systs = [os.path.basename(m) for m in glob.glob(f'{PATH_SYST}*_nside{cf.nside_hi}*.hsp')]
 		#if given a max number of systematics to deproject, slice the list accordingly
 		if cf.Nsyst_max is not None:
 			systs = systs[:cf.Nsyst_max]
