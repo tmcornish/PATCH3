@@ -370,11 +370,6 @@ for fd in cf.fields:
 		else:
 			cl_coupled = cl_coupled_nd
 			cl_guess = cl_guess_nd
-		#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
-		if cf.correct_for_stars:
-			mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
-			cl_coupled *= mult
-			cl_guess *= mult
 
 		if i == j:
 			if nsyst > 0:
@@ -405,6 +400,12 @@ for fd in cf.fields:
 		else:
 			print('No systematics maps provided; skipping deprojection bias calculation.')
 			cl_bias = np.zeros_like(cl_guess)
+		
+		#multiplicative correction to delta_g of (1 / (1-Fs)) due to stars results in factor of (1 / (1 - Fs))^2 correction to Cl
+		if cf.correct_for_stars:
+			mult = (1 / (1 - cf.Fs_fiducial)) ** 2.
+			cl_coupled *= mult
+			cl_guess *= mult
 		
 		print(f'Calculating decoupled C_ells for pairing {label_i},{label_j}...')
 		###########################################################
