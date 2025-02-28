@@ -121,6 +121,10 @@ def make_deprojected_field(dg_map, alphas=None):
 		#deproject the systematics
 		dg_map -= np.sum(alphas['alpha'].values[:, None, None] * systmaps, axis=0)
 
+	#apply correction for stellar contamination (if told to in config)
+	if cf.correct_for_stars:
+		dg_map *= 1. / (1. - cf.Fs_fiducial)
+
 	#create an NmtField object with the deprojected map (do NOT re-mask)
 	df = nmt.NmtField(np.ones_like(mask.mask_full), [dg_map], templates=None)
 
