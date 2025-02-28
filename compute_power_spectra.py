@@ -377,7 +377,7 @@ for fd in cf.fields:
 				alphas_saved[i] = True
 			if not alphas_saved[j]:
 				#write to a file, with the name of each systematic
-				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'{label_j}.txt', 'w') as alphas_file:
+				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_j}.txt', 'w') as alphas_file:
 					alphas_file.write('Sytematic\talpha\n')
 					for k in range(nsyst):
 						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
