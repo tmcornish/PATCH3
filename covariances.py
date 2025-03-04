@@ -146,7 +146,7 @@ for fd in cf.fields:
 	#load (as DataFrames) the best-fit coefficients
 	alpha_dfs = []
 	for i in range(cf.nsamples):
-		alphas_path = PATH_FD + cf.cache_files.deproj.alphas[:-4] + f'_bin{i}.txt'
+		alphas_path = PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_bin{i}.txt'
 		if os.path.exists(alphas_path):
 			alpha_dfs.append(pd.read_csv(alphas_path, sep='\t', index_col=0))
 		else:
