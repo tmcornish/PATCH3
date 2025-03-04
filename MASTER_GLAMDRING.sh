@@ -89,8 +89,14 @@ function metamaps_job () {
 }
 
 
-# Function for submitting compute_power_spectra.py to the queue.
-function power_spectra_job () {
+# Function for adding MPI python jobs to the queue.
+# Expects four arguments plus an optional third:
+#   $1: Number of nodes required.
+#   $2: Number of CPUs required per node.
+#   $3: Memory required per CPU (in GB).
+#   $4: Name of the script being run.
+#   $5: (Optional) Arguments to pass to the python script itself.
+function submit_mpi_pyjob () {
     #see if previous job is running
     if [ -f $jobfile ]
     then
@@ -99,17 +105,10 @@ function power_spectra_job () {
     else
         runafter=""
     fi
-
-    pya="from configuration import PipelineConfig as PC; "
-    pyb="cf = PC('$config_file', 'computePowerSpectra'); "
-    pyc="n=cf.nsamples; "
-    pyd="from cell_utils import get_bin_pairings; "
-    pye="print(' '.join(get_bin_pairings(n)[1]))"
-    for p in $($PYEX -c "$pya$pyb$pyc$pyd$pye")
-    do
-        #submit the job to the queue
-        addqueue -s -q cmb -n 1x$1 -m $2 "$runafter" $PYEX -u $3 $config_file $p > $jobfile
-    done
+    #lines comprising the command to run the job
+    c1="/usr/local/shared/slurm/bin/srun -N $1 --ntasks-per-node=1 --cpus-per-task=$2 "
+    c2="--cpu-bind=cores -m cyclic --mpi=pmix $PYEX -u $4 $config_file $5"
+    addqueue -q cmb -n "$1"x"$2" -m $3 -s "$runafter" "$c1$c2" > $jobfile
 }
 
 ##### Uncomment all steps below that you wish to run. #####
@@ -125,7 +124,7 @@ function power_spectra_job () {
 #submit_pyjob "-q cmb -m 40" clean_catalogues.py
 
 ### selecting galaxy samples for analysis
-submit_pyjob "-q cmb -m 40" sample_selection.py
+#submit_pyjob "-q cmb -m 40" sample_selection.py
 
 ### making maps from the frame metadata
 #metamaps_job "-q cmb -n 1x24 -m 7 -s" make_maps_from_metadata.py
@@ -146,10 +145,11 @@ submit_pyjob "-q cmb -m 40" sample_selection.py
 #submit_pyjob "-q cmb -m 40" theory_predictions.py
 
 ### computing power spectra; function takes as arguments...
-###     1: number of cores to use
-###     2: memory per CPU
-###     3: name of the python script to run
-#power_spectra_job 24 7 compute_power_spectra.py
+###     1: number of nodes to use
+###     2: number of CPUs to use per node
+###     3: memory per CPU (in GB)
+###     4: name of the python script to run
+submit_mpi_pyjob 5 24 4 compute_power_spectra.py
 
 ### calculating covariances
 #submit_pyjob "-q cmb -n 1x24 -m 7 -s" covariances.py
