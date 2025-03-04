@@ -97,8 +97,6 @@ global:
     deproj:
       deprojected: deprojected
       alphas: deprojection_alphas
-    hods:
-      mcmc_backend: hod_mcmc_backend
 
   #base name for SACC files produced by the pipeline (without file extension)
   sacc_files: 
@@ -321,35 +319,35 @@ fitHods:
         prior:
           min: 0
           max: 15
-        ref: null
+        ref: 12
         latex: \mu_{\rm min}
       #log_10 of the constant component of M_1
       mu_1:
         prior:
           min: 0
           max: 17
-        ref: null
+        ref: 12
         latex: \mu_1
       #log_10 of the time-evolving component of M_min
       mu_min_p:
         prior:
           min: -10
           max: 10
-        ref: null
+        ref: 0
         latex: \mu_{{\rm min},p}
       #log_10 of the time-evolving component of M_1
       mu_1_p:
         prior:
           min: -12
           max: 15
-        ref: null
+        ref: 0
         latex: \mu_{1,p}
       #smoothing between the 1-halo and 2-halo regimes of the matter power spectrum
       alpha_smooth:
         prior:
           min: 0.001
           max: 4.
-        ref: null
+        ref: 1
         latex: \alpha_{\rm smooth}
     #information about the sampler
     sampler:
@@ -357,7 +355,7 @@ fitHods:
         max_samples: 100000
         Rminus1_stop: 0.01
     #specify the output path
-    output: chaintest
+    output: hod_chains/chain
 
 ###########################################################################################
 
