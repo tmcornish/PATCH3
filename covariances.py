@@ -46,7 +46,7 @@ def make_deprojected_field(dg_map, alphas=None):
 	#mask the delta_g map and reshape it for namaster
 	dg_map *= mask.mask_full
 	dg_map = dg_map.reshape(1, npix)
-	if alphas:
+	if alphas is not None:
 		#load the systematics
 		systmaps = [load_map(PATH_SYST + s, is_systmap=True, mask=mask) for s in alphas.index]
 		nsyst = len(systmaps)
@@ -54,7 +54,7 @@ def make_deprojected_field(dg_map, alphas=None):
 		#apply the mask to the systematics
 		systmaps *= mask.mask_full
 		#deproject the systematics
-		dg_map -= np.sum(alphas['alpha'].values()[:, None, None] * systmaps, axis=0)
+		dg_map -= np.sum(alphas['alpha'].values[:, None, None] * systmaps, axis=0)
 
 	#create an NmtField object with the deprojected map (do NOT re-mask)
 	df = nmt.NmtField(np.ones_like(mask.mask_full), [dg_map], templates=None)
