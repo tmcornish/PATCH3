@@ -64,32 +64,32 @@ for fd in cf.fields:
 		#get the redshifts at which n(z) distributions are defined
 		z = hf['z'][:]
 		#add tracers to the Sacc object (one for each redshift bin)
-		for i, samp in enumerate(cf.samples):
+		for samp in cf.samples:
 			#get the n(z) distribution for this bin
 			nz = hf[f'nz_{samp}'][:]
 			s_main.add_tracer('NZ',	#n(z)-type tracer
-						f'cl{i}',	#tracer name
+						samp,	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
 						nz=nz
 						)
 			s_nodeproj.add_tracer('NZ',	#n(z)-type tracer
-						f'cl{i}',	#tracer name
+						samp,	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
 						nz=nz
 						)
 			s_noise.add_tracer('NZ',	#n(z)-type tracer
-						f'cl{i}',	#tracer name
+						samp,	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
 						nz=nz
 						)
 			s_bias.add_tracer('NZ',	#n(z)-type tracer
-						f'cl{i}',	#tracer name
+						samp,	#tracer name
 						quantity='galaxy_density', #quantity
 						spin=0,
 						z=z,
@@ -98,6 +98,8 @@ for fd in cf.fields:
 	
 	#cycle through the bin pairings
 	for i,j in pairings:
+		label_i = list(cf.samples)[i]
+		label_j = list(cf.samples)[j]
 		#retrieve the saved c_ell info
 		cell_info = f'{cf.paths.out}{fd}/{cf.cell_files.main[:-5]}_{i}_{j}.hdf5'
 		with h5py.File(cell_info, 'r') as hf:
@@ -111,26 +113,26 @@ for fd in cf.fields:
 			cell_final_nodeproj = cell_nodeproj - nell
 		#add the relevant c_ell info to the Sacc
 		s_main.add_ell_cl('cl_00',
-					f'cl{i}', f'cl{j}',
+					label_i, label_j,
 					ell_effs,
 					cell_final,
 					window=wins
 					)
 		s_nodeproj.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{j}',
+						label_i, label_j,
 						ell_effs,
 						cell_final_nodeproj,
 						window=wins
 						)
 		s_bias.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{j}',
+						label_i, label_j,
 						ell_effs,
 						bias,
 						window=wins
 						)
 		if i == j:
 			s_noise.add_ell_cl('cl_00',
-						f'cl{i}', f'cl{i}',
+						label_i, label_i,
 						ell_effs,
 						nell,
 						window=wins)

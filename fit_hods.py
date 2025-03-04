@@ -20,7 +20,10 @@ cf = PC(config_file, stage='fitHods')
 cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
 
 #determine the bin pairings
-pairings, _ = get_bin_pairings(cf.nsamples, cf.auto_only)
+pairings, _, tracer_combos = get_bin_pairings(cf.nsamples, 
+											  cf.auto_only,
+											  labels=list(cf.samples))
+ncombos = len(tracer_combos)
 
 #range of wavenumbers and scale factors over which theory power spectra will be computed
 lk_arr = np.log(np.geomspace(1E-4, 100, 256))
@@ -298,11 +301,6 @@ def nll(*args):
 #######################################################
 ###############    START OF SCRIPT    #################
 #######################################################
-
-
-#determine the tracer combinations
-tracer_combos = [(f'cl{i}', f'cl{j}') for i,j in pairings]
-ncombos = len(tracer_combos)
 
 #cycle through the fields being analysed
 for fd in cf.fields:

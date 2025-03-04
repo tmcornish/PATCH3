@@ -282,6 +282,9 @@ computePowerSpectra: &computePowerSpectra
 
   #create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
   lite: false
+  
+  #whether to use the n(z) distributions caculated using DIR
+  use_dir: false
 
 ###########################################################################################
 

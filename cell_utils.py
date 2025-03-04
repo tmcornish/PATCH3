@@ -52,7 +52,7 @@ def get_bin_pairings(nbins, auto_only=False, labels=None):
 		return pairings, pairings_s, label_pairs
 
 
-def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
+def get_bpw_edges(ell_max, ell_min=1, nbpws=10, spacing='linear'):
 	'''
 	Returns an array of bandpower edges for use in pseudo-Cl computation, based on the
 	specified maximum and (optional) minimum multipole, and the type of spacing between 
@@ -91,6 +91,11 @@ def get_bpw_edges(ell_max, ell_min=1., nbpws=10, spacing='linear'):
 		bpw_edges = np.unique(np.geomspace(ell_min, ell_max, nbpws+1).astype(int))
 	else:
 		raise ValueError('spacing must be one of "linear", "log", or "N19".')
+
+	#check if any bins were lost due to spacing being too small 
+	n_removed = (nbpws + 1) - len(bpw_edges)
+	if n_removed > 0:
+		print(f'WARNING: {n_removed} bins were lost due to spacing between bins being too small.')
 	
 	return bpw_edges
 
