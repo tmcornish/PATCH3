@@ -380,5 +380,5 @@ for fd in cf.fields:
 				with open(PATH_CACHE + cf.cache_files.deproj.alphas[:-4] + f'_{label_j}.txt', 'w') as alphas_file:
 					alphas_file.write('Sytematic\talpha\n')
 					for k in range(nsyst):
-						alphas_file.write(f'{systs[k]}\t{alphas_i[k]}\n')
+						alphas_file.write(f'{systs[k]}\t{alphas_j[k]}\n')
 				alphas_saved[j] = True
