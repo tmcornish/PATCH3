@@ -2,16 +2,17 @@
 # - Fits a halo occupation distribution model to the measured angular power spectra.
 #####################################################################################################
 
-import os
 import sys
 from configuration import PipelineConfig as PC
-import emcee
+from mpi4py import MPI
 import numpy as np
 import pyccl as ccl
 import multiprocessing as mp
 from scipy.optimize import minimize
 from output_utils import colour_string
-from cell_utils import select_from_sacc, get_bin_pairings
+from cell_utils import select_from_sacc, get_bin_pairings, apply_scale_cuts
+from cobaya.run import run
+from cobaya.log import LoggedError
 
 ### SETTINGS ###
 config_file = sys.argv[1]
@@ -20,7 +21,8 @@ cf = PC(config_file, stage='fitHods')
 cosmo = ccl.Cosmology(**cf.cosmo_fiducial)
 
 #determine the bin pairings
-pairings, _ = get_bin_pairings(cf.nsamples, cf.auto_only)
+pairings, _, label_pairs = get_bin_pairings(cf.nsamples, cf.auto_only, labels=list(cf.samples))
+ncombos = len(pairings)
 
 #range of wavenumbers and scale factors over which theory power spectra will be computed
 lk_arr = np.log(np.geomspace(1E-4, 100, 256))
@@ -299,10 +301,8 @@ def nll(*args):
 ###############    START OF SCRIPT    #################
 #######################################################
 
-
-#determine the tracer combinations
-tracer_combos = [(f'cl{i}', f'cl{j}') for i,j in pairings]
-ncombos = len(tracer_combos)
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 #cycle through the fields being analysed
 for fd in cf.fields:
@@ -310,7 +310,7 @@ for fd in cf.fields:
 	PATH_FD = cf.paths.out + fd + '/'
 
 	#load the Sacc file containing the power spectrum info
-	s = select_from_sacc(PATH_FD + cf.sacc_files.main, tracer_combos, 'cl_00')
+	s = select_from_sacc(PATH_FD + cf.sacc_files.main, label_pairs, 'cl_00')
 	#get ells and cells (no scale cuts applied at this stage)
 	ell_cl = [s.get_ell_cl('cl_00', i, j) for i, j in s.get_tracer_combinations()]
 	ells_all = [ell_cl[i][0] for i in range(len(ell_cl))]
@@ -338,80 +338,45 @@ for fd in cf.fields:
 	#invert the covariance matrix
 	icov = np.linalg.inv(cov)
 
-	if __name__ == '__main__':	
+	if rank == 0:
 		print(colour_string(fd.upper(), 'orange'))
-		print('Estimating intial best fit...')
-		######################################
-		initial = [12, 12, 0, 0, 1]
+		#retrieve cobaya config options from config file
+		info = cf.cobaya_info
+		#add the likelihood
+		info['likelihood'] = {'hod': log_likelihood}
+
+		#perform initial fit to get initial positions of each walker
+		initial = [p['ref'] for p in info['params']]
 		ndim = len(initial)
-		soln = minimize(nll, initial)
-		print(f'Initial best-fit values:\n'
-		f'mu_min = {soln.x[0]:.3f}\n'
-		f'mu_1 = {soln.x[1]:.3f}\n'
-		f'mu_minp = {soln.x[2]:.3f}\n'
-		f'mu_1p = {soln.x[3]:.3f}\n'
-		f'alpha_smooth = {soln.x[4]:.3f}')
-
-		print('Setting up the MCMC...')
-		###############################
-		#number of cores to use for multiprocessing
-		if not cf.LOCAL and not cf.NERSC:
-			ncores = int(os.getenv('SLURM_NTASKS_PER_NODE'))
+		if cf.compute_initial:
+			print('Estimating intial best fit...')
+			initial = minimize(nll, initial).x
+		#otherwise search for values in the config file
 		else:
-			ncores = mp.cpu_count()
-		#set the number of walkers equal to twice this
-		nwalkers = 2 * ncores
-
-		#initial positions for the walkers
-		p0 = [soln.x + np.array([cf.dmax.mu_min * np.random.rand(),
-								cf.dmax.mu_1 * np.random.rand(),
-								cf.dmax.mu_minp * np.random.rand(),
-								cf.dmax.mu_1p * np.random.rand(),
-								cf.dmax.alpha_smooth * np.random.rand()])
-								for _ in range(nwalkers)]
-		p0 = np.array(p0)
-		p0 -= np.array([cf.dmax.mu_min/2.,
-				  cf.dmax.mu_1/2., 
-				  cf.dmax.mu_minp/2.,
-				  cf.dmax.mu_1p/2.,
-				  cf.dmax.alpha_smooth/2.])
-
+			print('Using initial guesses from config file...')
+			
+		print(f'Initial best-fit values:\n')
+		for i,p in enumerate(info['params']):
+			info['params'][p]['ref'] = initial.x[i]
+			print(f'{p} = {initial.x[i]:.3f}')
 		
-		#set up an HDF5 backend
-		backend = emcee.backends.HDFBackend(PATH_FD + cf.cache_files.hods.mcmc_backend)
-		backend.reset(nwalkers, ndim)
-		
+		#ensure chains are saved to the correct place
+		info['output'] = f'{cf.paths.out}{fd}/{info["output"]}{cf.suffix}'
+	else:
+		info = None
+	info = comm.bcast(info, root=0)
 
-		print(f'Using {ncores} cores and {nwalkers} walkers.')
+	#run the sampler
+	success = False
+	try:
+		updated_info, sampler = run(info)
+		success = True
+	except LoggedError as err:
+		pass
 
-	
-		################################
-		with mp.get_context('spawn').Pool(ncores) as pool:
-			#initialise the sampler
-			sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, pool=pool, backend=backend)
-			#run the sampler
-			print('Running sampler...')
-			old_tau = np.inf
-			for sample in sampler.sample(p0, iterations=cf.niter_max):
-				#check convergence time every 20 steps
-				if sampler.iteration % 20:
-					continue
-				print(f'{sampler.iteration}/{cf.niter_max}')
-				tau = sampler.get_autocorr_time(tol=0)
-				#"convergence" reached if: 
-				# - autocorrelation time < 1/100th the current iteration
-				# - fractional change in autocorrelation time < 0.01
-				converged = np.all(tau * 100 < sampler.iteration) \
-							& np.all(np.abs(old_tau - tau) / tau < 0.01)
-				if converged:
-					print('Chains have converged!')
-					break
-				old_tau = tau
+	#did it work? (e.g. did not get stuck)
+	success = all(comm.allgather(success))
 
-			#raise alert if convergence not reached
-			if sampler.iteration == cf.niter_max - 1:
-				print('WARNING: chains have not converged. Best-fit values may be inaccurate.')
-
-			#print best-fit values
-			theta0 = sampler.flatchain[np.argmax(sampler.flatlnprobability)]
-			print(f'Best-fit values:\nmu_min: {theta0[0]:.3f}\nmu_1: {theta0[1]:.3f}')
+	if not success and rank == 0:
+		print('Sampling failed!')
+	print('Sampling successful!')	
