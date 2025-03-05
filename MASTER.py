@@ -77,7 +77,7 @@ proc = [
     ]
 
 run_str = [
-    f'cd data_query/ && python -u get_data.py {config_file}; cd ..',
+    f'python -u -m data_query.get_data {config_file}',
     f'python -u split_metadata.py {config_file}',
     f'python -u clean_catalogues.py {config_file}',
     f'python -u sample_selection.py {config_file}',
