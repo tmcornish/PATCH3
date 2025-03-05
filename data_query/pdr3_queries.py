@@ -22,17 +22,17 @@ def submit_job(
         f"--release-version={release}"
     if do_preview:
         command += " -p"
-    command += " -f "+output_format
+    command += " -f " + output_format
     if do_delete:
         command += " -D"
     if do_download:
         if os.path.isfile(output_file):
-            print("Found "+output_file)
+            print("Found " + output_file)
             return
         command += " -d"
-    command += " "+fname_sql
+    command += " " + fname_sql
     if do_download:
-        command += " > "+output_file
+        command += " > " + output_file
 
     print(command)
     os.system(command)
