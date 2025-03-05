@@ -39,7 +39,8 @@ def submit_job(
 
 
 def write_frames(tablename, fname_out, dir_out='./', output_format='fits',
-                 submit=False, do_download=False):
+                 submit=False, do_download=False,
+                 release='pdr3-citus-columnar'):
 
     stout = [
         'SELECT *',
@@ -57,7 +58,7 @@ def write_frames(tablename, fname_out, dir_out='./', output_format='fits',
 
     if submit:
         submit_job(fname_out, output_format, do_download=do_download,
-                   output_file=fname_job)
+                   output_file=fname_job, release=release)
 
 
 def write_fieldsearch(
@@ -76,7 +77,8 @@ def write_fieldsearch(
         apply_cuts=False,
         strict_cuts=False,
         do_download=False,
-        part=None
+        part=None,
+        release='pdr3-citus-columnar'
         ):
 
     def add_filters(name, cat='forced', behind=False):
@@ -281,4 +283,4 @@ def write_fieldsearch(
 
     if submit:
         submit_job(fname_out, output_format, do_download=do_download,
-                   output_file=fname_job)
+                   output_file=fname_job, release=release)
