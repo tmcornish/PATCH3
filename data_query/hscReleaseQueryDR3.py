@@ -1,14 +1,14 @@
 import json
 import argparse
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 import time
 import sys
 import csv
 import getpass
 import os
 import os.path
-import re
-import ssl
 
 
 version = 20190514.1
@@ -18,26 +18,37 @@ args = None
 
 
 def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
     parser.add_argument('--user', '-u', required=True,
                         help='specify your account name')
-    parser.add_argument('--release-version', '-r', choices='pdr1 pdr2 pdr2-citus pdr3 pdr3-citus pdr3-citus-columnar'.split(), default='pdr3',
+    parser.add_argument('--release-version', '-r',
+                        choices=('pdr1 pdr2 pdr2-citus pdr3 '
+                                 'pdr3-citus pdr3-citus-columnar').split(),
+                        default='pdr3',
                         help='specify release version')
     parser.add_argument('--delete-job', '-D', action='store_true',
-                        help='delete the job you submitted after your downloading')
+                        help='delete the job you submitted after your '
+                        'downloading')
     parser.add_argument('--download-job', '-d', action='store_true',
                         help='download the job you submitted')
-    parser.add_argument('--format', '-f', dest='out_format', default='csv', choices=['csv', 'csv.gz', 'sqlite3', 'fits'],
+    parser.add_argument('--format', '-f', dest='out_format', default='csv',
+                        choices=['csv', 'csv.gz', 'sqlite3', 'fits'],
                         help='specify output format')
     parser.add_argument('--nomail', '-M', action='store_true',
                         help='suppress email notice')
     parser.add_argument('--password-env', default='HSC_SSP_CAS_PASSWORD',
-                        help='specify the environment variable that has password as its content')
+                        help='specify the environment variable that has '
+                             'password as its content')
     parser.add_argument('--preview', '-p', action='store_true',
                         help='quick mode (short timeout)')
     parser.add_argument('--skip-syntax-check', '-S', action='store_true',
-                        help='skip syntax check (Use if you get 502: Proxy Error)')
-    parser.add_argument('--api-url', default='https://hsc-release.mtk.nao.ac.jp/datasearch/api/catalog_jobs/',
+                        help='skip syntax check (Use if you get 502: Proxy '
+                             'Error)')
+    parser.add_argument('--api-url',
+                        default='https://hsc-release.mtk.nao.ac.jp/datasearch/'
+                                'api/catalog_jobs/',
                         help='for developers')
     parser.add_argument('sql-file', type=argparse.FileType('r'),
                         help='SQL file')
@@ -97,12 +108,14 @@ def httpPost(url, postData, headers):
 def submitJob(credential, sql, out_format):
     url = args.api_url + 'submit'
     catalog_job = {
-        'sql'                     : sql,
-        'out_format'              : out_format,
+        'sql': sql,
+        'out_format': out_format,
         'include_metainfo_to_body': True,
-        'release_version'         : args.release_version,
+        'release_version': args.release_version,
     }
-    postData = {'credential': credential, 'catalog_job': catalog_job, 'nomail': args.nomail, 'skip_syntax_check': args.skip_syntax_check}
+    postData = {'credential': credential, 'catalog_job': catalog_job,
+                'nomail': args.nomail,
+                'skip_syntax_check': args.skip_syntax_check}
     res = httpJsonPost(url, postData)
     job = json.load(res)
     return job
@@ -125,8 +138,8 @@ def jobCancel(credential, job_id):
 def preview(credential, sql, out):
     url = args.api_url + 'preview'
     catalog_job = {
-        'sql'             : sql,
-        'release_version' : args.release_version,
+        'sql': sql,
+        'release_version': args.release_version,
     }
     postData = {'credential': credential, 'catalog_job': catalog_job}
     res = httpJsonPost(url, postData)
@@ -138,11 +151,12 @@ def preview(credential, sql, out):
         writer.writerow(row)
 
     if result['result']['count'] > len(result['result']['rows']):
-        raise QueryError('only top %d records are displayed !' % len(result['result']['rows']))
+        raise QueryError('only top %d records are displayed !' %
+                         len(result['result']['rows']))
 
 
 def blockUntilJobFinishes(credential, job_id):
-    max_interval = 5 * 60 # sec.
+    max_interval = 5 * 60  # sec.
     interval = 1
     while True:
         time.sleep(interval)
@@ -160,7 +174,7 @@ def download(credential, job_id, out):
     url = args.api_url + 'download'
     postData = {'credential': credential, 'id': job_id}
     res = httpJsonPost(url, postData)
-    bufSize = 64 * 1<<10 # 64k
+    bufSize = 64 * 1 << 10  # 64k
     while True:
         buf = res.read(bufSize)
         out.write(buf)
