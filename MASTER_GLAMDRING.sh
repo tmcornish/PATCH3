@@ -106,9 +106,13 @@ function submit_mpi_pyjob () {
         runafter=""
     fi
     #lines comprising the command to run the job
+    runfile="./run_mpi_job.sh"
+    c0=$'#!/bin/bash\n'
     c1="/usr/local/shared/slurm/bin/srun -N $1 --ntasks-per-node=1 --cpus-per-task=$2 "
     c2="--cpu-bind=cores -m cyclic --mpi=pmix $PYEX -u $4 $config_file $5"
-    addqueue -q cmb -n "$1"x"$2" -m $3 -s "$runafter" "$c1$c2" > $jobfile
+    echo "$c0$c1$c2" > $runfile
+    chmod u+x $runfile
+    addqueue -s -q redwood -n "$1"x"$2" -m $3 "$runafter" $runfile > $jobfile
 }
 
 ##### Uncomment all steps below that you wish to run. #####
