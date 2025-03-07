@@ -97,8 +97,6 @@ global:
     deproj:
       deprojected: deprojected
       alphas: deprojection_alphas
-    hods:
-      mcmc_backend: hod_mcmc_backend
 
   #base name for SACC files produced by the pipeline (without file extension)
   sacc_files: 
@@ -303,15 +301,6 @@ makeSaccFiles:
 fitHods:
   #whether to fit for auto-correlations only
   auto_only: true
-  #maximum number of iterations for the sampler
-  niter_max: 100_000
-  #maximum distances the initial walker positions can be from the initial best fit for each parameter
-  dmax:
-    mu_min: 1.
-    mu_1: 1.
-    mu_minp: 1.
-    mu_1p: 1.
-    alpha_smooth: 1.
   #pivot redshift for redshift-dependent parameters
   z_pivot: 0.65
   #whether to compute scale cuts based on redshift and a maximum k (in Mpc^{-1})
@@ -319,6 +308,62 @@ fitHods:
   kmax: 1
   #hard-coded ell_max to use if compute_scale_cuts is false
   hard_lmax: 2000
+
+  #whether to compute initial guesses for the free parameters (if true, overwrites any initial guesses
+  #provided manually)
+  compute_initial: true
+
+  #information to pass to cobaya
+  cobaya_info:
+    #priors, latex labels and initial guesses and covmat spread for the free paramaters in the model
+    params:
+      #log_10 of the constant component of M_min
+      mu_min:
+        prior:
+          min: 0
+          max: 15
+        ref: 12
+        latex: \mu_{\rm min}
+        proposal: 0.01
+      #log_10 of the constant component of M_1
+      mu_1:
+        prior:
+          min: 0
+          max: 17
+        ref: 12
+        latex: \mu_1
+        proposal: 0.01
+      #log_10 of the time-evolving component of M_min
+      mu_min_p:
+        prior:
+          min: -10
+          max: 10
+        ref: 0
+        latex: \mu_{{\rm min},p}
+        proposal: 0.01
+      #log_10 of the time-evolving component of M_1
+      mu_1_p:
+        prior:
+          min: -12
+          max: 15
+        ref: 0
+        latex: \mu_{1,p}
+        proposal: 0.01
+      #smoothing between the 1-halo and 2-halo regimes of the matter power spectrum
+      alpha_smooth:
+        prior:
+          min: 0.001
+          max: 4.
+        ref: 1
+        latex: \alpha_{\rm smooth}
+        proposal: 0.01
+    #information about the sampler
+    sampler:
+      mcmc:
+        max_samples: 100000
+        Rminus1_stop: 0.01
+    #specify the output path
+    output: hod_chains/chain
 
 ###########################################################################################
 
