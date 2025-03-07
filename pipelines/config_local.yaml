@@ -321,6 +321,7 @@ fitHods:
           max: 15
         ref: 12
         latex: \mu_{\rm min}
+        proposal: 0.01
       #log_10 of the constant component of M_1
       mu_1:
         prior:
@@ -328,6 +329,7 @@ fitHods:
           max: 17
         ref: 12
         latex: \mu_1
+        proposal: 0.01
       #log_10 of the time-evolving component of M_min
       mu_min_p:
         prior:
@@ -335,6 +337,7 @@ fitHods:
           max: 10
         ref: 0
         latex: \mu_{{\rm min},p}
+        proposal: 0.01
       #log_10 of the time-evolving component of M_1
       mu_1_p:
         prior:
@@ -342,6 +345,7 @@ fitHods:
           max: 15
         ref: 0
         latex: \mu_{1,p}
+        proposal: 0.01
       #smoothing between the 1-halo and 2-halo regimes of the matter power spectrum
       alpha_smooth:
         prior:
@@ -349,6 +353,7 @@ fitHods:
           max: 4.
         ref: 1
         latex: \alpha_{\rm smooth}
+        proposal: 0.01
     #information about the sampler
     sampler:
       mcmc:
