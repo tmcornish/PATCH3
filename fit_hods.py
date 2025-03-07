@@ -164,7 +164,7 @@ def apply_scale_cuts(ells, cells, cov, return_cuts=False, compute_cuts=True, har
 def log_prior(theta):
 	'''
 	Defines the priors on the free parameters in the HOD model
-	(in this case, mu_min and mu_1).
+	(in this case, mu_min and mu_1). NOTE: assumes uniform priors.
 
 	Parameters
 	----------
@@ -177,13 +177,12 @@ def log_prior(theta):
 		Either 0 or negative infinity, depending on whether the parameter
 		values are within the bound sof the flat priors.
 	'''
-	mu_min, mu_1, mu_minp, mu_1p, alpha_smooth = theta
-	if (0. < mu_min < 15.) and (0. < mu_1 < 17.) and (-10. < mu_minp < 10.) and (-12. < mu_1p < 15.) and (0.01 < alpha_smooth < 4):
-		logp = 0.
-	else:
-		logp = -np.inf
+	logp = 0.
+	for i, p in enumerate(cf.cobaya_info.params):
+		if (theta[i] <= cf.cobaya_info.params[p]['prior']['min'])\
+		or (theta[i] >= cf.cobaya_info.params[p]['prior']['max']):
+			logp = -np.inf
 	return logp
-
 
 def suppress_1h(a):
 	'''
@@ -205,22 +204,34 @@ def suppress_1h(a):
 	return k_max
 
 
-def log_likelihood(theta):
+def log_likelihood(mu_min, mu_1, mu_min_p, mu_1_p, alpha_smooth):
 	'''
 	Defines the priors on the free parameters in the HOD model.
 
 	Parameters
 	----------
-	theta: tuple
-		Tuple containing values for the free parameters.
+	mu_min: float
+		log_10 of the constant component of M_min, where M_min is the
+		characteristic mass above which halos can host central galaxies.
+	
+	mu_1: float
+		log_10 of the constant component of M_1, where M_1 is a normalisation
+		factor for the satellite occupation distribution.
+	
+	mu_minp: float
+		log_10 of the time-evolving component of M_min.
+	
+	mu_1p: float
+		log_10 of the time-evolving component of M_1.
+	
+	alpha_smooth: float
+		Smoothing between the 1-halo and 2-halo regimes of the matter power spectrum
 	
 	Returns
 	-------
 	logL: float
 		Logarithm of the likelihood.
 	'''
-	#free parameters in the model
-	mu_min, mu_1, mu_minp, mu_1p, alpha_smooth = theta
 	smooth_transition = lambda a: alpha_smooth
 	#halo profile
 	prof = ccl.halos.HaloProfileHOD(
@@ -229,9 +240,9 @@ def log_likelihood(theta):
 		log10Mmin_0=mu_min,
 		log10M0_0=mu_min,
 		log10M1_0=mu_1,
-		log10M0_p=mu_minp,
-		log10Mmin_p=mu_minp,
-		log10M1_p=mu_1p,
+		log10M0_p=mu_min_p,
+		log10Mmin_p=mu_min_p,
+		log10M1_p=mu_1_p,
 		a_pivot=a_pivot
 		)
 	#halo-model power spectrum for galaxies
@@ -286,7 +297,7 @@ def log_probability(theta):
 	if not np.isfinite(lp):
 		log_prob = -np.inf
 	else:
-		log_prob = lp + log_likelihood(theta)
+		log_prob = lp + log_likelihood(*theta)
 	return log_prob
 
 
@@ -346,7 +357,7 @@ for fd in cf.fields:
 		info['likelihood'] = {'hod': log_likelihood}
 
 		#perform initial fit to get initial positions of each walker
-		initial = [p['ref'] for p in info['params']]
+		initial = [info['params'][p]['ref'] for p in info['params']]
 		ndim = len(initial)
 		if cf.compute_initial:
 			print('Estimating intial best fit...')
@@ -357,8 +368,8 @@ for fd in cf.fields:
 			
 		print(f'Initial best-fit values:\n')
 		for i,p in enumerate(info['params']):
-			info['params'][p]['ref'] = initial.x[i]
-			print(f'{p} = {initial.x[i]:.3f}')
+			info['params'][p]['ref'] = initial[i]
+			print(f'{p} = {initial[i]:.3f}')
 		
 		#ensure chains are saved to the correct place
 		info['output'] = f'{cf.paths.out}{fd}/{info["output"]}{cf.suffix}'
