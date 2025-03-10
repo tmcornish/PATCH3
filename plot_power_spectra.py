@@ -28,7 +28,6 @@ xsize = nbins * 4
 ysize = nbins * 3.5
 
 # Also get all possible pairings of bins
-lp = list(range(nbins))
 pairings, pairings_s = cu.get_bin_pairings()
 
 # Ylabel for figure(s) depends on normalisation of the C_ells
