@@ -106,10 +106,6 @@ class PipelineConfig():
             self.config_dict['cache_files']['deproj'][key] = \
                 self.cache_files.deproj[key] + \
                 f'_nside{self.nside_hi}{self.suffix}.txt'
-        for key in self.cache_files.hods:
-            self.config_dict['cache_files']['hods'][key] = \
-                self.cache_files.hods[key] + \
-                f'_nside{self.nside_hi}{self.suffix}.txt'
 
         # Output SACC files
         for key in self.sacc_files:
