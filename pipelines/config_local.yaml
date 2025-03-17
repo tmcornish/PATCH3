@@ -1,68 +1,68 @@
 ###########################################################################################
 
 global:
-  #relevant directories
+  # Relevant directories
   paths:
     pipeline: /home/cornisht/LSST_clustering/pHSC3/
     data: /home/cornisht/LSST_clustering/Data/HSC_DR3/
     out: /home/cornisht/LSST_clustering/pHSC3/out/
     figures: /home/cornisht/LSST_clustering/pHSC3/out/figures/
   
-  #column names corresponding to key quantities in the catalogue
+  # Column names corresponding to key quantities in the catalogue
   key_cols:
     mag: cmodel_mag
     zphot: pz_best_dnnz
     zphot_mc: pz_mc_dnnz
 
-  #data release
+  # Data release
   dr: pdr3_wide
 
-  #fields to run
+  # Fields to run
   fields: [combined]
 
-  #NSIDE parameter for the low- and high-resolution components of the maps
+  # NSIDE parameter for the low- and high-resolution components of the maps
   nside_lo: 32
   nside_hi: 1024
-  #low-resolution NSIDE parameter to use for splitting the data
+  # Low-resolution NSIDE parameter to use for splitting the data
   nside_cover: 8
 
-  #photometric bands
+  # Photometric bands
   bands:
-    #main band
+    # Main band
     primary: i
-    #list of all other bands
+    # List of all other bands
     secondary: [g, r, z, y]
-    #alternative names for some bands
+    # Alternative names for some bands
     altnames:
       i: [i2]
       r: [r2]
 
-  #S/N thresholds in primary band and other bands
+  # S/N thresholds in primary band and other bands
   sn_pri: 10.
   sn_sec: 5.
-  #depth limit in primary band
+  # Depth limit in primary band
   depth_cut: 24.5
 
-  #threshold below which pixels in the survey mask will be considered masked
+  # Threshold below which pixels in the survey mask will be considered masked
   weight_thresh: 0.5
-  #whether to smooth the mask
+  # Whether to smooth the mask
   smooth_mask: true
-  #width (in arcmin) of the smoothing kernel
+  # Width (in arcmin) of the smoothing kernel
   smooth_fwhm: 60.
-  #threshold to apply to smoothed mask
+  # Threshold to apply to smoothed mask
   smooth_thresh: 0.4
 
-  #suffix to add to filenames produced from this run
+  # Suffix to add to filenames produced from this run
   suffix: ''
 
-  #catalogue names (without file extensions)
+  # Catalogue names (without file extensions)
   cats:
     basic: basicclean_catalogue
     main: clean_catalogue
     stars: star_catalogue
     tomography: tomography_catalogue
 
-  #base names for various maps (without file extensions)
+  # Base names for various maps (without file extensions)
   maps:
     dustmaps: dustmaps
     footprint: footprint
@@ -74,22 +74,22 @@ global:
     ngal_maps: ngal_maps
     deltag_maps: deltag_maps
   
-  #important files located in the data directory (without file extension)
+  # Important files located in the data directory (without file extension)
   data_files:
     metadata: PDR3_WIDE_frames
   
-  #n(z) files (without file extensions)
+  # N(z) files (without file extensions)
   nofz_files:
     nz_dir: nz_dists_dir
     nz_mc: nz_dists_mc
   
-  #base names files for containing various power spectra (without file extensions)
+  # Base names files for containing various power spectra (without file extensions)
   cell_files:
     theory: cells_theory
     main: cells_measured
     covariances: covariance_matrices
   
-  #base names for files cached whrn computing power spectra (without file extensions)
+  # Base names for files cached whrn computing power spectra (without file extensions)
   cache_files:
     workspaces:
       wsp: workspace
@@ -98,31 +98,31 @@ global:
       deprojected: deprojected
       alphas: deprojection_alphas
 
-  #base name for SACC files produced by the pipeline (without file extension)
+  # Base name for SACC files produced by the pipeline (without file extension)
   sacc_files: 
     main: gc_sacc
     noise: noise_sacc
     bias: deproj_bias_sacc
     nodeproj: gc_sacc_nodeproj
 
-  #base names for the plots produced by the pipeline (without file extensions)
+  # Base names for the plots produced by the pipeline (without file extensions)
   plots:
     cells: power_spectra
 
-  #auxiliary pipeline files
+  # Auxiliary pipeline files
   auxfiles:
     required_cols: required_cols.txt
     flags: flags.yaml
     decasu_config: decasu_config_hpix_hsc_dr3.yaml
 
-  #tomographic sample definitions (semi-colon separated)
+  # Tomographic sample definitions (semi-colon separated)
   samples:
     bin0: '0.3 <= zphot ; zphot < 0.6'
     bin1: '0.6 <= zphot ; zphot < 0.9'
     bin2: '0.9 <= zphot ; zphot < 1.2'
     bin3: '1.2 <= zphot ; zphot < 1.5'
 
-  #fiducial cosmology parameters
+  # Fiducial cosmology parameters
   cosmo_fiducial:
     Omega_c: 0.26066676
     Omega_b: 0.048974682
@@ -133,86 +133,86 @@ global:
 ###########################################################################################
 
 getData: &getData
-  #submit/download data requests
+  # Submit/download data requests
   submit: true
   download: true
-  #include photo-z information
+  # Include photo-z information
   photoz: true
-  #include stellar masses and SFRs from MIZUKI
+  # Include stellar masses and SFRs from MIZUKI
   mizuki_mstar_sfrs: true
-  #apply cuts based on existing flags in the catalogues
+  # Apply cuts based on existing flags in the catalogues
   apply_cuts: false
   strict_cuts: false
 
-  #maximum number of sources allowed before catalogues split for field
+  # Maximum number of sources allowed before catalogues split for field
   Nmax: 5_000_000
 
 ###########################################################################################
 
 splitMetadata: &splitMetadata
-  #boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
+  # Boundaries of each global field, ordered [RA_min, RA_max, DEC_min, DEC_max]
   bounds:
     aegis: [212., 216., 51.6, 53.6]
     spring: [326.25, 41.25, -8., 8.]
     autumn: [125., 227.5, -4., 7.]
     hectomap: [195., 255., 41.5, 45.]
 
-  #whether to further split the metadata by filter (can help Decasu avoid memory issues)
+  # Whether to further split the metadata by filter (can help Decasu avoid memory issues)
   split_by_band: true
 
 ###########################################################################################
 
 cleanCats:
   <<: *getData  
-  #types of flag to apply during basic cleaning (list containing 'main' and/or 'strict' or empty)
+  # Types of flag to apply during basic cleaning (list containing 'main' and/or 'strict' or empty)
   remove_if_flagged: [main]
-  #logged blending cut (maximum allowed flux estimated to be from blending)
+  # Logged blending cut (maximum allowed flux estimated to be from blending)
   log_blend_cut: -0.375
-  #whether to correct recorded r/i photometry to equivalent in r2/i2
+  # Whether to correct recorded r/i photometry to equivalent in r2/i2
   correct_ri: false
-  #whether to remove intermediate catalogues after concatenating
+  # Whether to remove intermediate catalogues after concatenating
   remove_intermediate: true
-  #file for containing a summary of each stage of cleaning
+  # File for containing a summary of each stage of cleaning
   clean_summary_file: cleaning_summary.txt
 
 ###########################################################################################
 
 sampleSelection:
-  #whether to remove galaxies likely to have secondary redshift solutions at high-z
+  # Whether to remove galaxies likely to have secondary redshift solutions at high-z
   remove_pz_outliers: false
-  #file for containing the counts in each sample
+  # File for containing the counts in each sample
   sample_summary_file: sample_summary.txt
 
 ###########################################################################################
 
 makeMapsFromMetadata:
   <<: *splitMetadata
-  #number of cores to use for multiprocessing
+  # Number of cores to use for multiprocessing
   ncores: 18
 
 ###########################################################################################
 
 makeMapsFromCat:
-  #whether or not to initially make the map at high resolution and degrade
+  # Whether or not to initially make the map at high resolution and degrade
   highres_first: false
-  #NSIDE for the upgraded-resolution version of the bright object mask
+  # NSIDE for the upgraded-resolution version of the bright object mask
   nside_mask: 8192
 
-  #types of flag to include in the mask 
-  #(list containing 'brightstar', 'main' and/or 'strict; see flags.py for definitions)
+  # Types of flag to include in the mask 
+  # (list containing 'brightstar', 'main' and/or 'strict; see flags.py for definitions)
   flags_to_mask: [brightstar]
-  #whether or not to include the y-band channel stop in the brightstar flags
+  # Whether or not to include the y-band channel stop in the brightstar flags
   incl_channelstop: false
 
-  #if only stars should be used for creating depth map
+  # If only stars should be used for creating depth map
   stars_for_depth: true
-  #minimum number of sources required to calculate depth in a pixel
+  # Minimum number of sources required to calculate depth in a pixel
   min_sources: 4
 
-  #radius (in deg) of the Guassian kernel used to smooth certain maps
+  # Radius (in deg) of the Guassian kernel used to smooth certain maps
   r_smooth: 2.
 
-  #use N_exp maps to define an extra cut?
+  # Use N_exp maps to define an extra cut?
   use_nexp_maps: true
 
 ###########################################################################################
@@ -228,60 +228,60 @@ combineFields:
 ###########################################################################################
 
 pcaSystematics:
-  #plot eigenvalues of the principal components
+  # Plot eigenvalues of the principal components
   plot_eigen: true
-  #fraction of total variance to keep with principal components
+  # Fraction of total variance to keep with principal components
   var_thresh: 0.98
 
 ###########################################################################################
 
 dirPhotozs: &dirPhotozs
-  #catalogue containing the HSC photometry for galaxies in the COSMOS field
+  # Catalogue containing the HSC photometry for galaxies in the COSMOS field
   hsc_cosmos_cat: /home/cornisht/LSST_clustering/pHSC3/out/cosmos/clean_catalogue.hdf5
-  #COSMOS2020 catalogue
+  # COSMOS2020 catalogue
   cosmos_cat: /home/cornisht/LSST_clustering/Data/COSMOS/COSMOS2020_CLASSIC_R1_v2.0.fits
 
-  #maximum separation (in arcsec) for cross-matching
+  # Maximum separation (in arcsec) for cross-matching
   cross_tol: 1.
-  #furthest neighbour to use when computing weights in colour space
+  # Furthest neighbour to use when computing weights in colour space
   kNN: 20
-  #width of the redshift bins
+  # Width of the redshift bins
   dz: 0.03
 
 ###########################################################################################
 
 theoryPredictions:
   <<: *dirPhotozs
-  #whether to use the n(z) distributions caculated using DIR
+  # Whether to use the n(z) distributions caculated using DIR
   use_dir: false
 
 ###########################################################################################
 
 computePowerSpectra: &computePowerSpectra
-  #list of maps to deproject (add 'all' to the list if wanting to deproject all
-  #maps in the systematics directory)
+  # List of maps to deproject (add 'all' to the list if wanting to deproject all
+  # maps in the systematics directory)
   systs: [all]
-  #(optional) maximum number of systematics to deproject - uses all provided if set to null
+  # (Optional) maximum number of systematics to deproject - uses all provided if set to null
   Nsyst_max: null
 
-  #bandpower spacing to use - must be linear, log, or N19 (Nicola+19 pseudo-log spacing)
+  # Bandpower spacing to use - must be linear, log, or N19 (Nicola+19 pseudo-log spacing)
   bpw_spacing: linear
-  #number of bandpowers to use if not using edges from Nicola+19
+  # Number of bandpowers to use if not using edges from Nicola+19
   nbpws: 17
-  #minimum ell (i.e. largest scale) to use
+  # Minimum ell (i.e. largest scale) to use
   ell_min: 1
-  #whether to use linear or log spacing for the bandpowers
+  # Whether to use linear or log spacing for the bandpowers
   log_spacing: false
 
-  #apply a multiplicative correction to delta_g due to star contamination
+  # Apply a multiplicative correction to delta_g due to star contamination
   correct_for_stars: true
-  #fiducial estimate for the fraction of stars making it into the final sample (from Nicola+19)
+  # Fiducial estimate for the fraction of stars making it into the final sample (from Nicola+19)
   Fs_fiducial: 0.02
 
-  #create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
+  # Create lightweight NmtFields (cannot calculate deproj. bias, but saves memory)
   lite: false
   
-  #whether to use the n(z) distributions caculated using DIR
+  # Whether to use the n(z) distributions caculated using DIR
   use_dir: false
 
 ###########################################################################################
@@ -293,33 +293,33 @@ covariances:
 
 makeSaccFiles:
   <<: *computePowerSpectra
-  #whether to use the n(z) distributions caculated using DIR
+  # Whether to use the n(z) distributions caculated using DIR
   use_dir: false
 
 ###########################################################################################
 
 fitHods:
-  #whether to fit for auto-correlations only
+  # Whether to fit for auto-correlations only
   auto_only: true
-  #pivot redshift for redshift-dependent parameters
+  # Pivot redshift for redshift-dependent parameters
   z_pivot: 0.65
-  #whether to compute scale cuts based on redshift and a maximum k (in Mpc^{-1})
+  # Whether to compute scale cuts based on redshift and a maximum k (in Mpc^{-1})
   compute_lmax: true
   kmax: 1
-  #hard-coded ell_max to use if compute_lmax is false
+  # Hard-coded ell_max to use if compute_lmax is false
   lmax: 2000
-  #minimum multipole to use (needs to be hard-coded here)
+  # Minimum multipole to use (needs to be hard-coded here)
   lmin: 0
 
-  #whether to compute initial guesses for the free parameters (if true, overwrites any initial guesses
-  #provided manually)
+  # Whether to compute initial guesses for the free parameters (if true, overwrites any initial guesses
+  # provided manually)
   compute_initial: true
 
-  #information to pass to cobaya
+  # Information to pass to cobaya
   cobaya_info:
-    #priors, latex labels and initial guesses and covmat spread for the free paramaters in the model
+    # Priors, latex labels and initial guesses and covmat spread for the free paramaters in the model
     params:
-      #log_10 of the constant component of M_min
+      # log_10 of the constant component of M_min
       mu_min:
         prior:
           min: 0
@@ -327,7 +327,7 @@ fitHods:
         ref: 12
         latex: \mu_{\rm min}
         proposal: 0.01
-      #log_10 of the constant component of M_1
+      # log_10 of the constant component of M_1
       mu_1:
         prior:
           min: 0
@@ -335,7 +335,7 @@ fitHods:
         ref: 12
         latex: \mu_1
         proposal: 0.01
-      #log_10 of the time-evolving component of M_min
+      # log_10 of the time-evolving component of M_min
       mu_min_p:
         prior:
           min: -10
@@ -343,7 +343,7 @@ fitHods:
         ref: 0
         latex: \mu_{{\rm min},p}
         proposal: 0.01
-      #log_10 of the time-evolving component of M_1
+      # log_10 of the time-evolving component of M_1
       mu_1_p:
         prior:
           min: -12
@@ -351,7 +351,7 @@ fitHods:
         ref: 0
         latex: \mu_{1,p}
         proposal: 0.01
-      #smoothing between the 1-halo and 2-halo regimes of the matter power spectrum
+      # Smoothing between the 1-halo and 2-halo regimes of the matter power spectrum
       alpha_smooth:
         prior:
           min: 0.001
@@ -359,26 +359,26 @@ fitHods:
         ref: 1
         latex: \alpha_{\rm smooth}
         proposal: 0.01
-    #information about the sampler
+    # Information about the sampler
     sampler:
       mcmc:
         max_samples: 100000
         Rminus1_stop: 0.01
-    #specify the output path
+    # Specify the output path
     output: hod_chains/chain
 
 ###########################################################################################
 
 plotPowerSpectra:
-  #whether to multiply the C_ells by l(l+1)/(2*pi) for the figure
+  # Whether to multiply the C_ells by l(l+1)/(2*pi) for the figure
   normalise: false
-  #show the C_ells pre-debiasing
+  # Show the C_ells pre-debiasing
   show_pre_debias: false
-  #show the C_ells without deprojection
+  # Show the C_ells without deprojection
   show_no_deproj: true
-  #show the theory predictions
+  # Show the theory predictions
   show_theory: true
-  #make a figure showing all C_ells simultaneously
+  # Make a figure showing all C_ells simultaneously
   make_combined: false
 
 ###########################################################################################
