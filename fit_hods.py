@@ -13,6 +13,7 @@ from output_utils import colour_string
 from cell_utils import select_from_sacc, get_bin_pairings
 from cobaya.run import run
 from cobaya.log import LoggedError
+import cell_utils as cu
 
 # SETTINGS #
 config_file = sys.argv[1]
@@ -53,7 +54,7 @@ a_pivot = 1 / (1 + cf.z_pivot)
 #############################
 
 
-def scale_cuts():
+def get_lmax():
     '''
     Computes a suitable scale cut to apply prior to fitting, depending on the
     effective redshifts of the tomographic bins.
@@ -61,10 +62,10 @@ def scale_cuts():
     Returns
     -------
     cuts: dict
-        Dictionary of scale cuts to use for each bin pairing.
+        Dictionary of lmax to use for each bin pairing.
     '''
     # Set up dictionary for the scale cuts
-    ell_max_dict = {}
+    lmax_dict = {}
     # Compute comoving distance for each tomographic bin included in pairings
     for i in np.unique(pairings):
         z = tracers[i].z
@@ -74,95 +75,16 @@ def scale_cuts():
         # Comoving distance (Mpc)
         chi = cosmo.comoving_radial_distance(1. / (1. + zeff))
         # Ell corresponding to kmax (Mpc^{-1}) at zeff
-        ell_max = cf.kmax * chi
+        lmax = cf.kmax * chi
         # Use this value only if it is less than 2*NSIDE
-        ell_max_dict[i] = min(ell_max, 2*cf.nside_hi)
+        lmax_dict[i] = min(lmax, 2*cf.nside_hi)
     # Now cycle through each bin pairing
-    cuts = {}
+    cuts = []
     for p in pairings:
         i, j = p
         # Take the minimum lmax for each bin pairing
-        cuts[p] = min(ell_max_dict[i], ell_max_dict[j])
+        cuts.append(min(lmax_dict[i], lmax_dict[j]))
     return cuts
-
-
-def apply_scale_cuts(ells, cells, cov, return_cuts=False, compute_cuts=True,
-                     hard_lmax=2000):
-    '''
-    Applies scale cuts to the data involved in the fit.
-
-    Parameters
-    ----------
-    ells: list[numpy.ndarray]
-        List of arrays containing the effective multipoles for each
-        bin pairing.
-
-    cells: list[numpy.ndarray]
-        List of arrays containing the angular power spectra for each
-        bin pairing.
-
-    cov: numpy.ndarray
-        Covariance matrix for the angular power spectra.
-
-    return_cuts: bool
-        Returns the applied cuts if True.
-
-    compute_cuts: bool
-        If True, will compute the scale cuts using a value of k_max specified
-        in the config file. If False, will use the value specified by the
-        hard_lmax argument.
-
-    hard_lmax: int
-        Maximum multipole to use in compute_cuts is False.
-
-    Returns
-    -------
-    ells_cut: list[numpy.ndarray]
-        List of effective multipoles after applying the scale cuts.
-
-    cells_cut: list[numpy.ndarray]
-        List of C_ells after applying the scale cuts.
-
-    cov_cut: numpy.ndarray
-        Covariance matrix after applying the scale cuts.
-
-    cuts: dict (optional)
-        Dictionary containing the ell_max values used.
-    '''
-    # Decide on scale cuts to use
-    if compute_cuts:
-        cuts = scale_cuts()
-    else:
-        cuts = {p: hard_lmax for p in pairings}
-
-    # Copy the inputs
-    ells_cut = ells.copy()
-    cells_cut = cells.copy()
-    cov_cut = cov.copy()
-
-    # Set up a list for containing the masks for each bin pairing
-    masks = []
-    # Cycle through the bin pairings
-    for ip, p in enumerate(pairings):
-        # Get the maximum multipole allowed for the fit
-        lmax = cuts[p]
-        # Mask the higher multipoles
-        lmask = ells_cut[ip] <= lmax
-        ells_cut[ip] = ells_cut[ip][lmask]
-        cells_cut[ip] = cells_cut[ip][lmask]
-        # Append the mask to the list
-        masks.append(lmask)
-    # To mask the covariance matrix, combine and flatten all masks, then
-    # take the outer product with itself
-    masks = np.array(masks).flatten()
-    nkeep = int(masks.sum())
-    covmask = np.outer(masks, masks)
-    cov_cut = cov[covmask].reshape((nkeep, nkeep))
-
-    if return_cuts:
-        return ells_cut, cells_cut, cov_cut, cuts
-    else:
-        return ells_cut, cells_cut, cov_cut
 
 
 def log_prior(theta):
@@ -350,17 +272,23 @@ for fd in cf.fields:
         ) for t in tracers
     ]
 
+    # Compute scale cuts from k_max?
+    if cf.compute_lmax:
+        lmax_cuts = get_lmax()
+    else:
+        lmax_cuts = [cf.lmax for _ in range(ncombos)]
     # Apply scale cuts
-    ells, cells, cov, ell_cuts = apply_scale_cuts(
-                                            ells_all,
-                                            cells_all,
-                                            cov_all,
-                                            return_cuts=True,
-                                            compute_cuts=cf.compute_scale_cuts
-                                            )
+    ells, cells, cov = cu.apply_scale_cuts(
+                                        ells_all,
+                                        cells_all,
+                                        cov_all,
+                                        cf.lmin,
+                                        lmax_cuts
+                                        )
     # Invert the covariance matrix
     icov = np.linalg.inv(cov)
-
+    print('Success!')
+    exit()
     if rank == 0:
         print(colour_string(fd.upper(), 'orange'))
         # Retrieve cobaya config options from config file

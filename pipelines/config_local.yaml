@@ -18,7 +18,7 @@ global:
   dr: pdr3_wide
 
   #fields to run
-  fields: [hectomap]
+  fields: [combined]
 
   #NSIDE parameter for the low- and high-resolution components of the maps
   nside_lo: 32
@@ -304,10 +304,12 @@ fitHods:
   #pivot redshift for redshift-dependent parameters
   z_pivot: 0.65
   #whether to compute scale cuts based on redshift and a maximum k (in Mpc^{-1})
-  compute_scale_cuts: true
+  compute_lmax: true
   kmax: 1
-  #hard-coded ell_max to use if compute_scale_cuts is false
-  hard_lmax: 2000
+  #hard-coded ell_max to use if compute_lmax is false
+  lmax: 2000
+  #minimum multipole to use (needs to be hard-coded here)
+  lmin: 0
 
   #whether to compute initial guesses for the free parameters (if true, overwrites any initial guesses
   #provided manually)

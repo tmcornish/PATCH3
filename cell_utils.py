@@ -316,7 +316,7 @@ def compute_covariance(w, cw, f_i1, f_i2, f_j1=None, f_j2=None, f_sky=None,
     return (*to_return,)
 
 
-def apply_scale_cuts(ells, cells, cov, lmin, lmax, labels=None):
+def apply_scale_cuts(ells, cells, cov, lmin, lmax):
     '''
     Applies scale cuts to the data involved in the fit.
 
@@ -366,10 +366,6 @@ def apply_scale_cuts(ells, cells, cov, lmin, lmax, labels=None):
         N_cells = 1
         ells = [ells]
         cells = [cells]
-
-    # Set up a dictionary for the cuts
-    if labels is None:
-        labels = list(range(N_cells))
 
     # If lmin and lmax are single values, fill arrays with them
     if type(lmin) is int:
