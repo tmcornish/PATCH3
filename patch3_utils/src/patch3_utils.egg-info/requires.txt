@@ -1,0 +1,9 @@
+numpy
+scipy
+pymaster
+healpy
+healsparse
+h5py
+sacc
+astropy
+matplotlib

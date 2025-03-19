@@ -1,0 +1,26 @@
+Metadata-Version: 2.2
+Name: patch3_utils
+Version: 0.0.1
+Summary: Utilities for the Pipeline for Analysis of Tomographic Clustering with HSC DR3 (PATCH3)
+Author-email: Thomas Cornish <tomcornish1996@gmail.com>
+Project-URL: Homepage, https://github.com/tmcornish/PATCH3
+Project-URL: Issues, https://github.com/tmcornish/PATCH3/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Classifier: License :: OSI Approved :: MIT License
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: pymaster
+Requires-Dist: healpy
+Requires-Dist: healsparse
+Requires-Dist: h5py
+Requires-Dist: sacc
+Requires-Dist: astropy
+Requires-Dist: matplotlib
+
+# PATCH3 Utilities
+
+This is a package containing utilities written primarily for the Pipeline for Analysis of Tomographic Clustering with HSC DR3 (`PATCH3`), but with possible applications elsewhere.
