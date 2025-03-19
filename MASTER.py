@@ -27,8 +27,6 @@ pca_systs = False       # Perform PCA on systematics templates
 dir_photozs = False     # Use DIR to compute n(z) distributions
 theory_cells = False    # Compute theoretical angular power spectra
 power_spectra = False   # Compute power spectra
-covariances = False     # Compute (Gaussian) covariances
-make_sacc = False       # Consolidate c_ell info into a SACC file
 fit_hods = False        # Fit HODs to the computed angular power spectra
 plot_cells = False      # Plot the power spectra
 txpipe_inputs = False   # Convert outputs into TXPipe-compatible formats
@@ -49,8 +47,6 @@ settings = [
     dir_photozs,
     theory_cells,
     power_spectra,
-    covariances,
-    make_sacc,
     fit_hods,
     plot_cells,
     txpipe_inputs
@@ -69,8 +65,6 @@ proc = [
     'Computing n(z) distributions using DIR',
     'Computing theoretical power spectra',
     'Computing power spectra',
-    'Computing covariances',
-    'Creating SACC file',
     'Fitting HOD model',
     'Plotting power spectra',
     'Making TXPipe-compatible inputs'
@@ -89,8 +83,6 @@ run_str = [
     f'python -u dir_photozs.py {config_file}',
     f'python -u theory_predictions.py {config_file}',
     f'python -u compute_power_spectra.py {config_file}',
-    f'python -u covariances.py {config_file}',
-    f'python -u make_sacc_files.py {config_file}',
     f'python -u fit_hods.py {config_file}',
     f'python -u plot_power_spectra.py {config_file}',
     f'python -u make_txpipe_inputs.py {config_file}'
