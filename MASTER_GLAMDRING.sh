@@ -6,7 +6,7 @@
 
 #first activate the conda environment
 source /mnt/users/tcornish/miniconda/etc/profile.d/conda.sh
-conda activate phsc3
+conda activate patch3
 
 config_file=$1          #config file passed as argument
 PIPEDIR=$(pwd)          #current directory
