@@ -2,6 +2,13 @@
 \*\*\* **WORK IN PROGRESS** \*\*\*
 PATCH3 is a pipeline for performing Fourier-space galaxy clustering analyses using Data Release 3 (DR3) from the Hyper Suprime-Cam Subaru Strategic Program (HSC-SSP). NOTE: This is not an official infrastructure product of the HSC collaboration.
 
+# Installation
+Copy the code into a local directory by running `git clone https://github.com/tmcornish/PATCH3.git`. This pipeline makes use of modules contained in the `patch3_utils` directory. To install these modules into your Python environment, run the following (from the directory to which you downloaded the code):
+```
+cd patch3_utils
+python -m pip install .
+```
+
 # Stages
 Available steps of the pipeline currently include:
 - Acquisition of data from the HSC archive \[**get_data.py**\]
