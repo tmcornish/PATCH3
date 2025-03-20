@@ -20,7 +20,7 @@ Available steps of the pipeline currently include:
 - Convert products from this pipeline into appropriate formats for [TXPipe](https://github.com/LSSTDESC/TXPipe) \[**make_txpipe_inputs.py**\]
 
 # Configuration
-Each stage of the pipeline has a corresponding `class` in **config.py**, wherein one can find and modify the settings for that stage. Global settings for the pipeline can be found in the `cf_global` class, which is located near the top of the file. All other configuration classes inherit settings from `cf_global`. 
+Configuration of the pipeline is done using a `yaml` file. This file will contain global settings under the heading `global`, and settings for individual stages under headings corresponding to the name of that stage. Example config files can be found in `pipelines/`. 
 
 # Running locally
 If running on a local machine, users can choose which stages to run by toggling the `True/False` settings located in **MASTER.py**.
