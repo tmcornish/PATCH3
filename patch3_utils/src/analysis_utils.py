@@ -133,3 +133,23 @@ def fit_polynomial_analytic(x, y, cov, degree=1, return_cov=False,
         to_return.append(CI)
 
     return (*to_return,)
+
+
+def cov_to_corr(cov):
+    '''
+    Converts a covariance matrix into a correlation matrix.
+
+    Parameters
+    ----------
+    cov: np.ndarray
+        Covariance matrix to be converted.
+
+    Returns
+    -------
+    corr: np.ndarray
+        The corresponding correlation matrix.
+    '''
+    Dinv = np.diag(1. / np.sqrt(np.diag(cov)))
+    corr = Dinv @ cov @ Dinv
+
+    return corr
