@@ -490,17 +490,23 @@ def healsparseToFITS(hsp_map, fname, nest=False):
                  overwrite=True)
 
 
-def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
+def load_map(map_path, is_healpix=False, apply_mask=False, is_systmap=False,
+             mask=None):
     '''
-    Loads an individual HealSparse map and returns their pixel values in
-    healPIX RING ordering. If told to, will also multiply the map by the mask
-    and/or calculate the mean of the map and subtract it from all pixels. Both
-    of these operations require the mask (in full HealPIX format) as input.
+    Loads an individual HealSparse or HEALPix map and returns their pixel
+    values in HEALPix RING ordering. If told to, will also multiply the map
+    by the mask and/or calculate the mean of the map and subtract it from
+    all pixels. Both of these operations require the mask (in full HealPIX
+    format) as input.
 
     Parameters
     ----------
     map_path: str
         Path to the map being read.
+
+    is_healpix: bool (optional)
+        If True, input map is in HEALPix format rather than HealSparse (False
+        by default).
 
     apply_mask: bool
         If True, will perform element-wise multiplication by the mask (given
@@ -520,9 +526,15 @@ def load_map(map_path, apply_mask=False, is_systmap=False, mask=None):
         Full-sky map data (RING ordering).
     '''
 
-    # Initialise an empty full-sky map (NOTE: can take a lot of memory for
-    # high nside_sparse)
-    fs_map = hsp.HealSparseMap.read(map_path).generate_healpix_map(nest=False)
+    if is_healpix:
+        # Load the map directly and convert to RING ordering if needed
+        fs_map = hp.read_map(map_path, nest=False)
+    else:
+        # Initialise an empty full-sky map (NOTE: can take a lot of memory for
+        # high nside_sparse)
+        fs_map = hsp.HealSparseMap.read(
+            map_path
+            ).generate_healpix_map(nest=False)
     fs_map[fs_map == hp.UNSEEN] = 0.
 
     if is_systmap:
