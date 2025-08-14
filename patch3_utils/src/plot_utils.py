@@ -319,7 +319,7 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='',
                 reso=reso, notext=True, fig=fig, title=title, **kwargs)
 
 
-def setup_cl_plot(nbins, auto_only=False, label_subplots=False,
+def setup_cl_plot(nbins=1, auto_only=False, label_subplots=False,
                   xlabel=None, ylabel=None):
     '''
     Sets up a multi-panel figure for displaying angular
