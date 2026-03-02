@@ -148,6 +148,21 @@ def scale_RGB_colour(rgb, scale_l=1., scale_s=1.):
     return colorsys.hls_to_rgb(h, l_new, s_new)
 
 
+def scale_HEX_colour(c_hex, scale_l=1., scale_s=1.):
+    '''
+    Takes any colour HEX code and scales its 'lightness' and saturation
+    (according to the hls colour model) by factors of scale_l and scale_s.
+        c_hex: The HEX colour code.
+        scale_l: The factor by which to scale the lightness.
+        scale_s: The factor by which to scale the saturation.
+    '''
+    import matplotlib as mpl
+    # Convert the colour HEX code to RGB format
+    rgb = mpl.colors.ColorConverter.to_rgb(c_hex)
+    # Convert back to rgb and return the result
+    return scale_RGB_colour(rgb, scale_l, scale_s)
+
+
 def x_offset(i, delta, log=False):
     '''
     For use when plotting multiple sets of data on a single set of axes.
@@ -319,7 +334,7 @@ def plot_map(mp, field, vals_unseen=None, unseen_thresh=None, title='',
                 reso=reso, notext=True, fig=fig, title=title, **kwargs)
 
 
-def setup_cl_plot(nbins, auto_only=False, label_subplots=False,
+def setup_cl_plot(nbins=1, auto_only=False, label_subplots=False,
                   xlabel=None, ylabel=None):
     '''
     Sets up a multi-panel figure for displaying angular
