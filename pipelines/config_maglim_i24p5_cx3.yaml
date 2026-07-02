@@ -1,0 +1,53 @@
+###########################################################################################
+
+# Stages to run
+stages:
+  queryMetadata: true
+  ingestData: false
+
+###########################################################################################
+
+global:
+  # Name for pipeline run (outputs will be saved in a subdirectory with this name)
+  run_name: tomo_maglim_i24p5
+  # Relevant directories
+  paths:
+    pipeline: /rds/general/user/tcornish/home/PATCH3/
+    data: /rds/general/user/tcornish/ephemeral/Data/HSC_DR3/
+    out: /rds/general/user/tcornish/home/PATCH3/outputs/
+  # Data release
+  dr: pdr3_wide
+  # Fields to run (['all'] will be treated as ['hectomap', 'spring', 'autumn'])
+  fields: [all]
+  # Photometric bands
+  bands:
+    # Main band
+    primary: i
+    # List of all other bands
+    secondary: [g, r, z, y]
+    # Alternative names for some bands
+    altnames:
+      i: [i2]
+      r: [r2]
+
+### Data queries ###
+
+queryBase: &queryBase
+  runfile: data_queries.py
+  username: tmcornish
+  password_env: HSC_SSP_CAS_PASSWORD
+  release: pdr3-citus-columnar
+  format: fits
+
+queryMetadata:
+  <<: *queryBase
+  do_preview: false
+  do_download: true
+  do_delete: true
+  split_by_band: true
+
+### Data ingestion ###
+
+ingestData:
+  runfile: ingestion.py
+  
