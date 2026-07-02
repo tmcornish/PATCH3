@@ -49,7 +49,8 @@ class queryBase(object):
         cf = self.config
         # Basis of the job submission command
         command = f'python hscReleaseQueryDR3.py --user={cf.username} '\
-            f'--release-version={cf.release} --password-env={cf.password_env}'\
+            f'--release-version={cf.release} '\
+            f'--password-env={cf.password_env} '\
             f'--format={cf.format}'
         dl_command = ''
         # Use quick mode (short timeout)?
