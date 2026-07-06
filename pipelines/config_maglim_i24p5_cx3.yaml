@@ -10,6 +10,8 @@ stages:
 global:
   # Name for pipeline run (outputs will be saved in a subdirectory with this name)
   run_name: tomo_maglim_i24p5
+  # Conda environment name
+  conda_env: patch3
   # Relevant directories
   paths:
     pipeline: /rds/general/user/tcornish/home/PATCH3/
@@ -41,6 +43,7 @@ queryBase: &queryBase
 
 queryMetadata:
   <<: *queryBase
+  sql_file: metadata.sql
   do_preview: false
   do_download: true
   do_delete: true
