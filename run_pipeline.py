@@ -14,6 +14,12 @@ config_file = sys.argv[1]
 with open(config_file) as f:
     config = yaml.safe_load(f)
 stages = config['stages']
+run_name = config['global']['run_name']
+
+# Remove previous job file exists from a previous run
+prevjob_file = f'./prevjob_{run_name}.txt'
+if os.path.exists(prevjob_file):
+    os.system(f'rm -f {prevjob_file}')
 
 # Cycle through stages and run if told to do so
 for stage in stages:
