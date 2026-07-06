@@ -3,14 +3,14 @@
 ##############################################################################
 
 import os
-from configuration import PipelineConfig as PC
+from stage import baseStage
 
 
 ############################
 #          STAGES          #
 ############################
 
-class queryBase(object):
+class queryBase(baseStage):
     '''
     Base class for generating queries; should not be used directly.
     '''
@@ -18,11 +18,10 @@ class queryBase(object):
         self,
         config_file,
     ):
-        cf = PC(config_file, stage=self.__class__.__name__)
-        self.config = cf
+        baseStage.__init__(self, config_file)
         self.queries = []
         self.outfiles = []
-        self.path_queries = cf.paths.out + 'sql_queries/'
+        self.path_queries = self.config.paths.out + 'sql_queries/'
 
     def write_sql(self, sql_file):
         '''
@@ -77,7 +76,7 @@ class queryBase(object):
         '''
         Runs the successive stages of writing and submitting a query.
         '''
-        self.write_sql()
+        self.write_sql(self.config.sql_file)
         for q, f in zip(self.queries, self.outfiles):
             self.submit_job(q, f)
 
