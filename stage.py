@@ -75,9 +75,9 @@ class baseStage(object):
                 '#!/bin/bash',
                 f'#PBS -l {res_str}',
                 f'#PBS -l walltime={walltime}',
-                f'#PBS -N PATCH3-{stagename}'
+                f'#PBS -N PATCH3-{stagename}',
                 '',
-                'eval $(~/miniforge3/bin/conda shell.bash hook)',
+                'eval "$(~/miniforge3/bin/conda shell.bash hook)"',
                 f'conda activate {conda_env}',
                 '',
                 f'cd {path_pipe}',
