@@ -37,6 +37,7 @@ global:
 queryBase: &queryBase
   runfile: data_queries.py
   username: tmcornish
+  envsfile: patch3_envs.sh
   password_env: HSC_SSP_CAS_PASSWORD
   release: pdr3-citus-columnar
   format: fits

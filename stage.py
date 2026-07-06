@@ -63,6 +63,7 @@ class baseStage(object):
             conda_env = cf.conda_env
             path_pipe = cf.paths.pipeline
             runfile = cf.runfile
+            envsfile = cf.envsfile
             # Assemble a bash script for submitting this stage as a job
             res_str = ':'.join([f'{k}={resources[k]}' for k in resources])
             py_str = [
@@ -82,6 +83,7 @@ class baseStage(object):
                 '',
                 f'cd {path_pipe}',
                 '',
+                f'source {envsfile}'
                 f'python -c "{py_str}"'
                 ]
             script = '\n'.join(script)
