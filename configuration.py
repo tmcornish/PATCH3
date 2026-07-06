@@ -69,11 +69,7 @@ class PipelineConfig():
         import platform as pf
         # Get the name of the node on which this is being run
         node = pf.node()
-        if node.startswith('comp'):
-            node = 'glamdring'
-        elif node.startswith('nid'):
-            node = 'nersc'
-        elif node.startswith('cx3'):
+        if node.startswith('cx3') or node.startswith('login-'):
             node = 'imperial-cx3'
         else:
             node = 'local'
