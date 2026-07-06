@@ -83,7 +83,7 @@ class baseStage(object):
                 '',
                 f'cd {path_pipe}',
                 '',
-                f'source {envsfile}'
+                f'source {envsfile}',
                 f'python -c "{py_str}"'
                 ]
             script = '\n'.join(script)
