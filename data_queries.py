@@ -130,7 +130,10 @@ class queryMetadata(queryBase):
             # Create queries per band if requested
             if cf.split_by_band:
                 for b in cf.bands.all:
-                    stout_b = f' AND \n\tframe.band=\'{b}\''
+                    stout_b = f' AND \n\tframe.filter=\'{b}\''
+                    if b in cf.bands.altnames:
+                        for b_alt in cf.bands.altnames[b]:
+                            stout_b += f' OR frame.filter=\'{b_alt}\''
                     stout = stout_fd + stout_b + '\n;'
                     # Write to file
                     sql_file_fd_b = sql_file_fd[:-4] + f'_{b}.sql'
