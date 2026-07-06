@@ -48,6 +48,9 @@ class PipelineConfig():
         self.config_dict['bands']['all'] = [self.bands.primary] + \
             self.bands.secondary
 
+        # Identify the machine or cluster on which this is being run
+        self._set_platform()
+
     def __getattr__(self, name):
         '''
         Enables retrieval of pipeline settings as object attributes
