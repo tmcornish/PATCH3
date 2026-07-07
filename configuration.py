@@ -86,15 +86,15 @@ class PipelineConfig():
         subfields = []
         if field == 'hectomap':
             subfields.append('hectomap')
-        if field == 'spring':
+        elif field == 'spring':
             subfields.extend([f'equator{i:02d}'
                               for i in [21, 22, 23, 0, 1, 2]])
-        if field == 'autumn':
+        elif field == 'autumn':
             subfields.extend([f'equator{i:02d}'
                               for i in [8, 9, 10, 11, 12, 13, 14, 15]])
-        if field == 'cosmos':
+        elif field == 'cosmos':
             subfields.append('cosmos')
-        if field == 'aegis':
+        elif field == 'aegis':
             subfields.append('aegis')
         else:
             raise ValueError('field must be either "hectomap", "spring", '
