@@ -77,24 +77,28 @@ class PipelineConfig():
         # Set the name of the node as a property of the class
         self.config_dict['platform'] = node
 
-    def get_subfields(self):
+    @staticmethod
+    def get_subfields(field):
         '''
         Identifies which subfields belong to the fields specified in the
         config file.
         '''
         subfields = []
-        if 'hectomap' in self.fields:
+        if field == 'hectomap':
             subfields.append('hectomap')
-        if 'spring' in self.fields:
+        if field == 'spring':
             subfields.extend([f'equator{i:02d}'
                               for i in [21, 22, 23, 0, 1, 2]])
-        if 'autumn' in self.fields:
+        if field == 'autumn':
             subfields.extend([f'equator{i:02d}'
                               for i in [8, 9, 10, 11, 12, 13, 14, 15]])
-        if 'cosmos' in self.fields:
+        if field == 'cosmos':
             subfields.append('cosmos')
-        if 'aegis' in self.fields:
+        if field == 'aegis':
             subfields.append('aegis')
+        else:
+            raise ValueError('field must be either "hectomap", "spring", '
+                             '"autumn", "cosmos" or "aegis".')
 
         return subfields
 
