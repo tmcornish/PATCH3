@@ -21,9 +21,12 @@ class queryBase(baseStage):
         baseStage.__init__(self, config_file)
         self.queries = []
         self.outfiles = []
+        # Output directory fro SQL query files (NOT the data itself)
         self.path_queries = self.config.paths.out + 'sql_queries/'
+        # Length of extension for chosen output format
+        self.n_ext = len(self.config.format) + 1
 
-    def write_sql(self, sql_file):
+    def write_sql(self):
         '''
         Generates a query and writes it to an SQL file.
 
@@ -33,7 +36,7 @@ class queryBase(baseStage):
         print('WARNING: you are running this with the queryBase parent '
               'class, but only subclasses should be run. Creating a dummy '
               'SQL file.')
-        with open(sql_file, 'w') as f:
+        with open(self.config.sql_base, 'w') as f:
             f.write('-- Dummy SQL file')
 
     def submit_job(self, sql_file, output_file='data.dat'):
@@ -76,7 +79,7 @@ class queryBase(baseStage):
         '''
         Runs the successive stages of writing and submitting a query.
         '''
-        self.write_sql(self.config.sql_file)
+        self.write_sql()
         for q, f in zip(self.queries, self.outfiles):
             self.submit_job(q, f)
 
@@ -85,21 +88,20 @@ class queryMetadata(queryBase):
     '''
     Creates queries related to frame metadata.
     '''
-    def write_sql(self, sql_file):
+    def write_sql(self):
         '''
-        Generates a query and writes it to an SQL file.
+        Generates queries and writes them to SQL files.
         '''
         cf = self.config
         # Directories for queries and downloaded data
         path_queries = self.path_queries + 'metadata/'
         path_out = cf.paths.data + 'metadata/'
+        # Basis for SQL file names
+        sql_base = cf.sql_base
         # Check directories exist
         for p in [path_queries, path_out]:
             if not os.path.exists(p):
                 os.system(f'mkdir -p {p}')
-
-        # Length of extension for chosen output format
-        n_ext = len(cf.format) + 1
 
         # Begin assembling query
         stout_base = [
@@ -125,8 +127,8 @@ class queryMetadata(queryBase):
             stout_fd = ' AND \n\t'.join(stout_fd)
             stout_fd = stout_base + stout_fd
             # SQL filename and name for downloaded data
-            sql_file_fd = path_queries + sql_file[:-4] + f'_{fd}.sql'
-            out_file_fd = path_out + sql_file[:-4] + f'_{fd}.{cf.format}'
+            sql_file_fd = path_queries + sql_base[:-4] + f'_{fd}.sql'
+            out_file_fd = path_out + sql_base[:-4] + f'_{fd}.{cf.format}'
             # Create queries per band if requested
             if cf.split_by_band:
                 for b in cf.bands.all:
@@ -142,7 +144,8 @@ class queryMetadata(queryBase):
                     # Add to list of queries to submit
                     self.queries.append(sql_file_fd_b)
                     # Add output file name to list
-                    out_file_fd_b = out_file_fd[:-n_ext] + f'_{b}.{cf.format}'
+                    out_file_fd_b = f'{out_file_fd[:-self.n_ext]}'\
+                        f'_{b}.{cf.format}'
                     self.outfiles.append(out_file_fd_b)
             else:
                 stout = stout_fd + '\n;'
