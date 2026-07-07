@@ -156,3 +156,88 @@ class queryMetadata(queryBase):
                 self.queries.append(sql_file_fd)
                 # Add output file name to list
                 self.outfiles.append(out_file_fd)
+
+
+class queryFlags(queryBase):
+    '''
+    Creates queries related to quality flags.
+
+    Flags are queried for all sources in the HSC catalouge by default, with
+    the option to restrict these to primary detections only via the
+    `primary_only` config option. Queries are submitted per field as defined
+    in the HSC catalogues.
+    '''
+    def write_sql(self):
+        '''
+        Generates queries and writes them to a SQL files.
+        '''
+        cf = self.config
+        # Directories for queries and downloaded data
+        path_queries = self.path_queries + 'flags/'
+        path_out = cf.paths.data + 'flags/'
+        # Basis for SQL file names
+        sql_base = cf.sql_base
+        # Check directories exist
+        for p in [path_queries, path_out]:
+            if not os.path.exists(p):
+                os.system(f'mkdir -p {p}')
+
+        # Begin assembling query
+        stout_cols = [
+            'SELECT object_id',
+            'forced.ra',
+            'forced.dec'
+        ]
+        if not cf.primary_only:
+            stout_cols.append('forced.isprimary')
+
+        stout_from = [
+            f'FROM {cf.dr}.forced as forced'
+        ]
+
+        for table in cf.flags:
+            # Add any other tables to FROM statement
+            if table != 'forced':
+                stout_from.append(
+                    f'{cf.dr}.{table} {table} USING (object_id)'
+                )
+            # Cycle through requested flags in table
+            for col in cf.flags[table]:
+                # Cycle through photometric bands for each flag
+                for band in cf.flags[table][col]:
+                    stout_cols.append(
+                        f'{table}.{band}_{col}'
+                    )
+        stout_cols = ',\n\t'.join(stout_cols)
+        stout_from = '\n\tLEFT JOIN '.join(stout_from)
+
+        # Create a query for each field
+        for fd in cf.fields:
+            # Get list of subfields belonging to each field
+            subs = cf.get_subfields(fd)
+            for sfd in subs:
+                # Query within current subfield
+                stout_cond = [
+                    f'WHERE forced.field=\'{sfd}\'',
+                ]
+                if cf.primary_only:
+                    stout_cond.append('forced.isprimary=True')
+                stout_cond = ' AND \n\t'.join(stout_cond)
+
+                # Combine all components of query
+                stout = [
+                    stout_cols,
+                    stout_from,
+                    stout_cond
+                ]
+                stout = '\n'.join(stout) + '\n;'
+
+                # SQL query file name
+                sql_file = f'{path_queries}{sql_base[:-4]}_{fd}_{sfd}.sql'
+                # Write to file and append file name to list
+                with open(sql_file, 'w') as file:
+                    file.write(stout)
+                self.queries.append(sql_file)
+                # Output data file name
+                out_file = f'{path_out}{sql_base[:-4]}_{fd}_{sfd}.{cf.format}'
+                self.outfiles.append(out_file)
