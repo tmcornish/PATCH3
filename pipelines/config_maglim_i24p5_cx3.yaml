@@ -2,8 +2,9 @@
 
 # Stages to run
 stages:
-  queryMetadata: true
-  queryFlags: true
+  queryMetadata: false
+  queryFlags: false
+  queryRandoms: true
   ingestData: false
 
 ###########################################################################################
@@ -70,7 +71,7 @@ queryFlags:
       mem: 100gb
   primary_only: true
   # Flags split by the catalogues to which they belong
-  flags:
+  flags: &flags
     forced:
       pixelflags_edge: i
       pixelflags_interpolatedcenter: i
@@ -87,6 +88,31 @@ queryFlags:
       mask_brightstar_halo: i
       mask_brightstar_blooming: i
       mask_brightstar_channel_stop: y
+    meas:
+      deblend_skipped: i
+
+# Query from randoms catalogue
+queryRandoms:
+  <<: *queryBase
+  sql_base: randoms.sql
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  primary_only: true
+  density: 100  # per sq. arcmin (max 100)
+  band_cols:
+    pixelflags_edge: i
+    pixelflags_interpolatedcenter: i
+    pixelflags_saturatedcenter: i
+    pixelflags_crcenter: i
+    pixelflags_bad: i
+    pixelflags_suspectcenter: i
+    pixelflags_clipped: i
+    sky_std: grizy
+  extra_cols: null
 
 
 ### Data ingestion ###
