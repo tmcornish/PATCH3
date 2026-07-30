@@ -162,7 +162,7 @@ class queryFlags(queryBase):
     '''
     Creates queries related to quality flags.
 
-    Flags are queried for all sources in the HSC catalouge by default, with
+    Flags are queried for all sources in the HSC catalogue by default, with
     the option to restrict these to primary detections only via the
     `primary_only` config option. Queries are submitted per field as defined
     in the HSC catalogues.
@@ -241,3 +241,90 @@ class queryFlags(queryBase):
                 # Output data file name
                 out_file = f'{path_out}{sql_base[:-4]}_{fd}_{sfd}.{cf.format}'
                 self.outfiles.append(out_file)
+
+
+class queryRandoms(queryBase):
+    '''
+    Creates queries for downloading positions and flags for randoms.
+
+    Positions and the `adjust_density` parameter are queried by default for
+    the randoms, with the option to restrict these to primary detections only
+    via the `primary_only' config option. Any other columns must be specified
+    in the config file - under `band_cols` if they apply to a specific filter,
+    or under `extra_cols` otherwise.
+
+    Randoms have a density of 100 per sq. arcmin. Lower densities can be
+    requested via the `density` config parameter.
+    '''
+    def write_sql(self):
+        '''
+        Generates queries and writes them to a SQL files.
+        '''
+        cf = self.config
+        # Directories for queries and downloaded data
+        path_queries = self.path_queries + 'randoms/'
+        path_out = cf.paths.data + 'randoms/'
+        # Basis for SQL file names
+        sql_base = cf.sql_base
+        # Check directories exist
+        for p in [path_queries, path_out]:
+            if not os.path.exists(p):
+                os.system(f'mkdir -p {p}')
+
+        # Begin assembling query
+        stout_cols = [
+            'SELECT object_id',
+            'ra',
+            'dec',
+            'adjust_density'
+        ]
+        if not cf.primary_only:
+            stout_cols.append('isprimary')
+
+        # Add each of the requested columns to the list
+        if cf.band_cols is not None:
+            for col in cf.band_cols:
+                for band in cf.band_cols[col]:
+                    stout_cols.append(f'{band}_{col}')
+        if cf.extra_cols is not None:
+            for col in cf.extra_cols:
+                stout_cols.append(col)
+        stout_cols = ',\n\t'.join(stout_cols)
+
+        stout_from = f'FROM {cf.dr}.random'
+
+        # Randoms are downloaded in bins of `adjust_density` with widths of
+        # 0.05; figure out how many queries are required to reach the requested
+        # density
+        ad_w = 0.05
+        ad_max = cf.density / 100.
+        N_bins = int(ad_max // ad_w) + 1
+        ad_bins = [i * ad_w for i in range(N_bins)] + [ad_max]
+        # Create a query for each bin
+        for i in range(N_bins):
+            ad_lo = ad_bins[i]
+            ad_hi = ad_bins[i + 1]
+            stout_cond = (
+                f'WHERE adjust_density >= {ad_lo} AND \n'
+                f'\tadjust_density < {ad_hi}'
+            )
+
+            # Combine all components of query
+            stout = [
+                stout_cols,
+                stout_from,
+                stout_cond
+            ]
+            stout = '\n'.join(stout) + '\n;'
+
+            # SQL query file name
+            sql_file = f'{path_queries}{sql_base[:-4]}_{ad_lo:.2f}'\
+                f'-{ad_hi:.2f}.sql'
+            # Write to file and append file name to list
+            with open(sql_file, 'w') as file:
+                file.write(stout)
+            self.queries.append(sql_file)
+            # Output data file name
+            out_file = f'{path_out}{sql_base[:-4]}_{ad_lo:.2f}_-{ad_hi:.2f}'\
+                f'.{cf.format}'
+            self.outfiles.append(out_file)
