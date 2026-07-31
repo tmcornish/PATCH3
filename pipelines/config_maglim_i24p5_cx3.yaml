@@ -94,6 +94,32 @@ queryFlags:
     meas:
       deblend_skipped: i
 
+# Query from randoms catalogue
+queryRandoms:
+  <<: *queryBase
+  sql_base: randoms.sql
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  do_preview: false
+  do_download: true
+  do_delete: true
+  primary_only: true
+  density: 100  # per sq. arcmin (max 100)
+  band_cols:
+    pixelflags_edge: i
+    pixelflags_interpolatedcenter: i
+    pixelflags_saturatedcenter: i
+    pixelflags_crcenter: i
+    pixelflags_bad: i
+    pixelflags_suspectcenter: i
+    pixelflags_clipped: i
+    sky_std: grizy
+  extra_cols: null
+
 
 ### Data ingestion ###
 
