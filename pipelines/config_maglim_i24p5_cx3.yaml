@@ -116,7 +116,6 @@ queryRandoms:
     pixelflags_crcenter: i
     pixelflags_bad: i
     pixelflags_suspectcenter: i
-    pixelflags_clipped: i
     sky_std: grizy
   extra_cols: null
 
