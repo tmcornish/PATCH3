@@ -119,6 +119,43 @@ queryRandoms:
     sky_std: grizy
   extra_cols: null
 
+# Magnitude-limited tomographic samples
+queryMaglimTomographic:
+  <<: *queryBase
+  sql_base: galaxies.sql
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  samples:
+    zbin0: [0.3, 0.6]
+    zbin1: [0.6, 0.9]
+    zbin2: [0.9, 1.2]
+    zbin3: [1.2, 1.5]
+  flags: 
+    <<: *flags
+  log_blendedness_max: -0.375
+  maglim: 24.5
+  snr_min_primary: 10
+  snr_min_secondary: 5
+  N_sec: 2
+  query_like_stars: true
+  mag_type: cmodel
+  correct_ri: true
+  z_table: photoz_dnnz
+  extra_cols:
+    photoz_mizuki:
+      - photoz_best
+      - photoz_err68_min
+      - photoz_err68_max
+      - stellar_mass
+      - stellar_mass_err68_min
+      - stellar_mass_err68_max
+      - sfr
+      - sfr_err68_min
+      - sfr_err68_max
 
 ### Data ingestion ###
 

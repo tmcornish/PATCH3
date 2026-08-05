@@ -25,6 +25,29 @@ class queryBase(baseStage):
         self.path_queries = self.config.paths.out + 'sql_queries/'
         # Length of extension for chosen output format
         self.n_ext = len(self.config.format) + 1
+        # Mapping from different flux types to the tables to which they belong
+        aper_sizes = [10, 15, 20, 30, 40, 57, 84, 118, 168, 235]
+        seeings = [0, 1, 2, 3]
+        conv_sizes = [11, 15, 20, 'kron']
+        self.flux_tables = {
+            'cmodel': 'forced',
+            'gaussianflux': 'forced2',
+            'psfflux': 'forced2',
+            'kronflux': 'forced2',
+            'sdssshape': 'forced2',
+            'undeblended_psfflux': 'forced2',
+            'undeblended_kronflux': 'forced2'
+        } | {
+            f'apertureflux_{i}': 'forced3' for i in aper_sizes
+        } | {
+            f'undeblended_apertureflux_{i}': 'forced3' for i in aper_sizes
+        } | {
+            f'convolvedflux_{s}_{c}': 'forced4'
+            for s in seeings for c in conv_sizes
+        } | {
+            f'undeblended_convolvedflux_{s}_{c}': 'forced5'
+            for s in seeings for c in conv_sizes
+        }
 
     def write_sql(self):
         '''
@@ -328,3 +351,217 @@ class queryRandoms(queryBase):
             out_file = f'{path_out}{sql_base[:-4]}_{ad_lo:.2f}_-{ad_hi:.2f}'\
                 f'.{cf.format}'
             self.outfiles.append(out_file)
+
+
+class queryMaglimTomographic(queryBase):
+    '''
+    Creates queries for downloading tomographically split, mag-limited samples.
+
+    Given a set of [zmin, zmax] pairs in the config file, this stage will
+    generate and submit queries for downloading samples of galaxies with
+    photometric redshifts within those bounds. Additional criteria include:
+    - primary detections only;
+    - any flags specified in the config must be False;
+    - blendedness in the primary band is below a certain threshold;
+    - dust-corrected primary band magnitude is below a certain threshold;
+    - primary band SNR is above a certain threshold;
+    - SNR in at least N_sec other bands is above a certain threshold;
+    - star/galaxy separation criterion.
+    By default, will download the RA and Dec., the fluxes and magnitudes of the
+    chosen type (along with their uncertainties), dust attenuation values, the
+    best-fit photo-zs and 1-sigma confidence interval for the chosen photo-z
+    type, and the corrections required to transform the r- and i-band mags to
+    r2 and i2 mags.
+    If specified in the config, will also download stars satisfying all of the
+    same selection criteria minus the star/galaxy separator.
+    '''
+    def write_sql(self):
+        '''
+        Generates queries and writes them to a SQL files.
+        '''
+        cf = self.config
+        # Photometric bands
+        bands = cf.bands.all
+        # Directories for queries and downloaded data
+        path_queries = self.path_queries + 'galaxies/'
+        path_out = cf.paths.data + 'galaxies/'
+        paths = [path_queries, path_out]
+        # Equivalent directory for querying stars
+        if cf.query_like_stars:
+            path_queries_stars = self.path_queries + 'stars/'
+            paths.append(path_queries_stars)
+        # Basis for SQL file names
+        sql_base = cf.sql_base
+        # Check directories exist
+        for p in paths:
+            if not os.path.exists(p):
+                os.system(f'mkdir -p {p}')
+
+        # Begin assembling query
+        stout_cols = [
+            'SELECT object_id',
+            'forced.ra',
+            'forced.dec'
+        ]
+        if not cf.primary_only:
+            stout_cols.append('forced.isprimary')
+        # For keeping track of which tables need to be joined
+        tables = []
+
+        # Fluxes and magnitudes of the chosen type
+        tflux = self.flux_tables[cf.mag_type]
+        stout_cols.extend(
+            [
+                f'{tflux}.{b}_{cf.mag_type}_{var}'
+                for b in bands
+                for var in ['flux', 'fluxerr', 'mag', 'magerr']
+            ]
+        )
+        if tflux != 'forced':
+            tables.append(tflux)
+
+        # Dust attenuation values
+        stout_cols.extend(
+            [f'forced.a_{b}' for b in bands]
+        )
+
+        # Photo-z info
+        stout_cols.extend(
+            [f'{cf.z_table}.photoz_{var}'
+             for var in ['best', 'err68_min', 'err68_max']]
+        )
+        tables.append(cf.z_table)
+
+        # Mag corrections for r and i bands
+        stout_cols.extend(
+            [f'mag_corr.corr_{b}mag' for b in 'ri']
+        )
+        tables.append('mag_corr')
+
+        # Extra columns
+        if cf.extra_cols is not None:
+            for table in cf.extra_cols:
+                stout_cols.extend(
+                    [f'{table}.{col}' for col in cf.extra_cols[table]]
+                )
+                if table not in tables and table != 'forced':
+                    tables.append(table)
+
+        # Mapping from each band to the corresponding magnitude and flux
+        mag_map = {
+            b: f'{tflux}.{b}_{cf.mag_type}_mag' for b in bands
+        }
+        flux_map = {
+            b: f'{tflux}.{b}_{cf.mag_type}_flux' for b in bands
+        }
+        if cf.correct_ri:
+            mag_map['r'] += ' - mag_corr.corr_rmag'
+            mag_map['i'] += ' - mag_corr.corr_imag'
+
+        # Conditions for selection (applied to all fields and z bins)
+        b1 = cf.bands.primary
+        b2 = cf.bands.secondary
+        stout_cond = [
+            f'WHERE {mag_map[b1]} - a_{b1} < {cf.maglim}'
+        ]
+        if cf.primary_only:
+            stout_cond.append(
+                'forced.isprimary=True'
+            )
+        # Blendedness cut
+        stout_cond.append(
+            f'meas2.{b1}_blendedness_abs < '
+            f'POWER(10, {cf.log_blendedness_max})'
+        )
+        tables.append('meas2')
+        # SNR cut (primary band)
+        stout_cond.append(
+            f'{flux_map[b1]} / {flux_map[b1]}err >= {cf.snr_min_primary}',
+        )
+        # SNR cut (secondary bands)
+        stout_cond.append(
+            '(' + ' +\n\t '.join(
+                [
+                    f'(CASE WHEN {flux_map[b]} / {flux_map[b]}err >= '
+                    f'{cf.snr_min_secondary} THEN 1 ELSE 0 END)'
+                    for b in b2
+                ]
+            ) + f') >= {cf.N_sec}'
+        )
+        # Flags
+        for table in cf.flags:
+            for col in cf.flags[table]:
+                stout_cols.extend(
+                    [f'{table}.{b}_{col}=False'
+                     for b in cf.flags[table][col]]
+                )
+            if table not in tables and table != 'forced':
+                tables.append(table)
+        # Star-galaxy separator
+        stout_cond.append(
+            f'forced.{b1}_extendedness_value > 0'
+        )
+
+        # Statement specifying the tables to join
+        stout_from = [
+            f'FROM {cf.dr}.forced as forced'
+        ] + [
+            f'{cf.dr}.{table} {table} USING (object_id)'
+            for table in tables
+        ]
+
+        # Begin assembling query into single string
+        stout_cols = ',\n\t'.join(stout_cols)
+        stout_from = '\n\tLEFT JOIN '.join(stout_from)
+
+        # Create a query per (sub)field per bin
+        for fd in cf.fields:
+            # Get list of subfields belonging to each field
+            subs = cf.get_subfields(fd)
+            for sfd in subs:
+                stout_cond_fd = stout_cond + [f'forced.field=\'{sfd}\'']
+                for s in cf.samples:
+                    zmin, zmax = cf.samples[s]
+                    stout_cond_fd_samp = stout_cond_fd + [
+                        f'{cf.z_table}.photoz_best >= {zmin}',
+                        f'{cf.z_table}.photoz_best < {zmax}'
+                    ]
+                    stout_cond_fd_samp = ' AND \n\t'.join(stout_cond_fd_samp)
+
+                    # Combine all components of query
+                    stout = [
+                        stout_cols,
+                        stout_from,
+                        stout_cond_fd_samp
+                    ]
+                    stout = '\n'.join(stout) + '\n;'
+
+                    # SQL query file name
+                    sql_file = f'{path_queries}{sql_base[:-4]}_{fd}_{sfd}_{s}'\
+                        '.sql'
+                    # Write to file and append file name to list
+                    with open(sql_file, 'w') as file:
+                        file.write(stout)
+                    self.queries.append(sql_file)
+                    # Output data file name
+                    out_file = f'{path_out}{sql_base[:-4]}_{fd}_{sfd}_{s}'\
+                        f'.{cf.format}'
+                    self.outfiles.append(out_file)
+
+                    # Make query for stars with the same cuts applied?
+                    if cf.query_like_stars:
+                        sql_file = f'{path_queries_stars}stars_{fd}_{sfd}_{s}'\
+                                                '.sql'
+                        # Change extendedness cut to = 0
+                        stout = stout.replace(
+                            'extendedness_value > 0',
+                            'extendedness_value = 0'
+                        )
+                        # Write to file and append file name to list
+                        with open(sql_file, 'w') as file:
+                            file.write(stout)
+                        self.queries.append(sql_file)
+                        # Output data file name
+                        out_file = f'{path_out}stars_{fd}_{sfd}_{s}'\
+                            f'.{cf.format}'
+                        self.outfiles.append(out_file)
