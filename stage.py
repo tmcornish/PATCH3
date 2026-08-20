@@ -64,6 +64,12 @@ class baseStage(object):
             path_pipe = cf.paths.pipeline
             runfile = cf.runfile
             envsfile = cf.envsfile
+            # Run with MPI?
+            mpiload = ''
+            mpirun = ''
+            if resources['select'] > 1:
+                mpiload = 'module load intel/2024a'
+                mpirun = 'mpirun -v6 '
             # Assemble a bash script for submitting this stage as a job
             res_str = ':'.join([f'{k}={resources[k]}' for k in resources])
             py_str = [
@@ -84,7 +90,8 @@ class baseStage(object):
                 f'cd {path_pipe}',
                 '',
                 f'source {envsfile}',
-                f'python -c "{py_str}"'
+                mpiload,
+                f'{mpirun}python -c "{py_str}"'
                 ]
             script = '\n'.join(script)
 
