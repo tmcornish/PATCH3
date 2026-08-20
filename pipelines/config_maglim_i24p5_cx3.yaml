@@ -33,6 +33,8 @@ global:
     altnames:
       i: [i2]
       r: [r2]
+  # Specify whether metadata should be split by badn for queries and mapping
+  split_by_band: true
 
 ### Data queries ###
 
@@ -56,7 +58,6 @@ queryMetadata:
   do_preview: false
   do_download: true
   do_delete: true
-  split_by_band: true
 
 # Quality flags
 queryFlags:
@@ -171,4 +172,4 @@ coverageMapper:
       select: 1
       ncpus: 64
       mem: 920gb
-  bands: grizy
+  bands_to_run: grizy
