@@ -76,7 +76,7 @@ class queryBase(baseStage):
         command = f'python hscReleaseQueryDR3.py --user={cf.username} '\
             f'--release-version={cf.release} '\
             f'--password-env={cf.password_env} '\
-            f'--format={cf.format}'
+            f'--format=fits'
         dl_command = ''
         # Use quick mode (short timeout)?
         if cf.do_preview:
@@ -151,7 +151,7 @@ class queryMetadata(queryBase):
             stout_fd = stout_base + stout_fd
             # SQL filename and name for downloaded data
             sql_file_fd = path_queries + sql_base + f'_{fd}.sql'
-            out_file_fd = path_out + sql_base + f'_{fd}.{cf.format}'
+            out_file_fd = path_out + sql_base + f'_{fd}.fits'
             # Create queries per band if requested
             if cf.split_by_band:
                 for b in cf.bands.all:
@@ -167,8 +167,7 @@ class queryMetadata(queryBase):
                     # Add to list of queries to submit
                     self.queries.append(sql_file_fd_b)
                     # Add output file name to list
-                    out_file_fd_b = f'{out_file_fd[:-self.n_ext]}'\
-                        f'_{b}.{cf.format}'
+                    out_file_fd_b = f'{out_file_fd[:-self.n_ext]}_{b}.fits'
                     self.outfiles.append(out_file_fd_b)
             else:
                 stout = stout_fd + '\n;'
@@ -262,7 +261,7 @@ class queryFlags(queryBase):
                     file.write(stout)
                 self.queries.append(sql_file)
                 # Output data file name
-                out_file = f'{path_out}{sql_base}_{fd}_{sfd}.{cf.format}'
+                out_file = f'{path_out}{sql_base}_{fd}_{sfd}.fits'
                 self.outfiles.append(out_file)
 
 
@@ -348,8 +347,7 @@ class queryRandoms(queryBase):
                 file.write(stout)
             self.queries.append(sql_file)
             # Output data file name
-            out_file = f'{path_out}{sql_base}_{ad_lo:.2f}_-{ad_hi:.2f}'\
-                f'.{cf.format}'
+            out_file = f'{path_out}{sql_base}_{ad_lo:.2f}_-{ad_hi:.2f}.fits'
             self.outfiles.append(out_file)
 
 
@@ -544,8 +542,7 @@ class queryMaglimTomographic(queryBase):
                         file.write(stout)
                     self.queries.append(sql_file)
                     # Output data file name
-                    out_file = f'{path_out}{sql_base}_{fd}_{sfd}_{s}'\
-                        f'.{cf.format}'
+                    out_file = f'{path_out}{sql_base}_{fd}_{sfd}_{s}.fits'
                     self.outfiles.append(out_file)
 
                     # Make query for stars with the same cuts applied?
@@ -562,6 +559,5 @@ class queryMaglimTomographic(queryBase):
                             file.write(stout)
                         self.queries.append(sql_file)
                         # Output data file name
-                        out_file = f'{path_out}stars_{fd}_{sfd}_{s}'\
-                            f'.{cf.format}'
+                        out_file = f'{path_out}stars_{fd}_{sfd}_{s}.fits'
                         self.outfiles.append(out_file)
