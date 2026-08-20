@@ -119,3 +119,27 @@ class baseStage(object):
                 'the Imperial College London HPC. Support for SLURM-based '
                 'clusters like NERSC will be added in future updates.'
             )
+
+    @staticmethod
+    def split_list(a, n):
+        '''
+        Splits a list into n approximately equal parts. For example, a list
+        of length 10 split into 3 parts would be returned as chunks of size
+        (4, 3, 3). Useful for e.g. stages using MPI.
+
+        Parameters
+        ----------
+        a: array-like
+            List (or array) to be split.
+
+        n: int
+            Number of chunks into which the list is to be split.
+
+        Returns
+        -------
+        a_split: list
+            List containing the separate chunks of the input list.
+        '''
+        k, m = divmod(len(a), n)
+        a_split = [a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
+        return a_split
