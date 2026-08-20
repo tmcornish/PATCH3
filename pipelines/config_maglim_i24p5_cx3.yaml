@@ -33,7 +33,7 @@ global:
     altnames:
       i: [i2]
       r: [r2]
-  # Specify whether metadata should be split by badn for queries and mapping
+  # Specify whether metadata should be split by band for queries and mapping
   split_by_band: true
 
 ### Data queries ###
@@ -173,3 +173,4 @@ coverageMapper:
       ncpus: 64
       mem: 920gb
   bands_to_run: grizy
+  subdir: ''  # subdirectory of maps folder in which to store outputs
