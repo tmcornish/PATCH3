@@ -47,7 +47,7 @@ queryBase: &queryBase
 # Frame metadata
 queryMetadata:
   <<: *queryBase
-  sql_base: metadata.sql
+  sql_base: metadata
   qsub:
     walltime: 24:00:00
     resources:
@@ -62,7 +62,7 @@ queryMetadata:
 # Quality flags
 queryFlags:
   <<: *queryBase
-  sql_base: flags.sql
+  sql_base: flags
   qsub:
     walltime: 24:00:00
     resources:
@@ -97,7 +97,7 @@ queryFlags:
 # Query from randoms catalogue
 queryRandoms:
   <<: *queryBase
-  sql_base: randoms.sql
+  sql_base: randoms
   qsub:
     walltime: 24:00:00
     resources:
@@ -122,7 +122,7 @@ queryRandoms:
 # Magnitude-limited tomographic samples
 queryMaglimTomographic:
   <<: *queryBase
-  sql_base: galaxies.sql
+  sql_base: galaxies
   qsub:
     walltime: 24:00:00
     resources:
@@ -161,4 +161,15 @@ queryMaglimTomographic:
 
 ingestData:
   runfile: ingestion.py
-  
+
+### Mapping ###
+
+coverageMapper:
+  runfile: mapper.py
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 64
+      mem: 920gb
+  bands: grizy

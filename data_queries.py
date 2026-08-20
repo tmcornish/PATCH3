@@ -59,7 +59,7 @@ class queryBase(baseStage):
         print('WARNING: you are running this with the queryBase parent '
               'class, but only subclasses should be run. Creating a dummy '
               'SQL file.')
-        with open(self.config.sql_base, 'w') as f:
+        with open(self.config.sql_base + '.sql', 'w') as f:
             f.write('-- Dummy SQL file')
 
     def submit_job(self, sql_file, output_file='data.dat'):
@@ -150,8 +150,8 @@ class queryMetadata(queryBase):
             stout_fd = ' AND \n\t'.join(stout_fd)
             stout_fd = stout_base + stout_fd
             # SQL filename and name for downloaded data
-            sql_file_fd = path_queries + sql_base[:-4] + f'_{fd}.sql'
-            out_file_fd = path_out + sql_base[:-4] + f'_{fd}.{cf.format}'
+            sql_file_fd = path_queries + sql_base + f'_{fd}.sql'
+            out_file_fd = path_out + sql_base + f'_{fd}.{cf.format}'
             # Create queries per band if requested
             if cf.split_by_band:
                 for b in cf.bands.all:
@@ -256,13 +256,13 @@ class queryFlags(queryBase):
                 stout = '\n'.join(stout) + '\n;'
 
                 # SQL query file name
-                sql_file = f'{path_queries}{sql_base[:-4]}_{fd}_{sfd}.sql'
+                sql_file = f'{path_queries}{sql_base}_{fd}_{sfd}.sql'
                 # Write to file and append file name to list
                 with open(sql_file, 'w') as file:
                     file.write(stout)
                 self.queries.append(sql_file)
                 # Output data file name
-                out_file = f'{path_out}{sql_base[:-4]}_{fd}_{sfd}.{cf.format}'
+                out_file = f'{path_out}{sql_base}_{fd}_{sfd}.{cf.format}'
                 self.outfiles.append(out_file)
 
 
@@ -341,14 +341,14 @@ class queryRandoms(queryBase):
             stout = '\n'.join(stout) + '\n;'
 
             # SQL query file name
-            sql_file = f'{path_queries}{sql_base[:-4]}_{ad_lo:.2f}'\
+            sql_file = f'{path_queries}{sql_base}_{ad_lo:.2f}'\
                 f'-{ad_hi:.2f}.sql'
             # Write to file and append file name to list
             with open(sql_file, 'w') as file:
                 file.write(stout)
             self.queries.append(sql_file)
             # Output data file name
-            out_file = f'{path_out}{sql_base[:-4]}_{ad_lo:.2f}_-{ad_hi:.2f}'\
+            out_file = f'{path_out}{sql_base}_{ad_lo:.2f}_-{ad_hi:.2f}'\
                 f'.{cf.format}'
             self.outfiles.append(out_file)
 
@@ -537,14 +537,14 @@ class queryMaglimTomographic(queryBase):
                     stout = '\n'.join(stout) + '\n;'
 
                     # SQL query file name
-                    sql_file = f'{path_queries}{sql_base[:-4]}_{fd}_{sfd}_{s}'\
+                    sql_file = f'{path_queries}{sql_base}_{fd}_{sfd}_{s}'\
                         '.sql'
                     # Write to file and append file name to list
                     with open(sql_file, 'w') as file:
                         file.write(stout)
                     self.queries.append(sql_file)
                     # Output data file name
-                    out_file = f'{path_out}{sql_base[:-4]}_{fd}_{sfd}_{s}'\
+                    out_file = f'{path_out}{sql_base}_{fd}_{sfd}_{s}'\
                         f'.{cf.format}'
                     self.outfiles.append(out_file)
 
