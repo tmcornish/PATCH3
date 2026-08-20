@@ -21,10 +21,11 @@ class decasuMapperBase(baseStage):
         config_file,
     ):
         baseStage.__init__(self, config_file)
-        # Default HSC parameters for decasu
+        # Default parameters for decasu
         self.decasu_params = {
             'outbase': 'decasu',
             'map_types': {'coverage': ['sum']},
+            'nside': 32768,
             'use_two_amps': False,
             'arcsec_per_pix': 0.17,
             'maglim_aperture': 4.08,
@@ -49,12 +50,16 @@ class decasuMapperBase(baseStage):
             'elevation': 4205.0,
         }
 
+    def update_config(self):
+        '''
+        Updates the decasu parameters using the config file.
+        '''
+        for p in self.config.decasu_params:
+            self.decasu_params[p] = self.config.decasu_params[p]
+
     def build_config(self):
         '''
-        Builds a Configuration object for runnng decasu.
-
-        Since this is the base stage, this will just use the HSC defaults.
-        This can be modified in each subclass.
+        Builds a Configuration object for running decasu.
         '''
         self.decasu_conf = Configuration(**self.decasu_params)
 
@@ -114,6 +119,7 @@ class decasuMapperBase(baseStage):
         '''
         Runs decasu to produce the requested maps.
         '''
+        self.update_config()
         self.build_config()
         self.select_metadata()
         ncpus = self.get_ncpus()
@@ -134,3 +140,19 @@ class decasuMapperBase(baseStage):
 
             # Run the mapper
             mapper(infile, bands=b, clear_intermediate_files=True)
+
+
+class coverageMapper(decasuMapperBase):
+    '''
+    Stage for producing coverage maps to define survey geometry.
+    '''
+    def __init__(self, config_file):
+        super().__init__(config_file)
+
+
+class surveyPropertyMapper(decasuMapperBase):
+    '''
+    Stage for producing maps of various survey properties.
+    '''
+    def __init__(self, config_file):
+        super().__init__(config_file)
