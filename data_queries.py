@@ -18,7 +18,7 @@ class queryBase(baseStage):
         self,
         config_file,
     ):
-        super().__init__(self, config_file)
+        super().__init__(config_file)
         self.queries = []
         self.outfiles = []
         # Output directory fro SQL query files (NOT the data itself)
