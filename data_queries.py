@@ -23,8 +23,6 @@ class queryBase(baseStage):
         self.outfiles = []
         # Output directory fro SQL query files (NOT the data itself)
         self.path_queries = self.config.paths.out + 'sql_queries/'
-        # Length of extension for chosen output format
-        self.n_ext = len(self.config.format) + 1
         # Mapping from different flux types to the tables to which they belong
         aper_sizes = [10, 15, 20, 30, 40, 57, 84, 118, 168, 235]
         seeings = [0, 1, 2, 3]
@@ -167,7 +165,7 @@ class queryMetadata(queryBase):
                     # Add to list of queries to submit
                     self.queries.append(sql_file_fd_b)
                     # Add output file name to list
-                    out_file_fd_b = f'{out_file_fd[:-self.n_ext]}_{b}.fits'
+                    out_file_fd_b = f'{out_file_fd[:-4]}_{b}.fits'
                     self.outfiles.append(out_file_fd_b)
             else:
                 stout = stout_fd + '\n;'
