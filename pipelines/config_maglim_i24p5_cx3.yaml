@@ -138,6 +138,9 @@ queryMaglimTomographic:
     zbin3: [1.2, 1.5]
   flags: 
     <<: *flags
+  do_preview: false
+  do_download: true
+  do_delete: true
   primary_only: true
   log_blendedness_max: -0.375
   maglim: 24.5
