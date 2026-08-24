@@ -175,11 +175,11 @@ ingestData:
 coverageMapper:
   runfile: metadata_mapper.py
   qsub:
-    walltime: 72:00:00
+    walltime: 48:00:00
     resources:
       select: 3
-      ncpus: 128
-      mem: 920gb
+      ncpus: 64
+      mem: 450gb
       ompthreads: 128
   bands_to_run: grizy
   subdir: ''  # subdirectory of maps folder in which to store outputs
