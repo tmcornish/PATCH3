@@ -5,9 +5,9 @@ stages:
   queryMetadata: false
   queryFlags: false
   queryRandoms: false
-  queryMaglimTomographic: true
+  queryMaglimTomographic: false
   ingestData: false
-  coverageMapper: false
+  coverageMapper: true
   surveyPropertyMapper: false
 
 ###########################################################################################
