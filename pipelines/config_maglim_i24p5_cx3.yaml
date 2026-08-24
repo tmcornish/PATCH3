@@ -174,15 +174,16 @@ ingestData:
 coverageMapper:
   runfile: metadata_mapper.py
   qsub:
-    walltime: 24:00:00
+    walltime: 72:00:00
     resources:
-      select: 1
-      ncpus: 64
+      select: 3
+      ncpus: 128
       mem: 920gb
   bands_to_run: grizy
   subdir: ''  # subdirectory of maps folder in which to store outputs
   decasu_params:
     nside: 16384
+    nside_run: 16
 
 surveyPropertyMapper:
   runfile: metadata_mapper.py
