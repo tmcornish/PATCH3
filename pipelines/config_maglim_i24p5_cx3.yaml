@@ -38,13 +38,14 @@ global:
       r: [r2]
   # Specify whether metadata should be split by band for queries and mapping
   split_by_band: true
+  # File containing required environment variables
+  envsfile: patch3_envs.sh
 
 ### Data queries ###
 
 queryBase: &queryBase
   runfile: data_queries.py
   username: tmcornish
-  envsfile: patch3_envs.sh
   password_env: HSC_SSP_CAS_PASSWORD
   release: pdr3-citus-columnar
 
