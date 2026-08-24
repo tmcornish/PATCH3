@@ -180,6 +180,7 @@ coverageMapper:
       select: 3
       ncpus: 128
       mem: 920gb
+      ompthreads: 128
   bands_to_run: grizy
   subdir: ''  # subdirectory of maps folder in which to store outputs
   decasu_params:
