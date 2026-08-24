@@ -20,7 +20,7 @@ class decasuMapperBase(baseStage):
         self,
         config_file,
     ):
-        super().__init__(self, config_file)
+        super().__init__(config_file)
         # Default parameters for decasu
         self.decasu_params = {
             'outbase': 'decasu',
