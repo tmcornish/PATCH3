@@ -69,7 +69,7 @@ class decasuMapperBase(baseStage):
         '''
         import glob
 
-        path_meta = self.config.paths.data + 'metadata'
+        path_meta = self.config.paths.data + 'metadata/'
         self.infiles = []
         self.bands = []
         self.fields = []
