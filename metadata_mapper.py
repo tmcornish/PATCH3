@@ -49,6 +49,8 @@ class decasuMapperBase(baseStage):
             'longitude': -155.4694,
             'elevation': 4205.0,
         }
+        # Sort bands to run alphabetically
+        self.config.bands_to_run = sorted(self.config.bands_to_run)
 
     def update_config(self):
         '''
