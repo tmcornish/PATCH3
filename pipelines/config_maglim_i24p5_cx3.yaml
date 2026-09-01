@@ -167,8 +167,19 @@ queryMaglimTomographic:
 
 ### Data ingestion ###
 
-ingestData:
+ingestBase: &ingestBase
   runfile: ingestion.py
+  samples:
+    - zbin0
+    - zbin1
+    - zbin2
+    - zbin3
+
+ingestGalaxies:
+  <<: *ingestBase
+
+ingestStars:
+  <<: *ingestBase
 
 ### Mapping ###
 
