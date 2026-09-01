@@ -127,7 +127,7 @@ class decasuMapperBase(baseStage):
         ncpus = self.get_ncpus()
 
         for infile, b, fd in zip(self.infiles, self.bands, self.fields):
-            path_out = self.config.paths.out + fd + 'maps/'\
+            path_out = self.config.paths.out + fd + '/maps/'\
                 + self.config.subdir
 
             if not os.path.exists(path_out):
