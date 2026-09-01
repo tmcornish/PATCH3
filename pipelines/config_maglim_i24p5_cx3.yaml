@@ -7,8 +7,10 @@ stages:
   queryRandoms: false
   queryMaglimTomographic: false
   ingestData: false
-  coverageMapper: true
+  coverageMapper: false
   surveyPropertyMapper: false
+  ingestGalaxies: true
+  ingestStars: true
 
 ###########################################################################################
 
