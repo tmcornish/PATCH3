@@ -184,6 +184,7 @@ coverageMapper:
   bands_to_run: grizy
   subdir: ''  # subdirectory of maps folder in which to store outputs
   decasu_params:
+    outbase: decasu_nside16384
     nside: 16384
     nside_run: 16
 
@@ -192,12 +193,14 @@ surveyPropertyMapper:
   qsub:
     walltime: 24:00:00
     resources:
-      select: 1
+      select: 3
       ncpus: 64
       mem: 100gb
+      ompthreads: 64
   bands_to_run: grizy
-  subdir: ''  # subdirectory of maps folder in which to store outputs
+  subdir: 'sp_maps'  # subdirectory of maps folder in which to store outputs
   decasu_params:
+    outbase: decasu_nside1024
     nside: 1024
     map_types:
       nexp: ['sum']
