@@ -382,10 +382,11 @@ class queryMaglimTomographic(queryBase):
         path_queries = self.path_queries + 'galaxies/'
         path_out = cf.paths.data + 'galaxies/'
         paths = [path_queries, path_out]
-        # Equivalent directory for querying stars
+        # Equivalent directories for querying stars
         if cf.query_like_stars:
             path_queries_stars = self.path_queries + 'stars/'
-            paths.append(path_queries_stars)
+            path_out_stars = cf.paths.data + 'stars/'
+            paths.extend([path_queries_stars, path_out_stars])
         # Basis for SQL file names
         sql_base = cf.sql_base
         # Check directories exist
@@ -557,5 +558,5 @@ class queryMaglimTomographic(queryBase):
                             file.write(stout)
                         self.queries.append(sql_file)
                         # Output data file name
-                        out_file = f'{path_out}stars_{fd}_{sfd}_{s}.fits'
+                        out_file = f'{path_out_stars}stars_{fd}_{sfd}_{s}.fits'
                         self.outfiles.append(out_file)
