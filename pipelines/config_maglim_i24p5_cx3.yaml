@@ -183,6 +183,7 @@ ingestBase: &ingestBase
       ncpus: 64
       mem: 100gb
       ompthreads: 64
+  cols_include: null
 
 ingestGalaxies:
   <<: *ingestBase
