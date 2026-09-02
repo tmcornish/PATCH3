@@ -98,6 +98,7 @@ class ingestBase(baseStage):
                     # Load data
                     t = Table.read(infile)
                     t.sort('object_id')
+                    rows_now = len(t)
 
                     shape = (rowcount,)
                     for col in self.columns:
@@ -106,13 +107,13 @@ class ingestBase(baseStage):
                         dset = gp.require_dataset(col, shape=shape, dtype=dt)
 
                         # Resize the dataset
-                        dset.resize(rowcount + shape[0], axis=0)
+                        dset.resize(rowcount + rows_now, axis=0)
 
                         # Write the next chunk
                         dset[rowcount:] = data
 
                         # Update row count
-                        rowcount += shape[0]
+                        rowcount += rows_now
 
     def run(self):
         '''
