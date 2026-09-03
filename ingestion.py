@@ -93,7 +93,7 @@ class ingestBase(baseStage):
 
                 # Cycle through remaining tables and append data
                 if len(infiles) < 2:
-                    return
+                    continue
                 for infile in infiles[1:]:
                     # Load data
                     t = Table.read(infile)
