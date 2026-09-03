@@ -112,8 +112,8 @@ class ingestBase(baseStage):
                         # Write the next chunk
                         dset[rowcount:] = data
 
-                        # Update row count
-                        rowcount += rows_now
+                    # Update row count
+                    rowcount += rows_now
 
     def run(self):
         '''
