@@ -349,6 +349,126 @@ class queryRandoms(queryBase):
             self.outfiles.append(out_file)
 
 
+class queryStarsForDepth(queryBase):
+    '''
+    Creates queries for downloading data for all stars in the chosen fields.
+
+    This stage will generate and submit queries for downloading data for all
+    stars within the chosen fields, with the option to apply additional cuts.
+    Additional criteria include:
+    - primary detections only;
+    - any flags specified in the config must be False;
+    - blendedness in the primary band is below a certain threshold.
+    By default, will download the RA and Dec., and the flux uncertainties
+    corrsponding to the chosen flux type, as these constitute all the info
+    required to construct depth maps.
+    '''
+    def write_sql(self):
+        '''
+        Generates queries and writes them to a SQL files.
+        '''
+        cf = self.config
+        # Photometric bands
+        bands = cf.bands.all
+        # Directories for queries and downloaded data
+        path_queries = self.path_queries + 'stars/'
+        path_out = cf.paths.data + 'stars/'
+        # Basis for SQL file names
+        sql_base = cf.sql_base
+        # Check directories exist
+        for p in [path_queries, path_out]:
+            if not os.path.exists(p):
+                os.system(f'mkdir -p {p}')
+
+        # Begin assembling query
+        stout_cols = [
+            'SELECT object_id',
+            'ra',
+            'dec',
+        ]
+        if not cf.primary_only:
+            stout_cols.append('isprimary')
+
+        # For keeping track of which tables need to be joined
+        tables = []
+
+        # Fluxes and magnitudes of the chosen type
+        tflux = self.flux_tables[cf.mag_type]
+        stout_cols.extend(
+            [
+                f'{tflux}.{b}_{cf.mag_type}_fluxerr'
+                for b in bands
+            ]
+        )
+        if tflux != 'forced':
+            tables.append(tflux)
+
+        # Conditions for selection (applied to all fields)
+        b1 = cf.bands.primary
+        stout_cond = [
+            f'WHERE forced.{b1}_extendedness_value = 0'
+        ]
+        # Primary sources only?
+        if cf.primary_only:
+            stout_cond.append(
+                'forced.isprimary=True'
+            )
+        # Flags
+        for table in cf.flags:
+            for col in cf.flags[table]:
+                stout_cols.extend(
+                    [f'{table}.{b}_{col}=False'
+                        for b in cf.flags[table][col]]
+                )
+            if table not in tables and table != 'forced':
+                tables.append(table)
+        # Blendedness cut
+        stout_cond.append(
+            f'meas2.{b1}_blendedness_abs < '
+            f'POWER(10, {cf.log_blendedness_max})'
+        )
+        tables.append('meas2')
+
+        # Statement specifying the tables to join
+        stout_from = [
+            f'FROM {cf.dr}.forced as forced'
+        ] + [
+            f'{cf.dr}.{table} {table} USING (object_id)'
+            for table in tables
+        ]
+
+        # Begin assembling query into single string
+        stout_cols = ',\n\t'.join(stout_cols)
+        stout_from = '\n\tLEFT JOIN '.join(stout_from)
+
+        # Create a query per (sub)field per bin
+        for fd in cf.fields:
+            # Get list of subfields belonging to each field
+            subs = cf.get_subfields(fd)
+            for sfd in subs:
+                stout_cond_fd = stout_cond + [f'forced.field=\'{sfd}\'']
+                stout_cond_fd = ' AND \n\t'.join(stout_cond_fd)
+
+                # Combine all components of query
+                stout = [
+                    stout_cols,
+                    stout_from,
+                    stout_cond_fd
+                ]
+                stout = '\n'.join(stout) + '\n;'
+
+                # SQL query file name
+                sql_file = f'{path_queries}{sql_base}_{fd}_{sfd}_fluxerrs'\
+                    '.sql'
+                # Write to file and append file name to list
+                with open(sql_file, 'w') as file:
+                    file.write(stout)
+                self.queries.append(sql_file)
+                # Output data file name
+                out_file = f'{path_out}{sql_base}_{fd}_{sfd}_fluxerrs.fits'
+                self.outfiles.append(out_file)
+
+
 class queryMaglimTomographic(queryBase):
     '''
     Creates queries for downloading tomographically split, mag-limited samples.
