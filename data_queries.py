@@ -423,11 +423,12 @@ class queryStarsForDepth(queryBase):
             if table not in tables and table != 'forced':
                 tables.append(table)
         # Blendedness cut
-        stout_cond.append(
-            f'meas2.{b1}_blendedness_abs < '
-            f'POWER(10, {cf.log_blendedness_max})'
-        )
-        tables.append('meas2')
+        if cf.log_blendedness_max is not None:
+            stout_cond.append(
+                f'meas2.{b1}_blendedness_abs < '
+                f'POWER(10, {cf.log_blendedness_max})'
+            )
+            tables.append('meas2')
 
         # Statement specifying the tables to join
         stout_from = [
