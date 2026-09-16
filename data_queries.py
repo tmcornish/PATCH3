@@ -665,19 +665,28 @@ class queryMaglimTomographic(queryBase):
                     out_file = f'{path_out}{sql_base}_{fd}_{sfd}_{s}.fits'
                     self.outfiles.append(out_file)
 
-                    # Make query for stars with the same cuts applied?
-                    if cf.query_like_stars:
-                        sql_file = f'{path_queries_stars}stars_{fd}_{sfd}_{s}'\
-                                                '.sql'
-                        # Change extendedness cut to = 0
-                        stout = stout.replace(
-                            'extendedness_value > 0',
-                            'extendedness_value = 0'
-                        )
-                        # Write to file and append file name to list
-                        with open(sql_file, 'w') as file:
-                            file.write(stout)
-                        self.queries.append(sql_file)
-                        # Output data file name
-                        out_file = f'{path_out_stars}stars_{fd}_{sfd}_{s}.fits'
-                        self.outfiles.append(out_file)
+                # Make query for stars with the same cuts applied?
+                if cf.query_like_stars:
+                    sql_file = f'{path_queries_stars}stars_{fd}_{sfd}'\
+                                            '.sql'
+                    stout_cond_fd = ' AND \n\t'.join(stout_cond_fd)
+
+                    # Combine all components of query
+                    stout = [
+                        stout_cols,
+                        stout_from,
+                        stout_cond_fd
+                    ]
+                    stout = '\n'.join(stout) + '\n;'
+                    # Change extendedness cut to = 0
+                    stout = stout.replace(
+                        'extendedness_value > 0',
+                        'extendedness_value = 0'
+                    )
+                    # Write to file and append file name to list
+                    with open(sql_file, 'w') as file:
+                        file.write(stout)
+                    self.queries.append(sql_file)
+                    # Output data file name
+                    out_file = f'{path_out_stars}stars_{fd}_{sfd}.fits'
+                    self.outfiles.append(out_file)
