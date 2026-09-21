@@ -4,13 +4,15 @@
 stages:
   queryMetadata: false
   queryFlags: false
+  queryDustAttenuation: false
   queryRandoms: false
   queryMaglimTomographic: false
-  ingestData: false
+  ingestGalaxies: false
+  ingestStars: false
+  ingestStarsForDepth: false
+  ingestDustAttenutation: false
   coverageMapper: false
   surveyPropertyMapper: false
-  ingestGalaxies: true
-  ingestStars: true
 
 ###########################################################################################
 
@@ -225,6 +227,9 @@ ingestStars:
   <<: *ingestBase
 
 ingestStarsForDepth:
+  <<: *ingestBase
+
+ingestDustAttenutation:
   <<: *ingestBase
 
 ### Mapping ###

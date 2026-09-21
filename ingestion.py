@@ -202,3 +202,28 @@ class ingestStarsForDepth(ingestBase):
             self.field,
             'star_catalogue_for_depth_map.hdf5'
         )
+
+
+class ingestDustAttenuation(ingestBase):
+    '''
+    Stage for ingesting the dust attenuation data.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify files corresponding to each sample
+        for sample in self.config.samples:
+            self.infiles[sample] = sorted(
+                glob.glob(
+                    self.config.paths.data +
+                    f'dust_attenuation/*_{self.field}_*_{sample}.fits'
+                )
+            )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'dust_attenuations.hdf5'
+        )
