@@ -161,9 +161,6 @@ class ingestStars(ingestBase):
     def define_io(self):
         '''
         Identifies the input files and sets the output file location.
-
-        Downloaded data for each sample are compiled into a single HDF5 file
-        with one Group per sample.
         '''
         # Identify files corresponding to each sample
         for sample in self.config.samples:
@@ -179,4 +176,29 @@ class ingestStars(ingestBase):
             self.config.paths.out,
             self.field,
             'star_catalogue.hdf5'
+        )
+
+
+class ingestStarsForDepth(ingestBase):
+    '''
+    Stage for ingesting the stellar data required for making depth maps.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify files corresponding to each sample
+        for sample in self.config.samples:
+            self.infiles[sample] = sorted(
+                glob.glob(
+                    self.config.paths.data +
+                    f'stars/for_depth_map/*_{self.field}_*_{sample}.fits'
+                )
+            )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'star_catalogue_for_depth_map.hdf5'
         )
