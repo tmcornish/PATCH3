@@ -25,6 +25,7 @@ class ingestBase(baseStage):
         self.infiles = {}
         self.outfile = None
         self.columns = self.config.cols_include
+        self.run_name = self.config.run_name
 
     def define_io(self):
         '''
@@ -141,7 +142,7 @@ class ingestGalaxies(ingestBase):
             self.infiles[sample] = sorted(
                 glob.glob(
                     self.config.paths.data +
-                    f'galaxies/*_{self.field}_*_{sample}.fits'
+                    f'galaxies/{self.run_name}/*_{self.field}_*_{sample}.fits'
                 )
             )
 
@@ -156,9 +157,6 @@ class ingestGalaxies(ingestBase):
 class ingestStars(ingestBase):
     '''
     Stage for ingesting the data for analogous stellar samples.
-
-    TODO: Join this to ingestGalaxies somehow, rather than having two separate
-    but very similar stages?
     '''
     def define_io(self):
         '''
@@ -172,7 +170,7 @@ class ingestStars(ingestBase):
             self.infiles[sample] = sorted(
                 glob.glob(
                     self.config.paths.data +
-                    f'stars/*_{self.field}_*_{sample}.fits'
+                    f'stars/{self.run_name}/*_{self.field}_*_{sample}.fits'
                 )
             )
 

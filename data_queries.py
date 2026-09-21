@@ -372,7 +372,7 @@ class queryStarsForDepth(queryBase):
         bands = cf.bands.all
         # Directories for queries and downloaded data
         path_queries = self.path_queries + 'stars/'
-        path_out = cf.paths.data + 'stars/'
+        path_out = cf.paths.data + 'stars/for_depth_map/'
         # Basis for SQL file names
         sql_base = cf.sql_base
         # Check directories exist
@@ -501,12 +501,12 @@ class queryMaglimTomographic(queryBase):
         bands = cf.bands.all
         # Directories for queries and downloaded data
         path_queries = self.path_queries + 'galaxies/'
-        path_out = cf.paths.data + 'galaxies/'
+        path_out = cf.paths.data + f'galaxies/{cf.run_name}/'
         paths = [path_queries, path_out]
         # Equivalent directories for querying stars
         if cf.query_like_stars:
             path_queries_stars = self.path_queries + 'stars/'
-            path_out_stars = cf.paths.data + 'stars/'
+            path_out_stars = cf.paths.data + f'stars/{cf.run_name}/'
             paths.extend([path_queries_stars, path_out_stars])
         # Basis for SQL file names
         sql_base = cf.sql_base
