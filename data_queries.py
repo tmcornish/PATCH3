@@ -263,6 +263,79 @@ class queryFlags(queryBase):
                 self.outfiles.append(out_file)
 
 
+class queryDustAttenuation(queryBase):
+    '''
+    Creates queries to retrieve dust attenuation data.
+
+    Data are queried for all sources in the HSC catalogue by default, with
+    the option to restrict these to primary detections only via the
+    `primary_only` config option. Queries are submitted per field as defined
+    in the HSC catalogues.
+    '''
+    def write_sql(self):
+        '''
+        Generates queries and writes them to a SQL files.
+        '''
+        cf = self.config
+        # Photometric bands
+        bands = cf.bands.all
+        # Directories for queries and downloaded data
+        path_queries = self.path_queries + 'dust_attenuation/'
+        path_out = cf.paths.data + 'dust_attenuation/'
+        # Basis for SQL file names
+        sql_base = cf.sql_base
+        # Check directories exist
+        for p in [path_queries, path_out]:
+            if not os.path.exists(p):
+                os.system(f'mkdir -p {p}')
+
+        # Begin assembling query
+        stout_cols = [
+            'SELECT object_id',
+            'forced.ra',
+            'forced.dec'
+        ] + [
+            f'forced.a_{b}' for b in bands
+        ]
+        if not cf.primary_only:
+            stout_cols.append('forced.isprimary')
+
+        stout_from = f'FROM {cf.dr}.forced as forced'
+
+        stout_cols = ',\n\t'.join(stout_cols)
+
+        # Create a query for each field
+        for fd in cf.fields:
+            # Get list of subfields belonging to each field
+            subs = cf.get_subfields(fd)
+            for sfd in subs:
+                # Query within current subfield
+                stout_cond = [
+                    f'WHERE forced.field=\'{sfd}\'',
+                ]
+                if cf.primary_only:
+                    stout_cond.append('forced.isprimary=True')
+                stout_cond = ' AND \n\t'.join(stout_cond)
+
+                # Combine all components of query
+                stout = [
+                    stout_cols,
+                    stout_from,
+                    stout_cond
+                ]
+                stout = '\n'.join(stout) + '\n;'
+
+                # SQL query file name
+                sql_file = f'{path_queries}{sql_base}_{fd}_{sfd}.sql'
+                # Write to file and append file name to list
+                with open(sql_file, 'w') as file:
+                    file.write(stout)
+                self.queries.append(sql_file)
+                # Output data file name
+                out_file = f'{path_out}{sql_base}_{fd}_{sfd}.fits'
+                self.outfiles.append(out_file)
+
+
 class queryRandoms(queryBase):
     '''
     Creates queries for downloading positions and flags for randoms.
