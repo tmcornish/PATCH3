@@ -209,6 +209,9 @@ ingestGalaxies:
 ingestStars:
   <<: *ingestBase
 
+ingestStarsForDepth:
+  <<: *ingestBase
+
 ### Mapping ###
 
 coverageMapper:
