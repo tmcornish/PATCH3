@@ -12,7 +12,7 @@ from decasu.multi_healpix_mapper import MultiHealpixMapper
 #          STAGES          #
 ############################
 
-class decasuMapperBase(baseStage):
+class decasuBase(baseStage):
     '''
     Base class for producing maps with decasu; should not be used dirctly.
     '''
@@ -144,7 +144,7 @@ class decasuMapperBase(baseStage):
             mapper(infile, bands=b, clear_intermediate_files=True)
 
 
-class coverageMapper(decasuMapperBase):
+class decasuCoverage(decasuBase):
     '''
     Stage for producing coverage maps to define survey geometry.
     '''
@@ -152,7 +152,7 @@ class coverageMapper(decasuMapperBase):
         super().__init__(config_file)
 
 
-class surveyPropertyMapper(decasuMapperBase):
+class decasuSurveyProperties(decasuBase):
     '''
     Stage for producing maps of various survey properties.
     '''

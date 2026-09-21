@@ -11,8 +11,8 @@ stages:
   ingestStars: false
   ingestStarsForDepth: false
   ingestDustAttenutation: false
-  coverageMapper: false
-  surveyPropertyMapper: false
+  decasuCoverage: false
+  decasuSurveyProperties: false
 
 ###########################################################################################
 
@@ -232,9 +232,9 @@ ingestStarsForDepth:
 ingestDustAttenutation:
   <<: *ingestBase
 
-### Mapping ###
+### Mapping with decasu ###
 
-coverageMapper:
+decasuCoverage:
   runfile: metadata_mapper.py
   qsub:
     walltime: 48:00:00
@@ -250,7 +250,7 @@ coverageMapper:
     nside: 16384
     nside_run: 16
 
-surveyPropertyMapper:
+decasuSurveyProperties:
   runfile: metadata_mapper.py
   qsub:
     walltime: 24:00:00
