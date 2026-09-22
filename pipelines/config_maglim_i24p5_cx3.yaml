@@ -229,7 +229,7 @@ ingestStars:
 ingestStarsForDepth:
   <<: *ingestBase
 
-ingestDustAttenutation:
+ingestDustAttenuation:
   <<: *ingestBase
 
 ### Mapping with decasu ###
