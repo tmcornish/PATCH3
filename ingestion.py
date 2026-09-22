@@ -186,14 +186,13 @@ class ingestStarsForDepth(ingestBase):
         '''
         Identifies the input files and sets the output file location.
         '''
-        # Identify files corresponding to each sample
-        for sample in self.config.samples:
-            self.infiles[sample] = sorted(
-                glob.glob(
-                    self.config.paths.data +
-                    f'stars/for_depth_map/*_{self.field}_*_fluxerrs.fits'
-                )
+        # Identify required input files
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'stars/for_depth_map/*_{self.field}_*_fluxerrs.fits'
             )
+        )
 
         # Set output file
         self.outfile = os.path.join(
@@ -211,14 +210,13 @@ class ingestDustAttenuation(ingestBase):
         '''
         Identifies the input files and sets the output file location.
         '''
-        # Identify files corresponding to each sample
-        for sample in self.config.samples:
-            self.infiles[sample] = sorted(
-                glob.glob(
-                    self.config.paths.data +
-                    f'dust_attenuation/*_{self.field}_*.fits'
-                )
+        # Identify required input files
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'dust_attenuation/*_{self.field}_*.fits'
             )
+        )
 
         # Set output file
         self.outfile = os.path.join(
