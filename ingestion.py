@@ -216,7 +216,7 @@ class ingestDustAttenuation(ingestBase):
             self.infiles[sample] = sorted(
                 glob.glob(
                     self.config.paths.data +
-                    f'dust_attenuation/*_{self.field}_*_{sample}.fits'
+                    f'dust_attenuation/*_{self.field}_*.fits'
                 )
             )
 
