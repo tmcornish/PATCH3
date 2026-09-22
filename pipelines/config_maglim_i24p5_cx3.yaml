@@ -7,10 +7,11 @@ stages:
   queryDustAttenuation: false
   queryRandoms: false
   queryMaglimTomographic: false
-  ingestGalaxies: false
-  ingestStars: false
-  ingestStarsForDepth: false
+  ingestFlags: false
   ingestDustAttenuation: false
+  ingestStarsForDepth: false
+  ingestGalaxies: false
+  ingestLikeStars: false
   decasuCoverage: false
   decasuSurveyProperties: false
 
@@ -220,16 +221,19 @@ ingestBase: &ingestBase
       ompthreads: 64
   cols_include: null
 
-ingestGalaxies:
+ingestFlags:
   <<: *ingestBase
 
-ingestStars:
+ingestDustAttenuation:
   <<: *ingestBase
 
 ingestStarsForDepth:
   <<: *ingestBase
 
-ingestDustAttenuation:
+ingestGalaxies:
+  <<: *ingestBase
+
+ingestLikeStars:
   <<: *ingestBase
 
 ### Mapping with decasu ###

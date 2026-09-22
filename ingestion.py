@@ -126,6 +126,78 @@ class ingestBase(baseStage):
             self.write_hdf5()
 
 
+class ingestFlags(ingestBase):
+    '''
+    Stage for ingesting the dust attenuation data.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify required input files
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'flags/*_{self.field}_*.fits'
+            )
+        )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'flags.hdf5'
+        )
+
+
+class ingestDustAttenuation(ingestBase):
+    '''
+    Stage for ingesting the dust attenuation data.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify required input files
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'dust_attenuation/*_{self.field}_*.fits'
+            )
+        )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'dust_attenuations.hdf5'
+        )
+
+
+class ingestStarsForDepth(ingestBase):
+    '''
+    Stage for ingesting the stellar data required for making depth maps.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify required input files
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'stars/for_depth_map/*_{self.field}_*_fluxerrs.fits'
+            )
+        )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'star_catalogue_for_depth_map.hdf5'
+        )
+
+
 class ingestGalaxies(ingestBase):
     '''
     Stage for ingesting the data for the galaxy samples being analysed.
@@ -154,7 +226,7 @@ class ingestGalaxies(ingestBase):
         )
 
 
-class ingestStars(ingestBase):
+class ingestLikeStars(ingestBase):
     '''
     Stage for ingesting the data for analogous stellar samples.
     '''
@@ -175,76 +247,4 @@ class ingestStars(ingestBase):
             self.config.paths.out,
             self.field,
             'star_catalogue.hdf5'
-        )
-
-
-class ingestStarsForDepth(ingestBase):
-    '''
-    Stage for ingesting the stellar data required for making depth maps.
-    '''
-    def define_io(self):
-        '''
-        Identifies the input files and sets the output file location.
-        '''
-        # Identify required input files
-        self.infiles['/'] = sorted(
-            glob.glob(
-                self.config.paths.data +
-                f'stars/for_depth_map/*_{self.field}_*_fluxerrs.fits'
-            )
-        )
-
-        # Set output file
-        self.outfile = os.path.join(
-            self.config.paths.out,
-            self.field,
-            'star_catalogue_for_depth_map.hdf5'
-        )
-
-
-class ingestDustAttenuation(ingestBase):
-    '''
-    Stage for ingesting the dust attenuation data.
-    '''
-    def define_io(self):
-        '''
-        Identifies the input files and sets the output file location.
-        '''
-        # Identify required input files
-        self.infiles['/'] = sorted(
-            glob.glob(
-                self.config.paths.data +
-                f'dust_attenuation/*_{self.field}_*.fits'
-            )
-        )
-
-        # Set output file
-        self.outfile = os.path.join(
-            self.config.paths.out,
-            self.field,
-            'dust_attenuations.hdf5'
-        )
-
-
-class ingestFlags(ingestBase):
-    '''
-    Stage for ingesting the dust attenuation data.
-    '''
-    def define_io(self):
-        '''
-        Identifies the input files and sets the output file location.
-        '''
-        # Identify required input files
-        self.infiles['/'] = sorted(
-            glob.glob(
-                self.config.paths.data +
-                f'flags/*_{self.field}_*.fits'
-            )
-        )
-
-        # Set output file
-        self.outfile = os.path.join(
-            self.config.paths.out,
-            self.field,
-            'flags.hdf5'
         )
