@@ -224,3 +224,27 @@ class ingestDustAttenuation(ingestBase):
             self.field,
             'dust_attenuations.hdf5'
         )
+
+
+class ingestFlags(ingestBase):
+    '''
+    Stage for ingesting the dust attenuation data.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify required input files
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'flags/*_{self.field}_*.fits'
+            )
+        )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'flags.hdf5'
+        )
