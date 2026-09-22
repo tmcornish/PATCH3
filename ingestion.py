@@ -68,7 +68,7 @@ class ingestBase(baseStage):
             # Create a Group for each sample
             for sample in self.infiles:
                 infiles = self.infiles[sample]
-                gp = f.create_group(sample)
+                gp = f.require_group(sample)
                 # Load first input file and use it to define the HDF5 datasets
                 t = Table.read(infiles[0])
                 t.sort('object_id')
@@ -163,13 +163,12 @@ class ingestStars(ingestBase):
         Identifies the input files and sets the output file location.
         '''
         # Identify files corresponding to each sample
-        for sample in self.config.samples:
-            self.infiles[sample] = sorted(
-                glob.glob(
-                    self.config.paths.data +
-                    f'stars/{self.run_name}/*_{self.field}_*_{sample}.fits'
-                )
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'stars/{self.run_name}/*_{self.field}_*.fits'
             )
+        )
 
         # Set output file
         self.outfile = os.path.join(
@@ -192,7 +191,7 @@ class ingestStarsForDepth(ingestBase):
             self.infiles[sample] = sorted(
                 glob.glob(
                     self.config.paths.data +
-                    f'stars/for_depth_map/*_{self.field}_*_{sample}.fits'
+                    f'stars/for_depth_map/*_{self.field}_*_fluxerrs.fits'
                 )
             )
 
