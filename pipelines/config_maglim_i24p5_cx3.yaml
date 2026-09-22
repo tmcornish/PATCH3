@@ -10,7 +10,7 @@ stages:
   ingestGalaxies: false
   ingestStars: false
   ingestStarsForDepth: false
-  ingestDustAttenutation: false
+  ingestDustAttenuation: false
   decasuCoverage: false
   decasuSurveyProperties: false
 
