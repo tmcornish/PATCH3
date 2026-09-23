@@ -22,8 +22,8 @@ class mapperBase(baseStage):
         self.nside_cover = self.config.nside_coverage
         self.maps = {}
         self.vpix = None
-        self.single_file_out = False
         self.field = None
+        self.combine_fields = self.config.combine_fields
 
     def get_data_and_pix_ids(self):
         '''
@@ -256,3 +256,16 @@ class mapperBase(baseStage):
             path_out = self.config.paths.out + 'combined/'
             outfile = f'{path_out}/{name}_nside{self.nside}.hsp'
             union.write(outfile, clobber=True)
+
+    def run(self):
+        '''
+        Runs the successive stages to produce the output maps.
+        '''
+        for fd in self.config.fields:
+            self.field = fd
+            self.get_data_and_pix_ids()
+            self.build_maps()
+            self.write_maps()
+
+            if self.combine_fields:
+                self.combine_maps()
