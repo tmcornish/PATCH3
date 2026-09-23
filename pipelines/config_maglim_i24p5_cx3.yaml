@@ -283,3 +283,18 @@ decasuSurveyProperties:
       skylevel: ['mean', 'mean-scaled']
       ellipticity: ['mean']
       weight: ['sum']
+
+
+### Mapping from catalogues ###
+
+mapperBase: &mapperBase
+  runfile: catalogue_mapper.py
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 64
+      mem: 100gb
+      ompthreads: 64
+  nside: 1024
+  nside_coverage: 32
