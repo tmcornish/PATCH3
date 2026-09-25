@@ -177,7 +177,7 @@ class queryMetadata(queryBase):
                     # Add to list of queries to submit
                     self.queries.append(sql_file_fd_b)
                     # Add output file name to list
-                    out_file_fd_b = f'{out_file_fd[:-4]}_{b}.fits'
+                    out_file_fd_b = f'{out_file_fd[:-5]}_{b}.fits'
                     self.outfiles.append(out_file_fd_b)
             else:
                 self._assemble_query()
