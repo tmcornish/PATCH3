@@ -188,6 +188,7 @@ queryMaglimTomographic:
   snr_min_secondary: 5
   N_sec: 2
   query_like_stars: true
+  query_cosmos: true
   mag_type: cmodel
   correct_ri: true
   z_table: photoz_dnnz
