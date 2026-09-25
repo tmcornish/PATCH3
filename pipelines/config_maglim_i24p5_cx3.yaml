@@ -299,3 +299,6 @@ mapperBase: &mapperBase
       ompthreads: 64
   nside: 1024
   nside_coverage: 32
+
+mapperDust:
+  <<: *mapperBase
