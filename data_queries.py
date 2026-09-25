@@ -404,7 +404,7 @@ class queryRandoms(queryBase):
                 file.write(self.stout_str)
             self.queries.append(sql_file)
             # Output data file name
-            out_file = f'{self.path_out}{sql_base}_{ad_lo:.2f}_-{ad_hi:.2f}'\
+            out_file = f'{self.path_out}{sql_base}_{ad_lo:.2f}-{ad_hi:.2f}'\
                        '.fits'
             self.outfiles.append(out_file)
 
