@@ -120,8 +120,8 @@ class queryBase(baseStage):
         Runs the successive stages of writing and submitting a query.
         '''
         self.write_sql()
-        #for q, f in zip(self.queries, self.outfiles):
-        #    self.submit_job(q, f)
+        for q, f in zip(self.queries, self.outfiles):
+            self.submit_job(q, f)
 
 
 class queryMetadata(queryBase):
@@ -540,6 +540,15 @@ class queryGalaxiesBase(queryBase):
         self.path_out_stars = self.path_out + f'stars/{self.config.run_name}'
 
     def _write_sql_stars(self):
+        '''
+        Generates queries for stellar analogues to the target galaxies.
+
+        This creates one query per HSC subfield, and applies all the same cuts
+        as for the target galaxy samples with the following exceptions:
+        - cuts specific to the galaxy sample are removed (e.g. z cuts for
+          for tomographic samples)
+        - any extendedness cut is replaced with a cut for point sources
+        '''
         cf = self.config
         # Create a query per (sub)field
         for i, fd in enumerate(cf.fields):
@@ -553,17 +562,14 @@ class queryGalaxiesBase(queryBase):
                     # Reset nlines_sel to 0
                     self.nlines_sel = 0
 
-                    # Find location of extendedness cut
-                    idx_ext = [
-                        k for k, s in enumerate(self.stout['conds'])
-                        if 'extendedness_value' in s
-                    ][0]
-                    # Replace with cut for selecting stars
-                    self.stout['conds'][idx_ext] = \
-                        self.stout['conds'][idx_ext].replace(
-                            'extendedness_value > 0',
-                            'extendedness_value = 0'
-                    )
+                    # Find location of extendedness cut(s)
+                    for k, s in enumerate(self.stout['conds']):
+                        if 'extendedness_value' in s:
+                            self.stout['conds'][k] = \
+                                self.stout['conds'][k].replace(
+                                    'extendedness_value > 0',
+                                    'extendedness_value = 0'
+                            )
                 # Update the 'field' condition
                 self.stout['conds'][-1] = f'forced.field=\'{sfd}\''
 
