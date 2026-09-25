@@ -28,14 +28,6 @@ class mapperBase(baseStage):
         self.field = None
         self.combine_fields = self.config.combine_fields
 
-    def get_data_and_pix_ids(self):
-        '''
-        Retrieves the position info and required data for mapping.
-
-        Here this is just a placeholder; it will be defined for each subclass.
-        '''
-        pass
-
     def compute_statistic(
         self,
         pix_data,
@@ -268,7 +260,6 @@ class mapperBase(baseStage):
         '''
         for fd in self.config.fields:
             self.field = fd
-            self.get_data_and_pix_ids()
             self.build_maps()
             self.write_maps()
 
@@ -280,15 +271,15 @@ class mapperDust(mapperBase):
     '''
     Constructs maps of dust attenuation using the catalogues.
     '''
-    def get_data_and_pix_ids(self):
+    def build_maps(self):
         '''
-        Retrieves the position info and required data for mapping.
+        Constructs the maps required of this stage and stores them.
         '''
         # Load dust attenaution catalogue for this field
         cat = f'{self.config.paths.out}{self.field}/dust_attenuations.hdf5'
         with h5py.File(cat, 'r') as hf:
             # Pixels corresponding to each source
-            self.pix_data = hp.ang2pix(
+            pix_data = hp.ang2pix(
                 self.nside,
                 hf['ra'][:],
                 hf['dec'][:],
@@ -297,15 +288,10 @@ class mapperDust(mapperBase):
             )
             # Dust attenuation at position of each source
             for b in self.config.bands.all:
-                self.data[b] = hf[f'a_{b}'][:]
+                data = hf[f'a_{b}'][:]
 
-    def build_maps(self):
-        '''
-        Constructs the maps required of this stage and stores them.
-        '''
-        for b in self.config.bands.all:
-            self.maps[f'sp_maps/dust_{b}'] = self.compute_statistic(
-                self.pix_data,
-                self.data[b],
-                operation='mean'
-            )
+                self.maps[f'sp_maps/dust_{b}'] = self.compute_statistic(
+                    pix_data,
+                    data[b],
+                    operation='mean'
+                )
