@@ -275,8 +275,9 @@ class mapperDust(mapperBase):
         '''
         Constructs the maps required of this stage and stores them.
         '''
-        # Load dust attenaution catalogue for this field
-        cat = f'{self.config.paths.out}{self.field}/dust_attenuations.hdf5'
+        cf = self.config
+        # Load dust attenuation catalogue for this field
+        cat = f'{cf.paths.out}{self.field}/dust_attenuations.hdf5'
         with h5py.File(cat, 'r') as hf:
             # Pixels corresponding to each source
             pix_data = hp.ang2pix(
@@ -287,11 +288,11 @@ class mapperDust(mapperBase):
                 nest=True
             )
             # Dust attenuation at position of each source
-            for b in self.config.bands.all:
+            for b in cf.bands.all:
                 data = hf[f'a_{b}'][:]
 
                 self.maps[f'sp_maps/dust_{b}'] = self.compute_statistic(
                     pix_data,
-                    data[b],
+                    data,
                     operation='mean'
                 )
