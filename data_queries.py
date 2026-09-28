@@ -604,7 +604,7 @@ class queryGalaxiesBase(queryBase):
         # Reset nlines_samp to 0
         self.nlines_samp = 0
         # Set field condition to 'cosmos'
-        self.stout['conds'].append('forced.field=cosmos')
+        self.stout['conds'].append('forced.field=\'cosmos\'')
 
         # Combine all components of query
         self._assemble_query()
