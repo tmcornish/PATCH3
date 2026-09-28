@@ -41,6 +41,8 @@ global:
     altnames:
       i: [i2]
       r: [r2]
+  # Type of magnitudes to use
+  mag_type: cmodel
   # Specify whether metadata should be split by band for queries and mapping
   split_by_band: true
   # File containing required environment variables
@@ -159,7 +161,6 @@ queryStarsForDepth:
   do_delete: true
   primary_only: true
   log_blendedness_max: -0.375
-  mag_type: cmodel
 
 # Magnitude-limited tomographic samples
 queryMaglimTomographic:
@@ -189,7 +190,6 @@ queryMaglimTomographic:
   N_sec: 2
   query_like_stars: true
   query_cosmos: true
-  mag_type: cmodel
   correct_ri: true
   z_table: photoz_dnnz
   extra_cols:
@@ -306,3 +306,7 @@ mapperBase: &mapperBase
 
 mapperDust:
   <<: *mapperBase
+
+mapperDepth:
+  Nsig: 10  # Sets N-sigma for the depth maps
+  Nmin: 4  # Minimum number of sources required per pixel for mean to be used

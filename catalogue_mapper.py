@@ -296,3 +296,36 @@ class mapperDust(mapperBase):
                     data,
                     operation='mean'
                 )
+
+
+class mapperDepth(mapperBase):
+    '''
+    Constructs maps of N-sigma depth based on stellar flux uncertainties.
+    '''
+    def build_maps(self):
+        '''
+        Constructs the maps required of this stage and stores them.
+        '''
+        cf = self.config
+        # Load stellar fluxerr catalogue for this field
+        cat = f'{cf.paths.out}{self.field}'\
+              'star_catalogue_for_depth_map.hdf5'
+
+        with h5py.File(cat, 'r') as hf:
+            # Pixels corresponding to each source
+            pix_data = hp.ang2pix(
+                self.nside,
+                hf['ra'][:],
+                hf['dec'][:],
+                lonlat=True,
+                nest=True
+            )
+            # Depth in each band based on stellar fluxerrs
+            for b in cf.bands.all:
+                data = hf[f'{b}_{cf.mag_type}_fluxerr'][:] * cf.Nsig
+                self.maps[f'depth_{b}'] = self.compute_statistic(
+                    pix_data,
+                    data,
+                    operation='mean',
+                    Nmin=cf.Nmin
+                )
