@@ -263,8 +263,8 @@ class mapperBase(baseStage):
             self.build_maps()
             self.write_maps()
 
-            if self.combine_fields:
-                self.combine_maps()
+        if self.combine_fields:
+            self.combine_maps()
 
 
 class mapperDust(mapperBase):
