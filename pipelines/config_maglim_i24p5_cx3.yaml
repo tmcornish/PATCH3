@@ -203,6 +203,10 @@ queryMaglimTomographic:
       - sfr
       - sfr_err68_min
       - sfr_err68_max
+    specz_v3:
+      - specz_redshift
+      - specz_redshift_err
+      - specz_flag_homogeneous
 
 ### Data ingestion ###
 

@@ -23,7 +23,8 @@ class queryBase(baseStage):
         self.outfiles = []
         self.stout = {}
         self.stout_str = ''
-        # Output directory fro SQL query files (NOT the data itself)
+        self.release = self.config.release
+        # Output directory for SQL query files (NOT the data itself)
         self.path_queries = self.config.paths.out + 'sql_queries/'
         # Base directory for the data
         self.path_out = self.config.paths.data
@@ -91,7 +92,7 @@ class queryBase(baseStage):
         cf = self.config
         # Basis of the job submission command
         command = f'python hscReleaseQueryDR3.py --user={cf.username} '\
-            f'--release-version={cf.release} '\
+            f'--release-version={self.release} '\
             f'--password-env={cf.password_env} '\
             f'--format=fits'
         dl_command = ''
@@ -591,13 +592,15 @@ class queryGalaxiesBase(queryBase):
                 out_file = f'{self.path_out_stars}stars_{fd}_{sfd}.fits'
                 self.outfiles.append(out_file)
 
-    def _write_sql_cosmos(self):
+    def _write_sql_cosmos_dud(self):
         '''
-        Generates queries for galaxies in COSMOS field.
+        Generates queries for galaxies in COSMOS deep/ultra-deep catalogue.
 
         This creates a single query to select galaxies in the COSMOS field
         satisfying all quality control cuts applied to the target samples.
         '''
+        # Set release to U/DEEP to get access to COSMOS field
+        self.release = 'pdr3_dud'
         # Remove any field and sample conditions from most recent query
         n = self.nlines_samp + 1
         self.stout['conds'] = self.stout['conds'][:-n]
@@ -804,7 +807,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
 
         # Query galaxies from COSMOS with same quality control applied?
         if cf.query_cosmos:
-            self._write_sql_cosmos()
+            self._write_sql_cosmos_dud()
 
         # Query analogous stars from each (sub)field?
         if cf.query_like_stars:
