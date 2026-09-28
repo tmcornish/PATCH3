@@ -23,7 +23,6 @@ class queryBase(baseStage):
         self.outfiles = []
         self.stout = {}
         self.stout_str = ''
-        self.release = self.config.release
         # Output directory for SQL query files (NOT the data itself)
         self.path_queries = self.config.paths.out + 'sql_queries/'
         # Base directory for the data
@@ -92,7 +91,7 @@ class queryBase(baseStage):
         cf = self.config
         # Basis of the job submission command
         command = f'python hscReleaseQueryDR3.py --user={cf.username} '\
-            f'--release-version={self.release} '\
+            f'--release-version={cf.release} '\
             f'--password-env={cf.password_env} '\
             f'--format=fits'
         dl_command = ''
@@ -599,8 +598,6 @@ class queryGalaxiesBase(queryBase):
         This creates a single query to select galaxies in the COSMOS field
         satisfying all quality control cuts applied to the target samples.
         '''
-        # Set release to U/DEEP to get access to COSMOS field
-        self.release = 'pdr3_dud'
         # Remove any field and sample conditions from most recent query
         n = self.nlines_samp + 1
         self.stout['conds'] = self.stout['conds'][:-n]
@@ -611,6 +608,11 @@ class queryGalaxiesBase(queryBase):
 
         # Combine all components of query
         self._assemble_query()
+        # Replace all instances of the Wide data release with 'pdr3_dud'
+        self.stout_str = self.stout_str.replace(
+            self.config.dr,
+            'pdr3_dud'
+        )
 
         # SQL query file name
         sql_base = self.config.sql_base
