@@ -14,6 +14,9 @@ stages:
   ingestLikeStars: false
   decasuCoverage: false
   decasuSurveyProperties: false
+  mapperDust: false
+  mapperDepth: false
+  mapperMaskedFrac: false
 
 ###########################################################################################
 
@@ -255,8 +258,7 @@ decasuCoverage:
   bands_to_run: grizy
   subdir: ''  # subdirectory of maps folder in which to store outputs
   decasu_params:
-    outbase: decasu_nside16384
-    nside: 16384
+    nside: &nside_covmap 16384
     nside_run: 16
 
 decasuSurveyProperties:

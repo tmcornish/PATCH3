@@ -150,6 +150,9 @@ class decasuCoverage(decasuBase):
     '''
     def __init__(self, config_file):
         super().__init__(config_file)
+        # Define base for output file names based on nside
+        nside = self.decasu_params['nside']
+        self.decasu_params['outbase'] = f'decasu_nside{nside}'
 
 
 class decasuSurveyProperties(decasuBase):
