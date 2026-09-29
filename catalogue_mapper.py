@@ -93,7 +93,7 @@ class mapperBase(baseStage):
 
         # Use pix_data as pix_comp if None provided
         if pix_comp is None:
-            pix_comp = pix_data
+            pix_comp = np.unique(pix_data)
 
         # Count sources in each pixel
         pmax = np.max(pix_comp)
