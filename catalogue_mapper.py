@@ -216,8 +216,8 @@ class mapperBase(baseStage):
             # Load the maps from each field
             maps = [
                 hsp.HealSparseMap.read(
-                    f'{self.config.paths.out}{fd}/'
-                    f'{name}_nside{self.nside}'
+                    f'{self.config.paths.out}{fd}/maps/'
+                    f'{name}_nside{self.nside}.hsp'
                 ) for fd in self.config.fields
             ]
             # Check if the maps are recarrays of multiple maps
