@@ -204,7 +204,7 @@ class mapperBase(baseStage):
                 map_out = map_main
 
             # Save to file
-            path_out = self.config.paths.out + self.field
+            path_out = self.config.paths.out + self.field + '/maps/'
             outfile = f'{path_out}/{name}_nside{self.nside}.hsp'
             map_out.write(outfile, clobber=True)
 
