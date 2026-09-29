@@ -250,8 +250,8 @@ class mapperBase(baseStage):
                 union = hsp.operations.max_union(maps)
 
             # Write to file
-            path_out = self.config.paths.out + 'combined/'
-            outfile = f'{path_out}/{name}_nside{self.nside}.hsp'
+            path_out = self.config.paths.out + 'combined/maps/'
+            outfile = f'{path_out}{name}_nside{self.nside}.hsp'
             union.write(outfile, clobber=True)
 
     def run(self):
