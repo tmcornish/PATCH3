@@ -305,6 +305,7 @@ mapperBase: &mapperBase
       ompthreads: 64
   nside: 1024
   nside_coverage: 32
+  combine_fields: true
 
 mapperDust:
   <<: *mapperBase
