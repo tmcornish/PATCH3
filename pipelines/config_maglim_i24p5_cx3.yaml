@@ -163,7 +163,7 @@ queryStarsForDepth:
   do_download: true
   do_delete: true
   primary_only: true
-  log_blendedness_max: -0.375
+  log_blendedness_max: null
 
 # Magnitude-limited tomographic samples
 queryMaglimTomographic:
