@@ -251,7 +251,7 @@ class mapperBase(baseStage):
 
             # Write to file
             path_out = self.config.paths.out + 'combined/maps/'
-            outfile = f'{path_out}{name}_nside{self.nside}.hsp'
+            outfile = f'{path_out}{name}.hsp'
             union.write(outfile, clobber=True)
 
     def run(self):
@@ -290,8 +290,8 @@ class mapperDust(mapperBase):
             # Dust attenuation at position of each source
             for b in cf.bands.all:
                 data = hf[f'a_{b}'][:]
-
-                self.maps[f'sp_maps/dust_{b}'] = self.compute_statistic(
+                map_name = f'sp_maps/dust_{b}_nside{cf.nside}'
+                self.maps[map_name] = self.compute_statistic(
                     pix_data,
                     data,
                     operation='mean'
@@ -308,7 +308,7 @@ class mapperDepth(mapperBase):
         '''
         cf = self.config
         # Load stellar fluxerr catalogue for this field
-        cat = f'{cf.paths.out}{self.field}'\
+        cat = f'{cf.paths.out}{self.field}/'\
               'star_catalogue_for_depth_map.hdf5'
 
         with h5py.File(cat, 'r') as hf:
@@ -323,7 +323,8 @@ class mapperDepth(mapperBase):
             # Depth in each band based on stellar fluxerrs
             for b in cf.bands.all:
                 data = hf[f'{b}_{cf.mag_type}_fluxerr'][:] * cf.Nsig
-                self.maps[f'depth_{b}'] = self.compute_statistic(
+                map_name = f'depth_{b}_nside{cf.nside}'
+                self.maps[map_name] = self.compute_statistic(
                     pix_data,
                     data,
                     operation='mean',
