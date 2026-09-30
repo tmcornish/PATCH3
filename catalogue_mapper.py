@@ -435,7 +435,7 @@ class mapperMaskedFrac(mapperBase):
                 nest=True
             )
             Nbad = np.sum(m[neighbours] == m._sentinel, axis=0)
-            remove = m.valid_pixels[Nbad <= self.config.Nbad_max]
+            remove = m.valid_pixels[Nbad >= self.config.Nbad_max]
             n_removed = len(remove)
             m[remove] = m._sentinel
         return m
