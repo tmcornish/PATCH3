@@ -6,6 +6,7 @@ stages:
   queryFlags: false
   queryDustAttenuation: false
   queryRandoms: false
+  queryStarsForDepth: false
   queryMaglimTomographic: false
   ingestFlags: false
   ingestDustAttenuation: false
