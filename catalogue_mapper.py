@@ -323,10 +323,15 @@ class mapperDepth(mapperBase):
             # Depth in each band based on stellar fluxerrs
             for b in cf.bands.all:
                 data = hf[f'{b}_{cf.mag_type}_fluxerr'][:] * cf.Nsig
-                map_name = f'depth_{b}_nside{cf.nside}'
-                self.maps[map_name] = self.compute_statistic(
+                # N-sigma flux map
+                m = self.compute_statistic(
                     pix_data,
                     data,
                     operation='mean',
                     Nmin=cf.Nmin
                 )
+                # Convert to magnitudes
+                map_name = f'depth_{b}_nside{cf.nside}'
+                vpix = m.valid_pixels
+                m[vpix] = -2.5 * np.log10(m[vpix] * 10. ** (-9.)) + 8.9
+                self.maps[map_name] = m
