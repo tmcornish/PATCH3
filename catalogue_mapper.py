@@ -335,3 +335,117 @@ class mapperDepth(mapperBase):
                 vpix = m.valid_pixels
                 m[vpix] = -2.5 * np.log10(m[vpix] * 10. ** (-9.)) + 8.9
                 self.maps[map_name] = m
+
+
+class mapperMaskedFrac(mapperBase):
+    '''
+    Constructs a map of the masked fraction, accounting for selected flags.
+    '''
+    def build_maps(self):
+        '''
+        Constructs the maps required for this stage and stores them.
+
+        Requires that high-resolution maps first be made via the
+        decasuCoverage stage.
+        '''
+        cf = self.config
+        path_out = f'{cf.paths.out}{self.field}/'
+        path_maps = f'{path_out}maps/'
+        # Load the high-res coverage maps for each band
+        covmaps = [
+            hsp.HealSparseMap.read(
+                f'{path_maps}decasu_nside{cf.nside_covmap}_{b}'
+                '_coverage_sum.hsp'
+            )
+            for b in cf.bands.all
+        ]
+        # Find the intersection of all bands
+        covmaps = hsp.and_intersection(covmaps)
+        # Convert into integer map of 1s and 0s
+        footprint = hsp.HealSparseMap.make_empty(
+            cf.nside_coverage,
+            cf.nside_covmap,
+            dtype=np.uint8,
+            sentinel=0
+        )
+        footprint[covmaps.valid_pixels] = 1
+        footprint = self.remove_islands(footprint)
+        # Save high-res footprint?
+        if cf.save_hi_res_fp:
+            map_name = f'footprint_nside{cf.nside_covmap}'
+            self.maps[map_name] = footprint
+
+        # Load flag data
+        flags_file = f'{path_out}flags.hdf5'
+        with h5py.File(flags_file, 'r') as hf:
+            # Get position info
+            ra = hf['ra'][:]
+            dec = hf['dec'][:]
+
+            pix = hp.ang2pix(
+                cf.nside_covmap,
+                ra,
+                dec,
+                lonlat=True,
+                nest=True
+            )
+
+            keep = np.ones_like(pix, dtype=bool)
+
+            for fl in self._parse_flags():
+                keep *= ~(hf[fl][:])
+        # Get unique unmasked pixel IDs
+        keep = np.unique(pix[keep])
+
+        # Construct high-res binary HEALPix mask
+        mask_hi_res = np.zeros(hp.nside2npix(cf.nside_covmap))
+        mask_hi_res[keep] = 1.
+
+        # Degrade to analysis resolution
+        mask_lo_res = hp.ud_grade(
+            mask_hi_res,
+            cf.nside,
+            order_in='NEST',
+            order_out='NEST'
+        )
+
+        # Convert to HealSparse
+        covfrac = hsp.HealSparseMap.make_empty(
+            cf.nside_coverage,
+            cf.nside,
+            dtype=float
+        )
+        npix = hp.nside2npix(cf.nside)
+        vpix = np.arange(npix)[mask_lo_res > 0]
+        covfrac[vpix] = mask_lo_res[vpix]
+
+        # Store map for writing
+        map_name = f'masked_frac_nside{cf.nside}'
+        self.maps[map_name] = covfrac
+
+    def remove_islands(self, m):
+        '''
+        Removes pixels if they have more than N invalid neighbours.
+        '''
+        n_removed = -1
+        while n_removed != 0:
+            neighbours = hp.get_all_neighbours(
+                self.config.nside,
+                m.valid_pixels,
+                nest=True
+            )
+            Nbad = np.sum(m[neighbours] == m._sentinel, axis=0)
+            remove = m.valid_pixels[Nbad <= self.config.Nbad_max]
+            n_removed = len(remove)
+        return m
+
+    def _parse_flags(self):
+        '''
+        Converts flag info from the config into a list.
+        '''
+        flags = [
+            f'{b}_{fl}'
+            for fl in self.config.flags_mask
+            for b in self.config.flags_mask[fl]
+        ]
+        return flags
