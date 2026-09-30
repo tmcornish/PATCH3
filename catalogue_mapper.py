@@ -91,6 +91,12 @@ class mapperBase(baseStage):
             dt
         )
 
+        # Remove any pixels where data is NaN
+        if data is not None:
+            keep = ~np.isnan(data)
+            data = data[keep]
+            pix_data = pix_data[keep]
+
         # Use pix_data as pix_comp if None provided
         if pix_comp is None:
             pix_comp = np.unique(pix_data)
@@ -323,10 +329,12 @@ class mapperDepth(mapperBase):
             # Depth in each band based on stellar fluxerrs
             for b in cf.bands.all:
                 data = hf[f'{b}_{cf.mag_type}_fluxerr'][:] * cf.Nsig
+                # Remove sources with zero fluxerr
+                nonzero = data > 0.
                 # N-sigma flux map
                 m = self.compute_statistic(
-                    pix_data,
-                    data,
+                    pix_data[nonzero],
+                    data[nonzero],
                     operation='mean',
                     Nmin=cf.Nmin
                 )
