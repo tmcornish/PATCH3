@@ -430,13 +430,14 @@ class mapperMaskedFrac(mapperBase):
         n_removed = -1
         while n_removed != 0:
             neighbours = hp.get_all_neighbours(
-                self.config.nside,
+                m.nside_sparse,
                 m.valid_pixels,
                 nest=True
             )
             Nbad = np.sum(m[neighbours] == m._sentinel, axis=0)
             remove = m.valid_pixels[Nbad <= self.config.Nbad_max]
             n_removed = len(remove)
+            m[remove] = m._sentinel
         return m
 
     def _parse_flags(self):
