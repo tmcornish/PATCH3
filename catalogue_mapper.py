@@ -211,7 +211,7 @@ class mapperBase(baseStage):
 
             # Save to file
             path_out = self.config.paths.out + self.field + '/maps/'
-            outfile = f'{path_out}/{name}_nside{self.nside}.hsp'
+            outfile = f'{path_out}/{name}.hsp'
             map_out.write(outfile, clobber=True)
 
     def combine_maps(self):
@@ -223,7 +223,7 @@ class mapperBase(baseStage):
             maps = [
                 hsp.HealSparseMap.read(
                     f'{self.config.paths.out}{fd}/maps/'
-                    f'{name}_nside{self.nside}.hsp'
+                    f'{name}.hsp'
                 ) for fd in self.config.fields
             ]
             # Check if the maps are recarrays of multiple maps
