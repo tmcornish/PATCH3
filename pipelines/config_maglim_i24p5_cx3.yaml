@@ -321,7 +321,6 @@ mapperMaskedFrac:
   nside_covmap: 16384
   save_hi_res_fp: true
   save_hi_res_bm: true
-  Nbad_max: 7
   flags_mask:
     mask_brightstar_ghost15: i
     mask_brightstar_halo: i

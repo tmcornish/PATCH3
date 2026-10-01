@@ -407,8 +407,6 @@ class mapperMaskedFrac(mapperBase):
         # Construct high-res binary mask
         mask_hi_res = footprint.copy()
         mask_hi_res[remove] = 0
-        # Remove any isolated pixels
-        mask_hi_res = self.remove_islands(mask_hi_res)
         # Convert to HEALPix before degrading
         mask_hi_res = mask_hi_res.generate_healpix_map()
         mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
@@ -439,23 +437,6 @@ class mapperMaskedFrac(mapperBase):
         # Store map for writing
         map_name = f'masked_frac_nside{cf.nside}'
         self.maps[map_name] = covfrac
-
-    def remove_islands(self, m):
-        '''
-        Removes pixels if they have more than N invalid neighbours.
-        '''
-        n_removed = -1
-        while n_removed != 0:
-            neighbours = hp.get_all_neighbours(
-                m.nside_sparse,
-                m.valid_pixels,
-                nest=True
-            )
-            Nbad = np.sum(m[neighbours] == m._sentinel, axis=0)
-            remove = m.valid_pixels[Nbad > self.config.Nbad_max]
-            n_removed = len(remove)
-            m[remove] = m._sentinel
-        return m
 
     def _parse_flags(self):
         '''
