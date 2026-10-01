@@ -377,7 +377,6 @@ class mapperMaskedFrac(mapperBase):
             sentinel=0
         )
         footprint[covmaps.valid_pixels] = 1
-        footprint = self.remove_islands(footprint)
         # Save high-res footprint?
         if cf.save_hi_res_fp:
             map_name = f'footprint_nside{cf.nside_covmap}'
@@ -398,16 +397,17 @@ class mapperMaskedFrac(mapperBase):
                 nest=True
             )
 
-            keep = np.ones_like(pix, dtype=bool)
-
+            # Find pixels containing any flagged sources
+            remove = np.zeros_like(pix, dtype=bool)
             for fl in self._parse_flags():
-                keep *= ~(hf[fl][:])
-        # Get unique unmasked pixel IDs
-        keep = np.unique(pix[keep])
+                remove += hf[fl][:]
+        # Get unique pixel IDs
+        remove = np.unique(pix[remove])
 
         # Construct high-res binary HEALPix mask
         mask_hi_res = np.zeros(hp.nside2npix(cf.nside_covmap))
-        mask_hi_res[keep] = 1.
+        mask_hi_res[footprint.valid_pixels] = 1.
+        mask_hi_res[remove] = 0.
 
         # Degrade to analysis resolution
         mask_lo_res = hp.ud_grade(
