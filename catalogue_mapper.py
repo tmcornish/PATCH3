@@ -404,11 +404,14 @@ class mapperMaskedFrac(mapperBase):
         # Get unique pixel IDs
         remove = np.unique(pix[remove])
 
-        # Construct high-res binary HEALPix mask
+        # Construct high-res binary mask
         mask_hi_res = footprint.copy()
         mask_hi_res[remove] = 0
         # Remove any isolated pixels
         mask_hi_res = self.remove_islands(mask_hi_res)
+        # Convert to HEALPix before degrading
+        mask_hi_res = mask_hi_res.generate_healpix_map()
+        mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
 
         # Degrade to analysis resolution
         mask_lo_res = hp.ud_grade(
