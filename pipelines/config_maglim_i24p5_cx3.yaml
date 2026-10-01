@@ -321,3 +321,11 @@ mapperMaskedFrac:
   nside_covmap: 16384
   save_hi_res_fp: true
   Nbad_max: 7
+  flags_mask:
+    mask_brightstar_ghost15: i
+    mask_brightstar_halo: i
+    mask_brightstar_blooming: i
+    mask_brightstar_channel_stop: y
+    pixelflags_edge: i
+    pixelflags_saturatedcenter: i
+    pixelflags_clipped: i
