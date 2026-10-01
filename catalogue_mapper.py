@@ -405,16 +405,18 @@ class mapperMaskedFrac(mapperBase):
         remove = np.unique(pix[remove])
 
         # Construct high-res binary HEALPix mask
-        mask_hi_res = np.zeros(hp.nside2npix(cf.nside_covmap))
-        mask_hi_res[footprint.valid_pixels] = 1.
-        mask_hi_res[remove] = 0.
+        mask_hi_res = footprint.copy()
+        mask_hi_res[remove] = 0
+        # Remove any isolated pixels
+        mask_hi_res = self.remove_islands(mask_hi_res)
 
         # Degrade to analysis resolution
         mask_lo_res = hp.ud_grade(
             mask_hi_res,
             cf.nside,
             order_in='NEST',
-            order_out='NEST'
+            order_out='NEST',
+            dtype=float
         )
 
         # Convert to HealSparse
