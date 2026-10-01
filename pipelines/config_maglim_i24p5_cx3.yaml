@@ -320,3 +320,4 @@ mapperMaskedFrac:
   <<: *mapperBase
   nside_covmap: 16384
   save_hi_res_fp: true
+  Nbad_max: 7
