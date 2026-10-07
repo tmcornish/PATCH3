@@ -21,7 +21,11 @@ class queryBase(baseStage):
         super().__init__(config_file)
         self.queries = []
         self.outfiles = []
-        self.stout = {}
+        self.stout = {
+            'cols': [],  # Columns to be queried
+            'from': [],  # Tables from which they will be queried
+            'cond': []   # Conditions to apply when downloading
+        }
         self.stout_str = ''
         # Output directory for SQL query files (NOT the data itself)
         self.path_queries = self.config.paths.out + 'sql_queries/'
@@ -57,12 +61,12 @@ class queryBase(baseStage):
         '''
         stout_cols = 'SELECT ' + ',\n\t'.join(self.stout['cols'])
         stout_from = 'FROM ' + '\n\tLEFT JOIN '.join(self.stout['from'])
-        stout_conds = 'WHERE ' + ' AND \n\t'.join(self.stout['conds'])
+        stout_cond = 'WHERE ' + ' AND \n\t'.join(self.stout['cond'])
         self.stout_str = '\n'.join(
             [
                 stout_cols,
                 stout_from,
-                stout_conds
+                stout_cond
             ]
         ) + '\n;'
 
@@ -156,19 +160,19 @@ class queryMetadata(queryBase):
             else:
                 stout_ra = f'frame.ra2000 BETWEEN {ra_min} AND {ra_max}'
             stout_dec = f'frame.dec2000 BETWEEN {dec_min} AND {dec_max}'
-            self.stout['conds'] = [stout_ra, stout_dec]
+            self.stout['cond'] = [stout_ra, stout_dec]
             # SQL filename and name for downloaded data
             sql_file_fd = self.path_queries + sql_base + f'_{fd}.sql'
             out_file_fd = self.path_out + sql_base + f'_{fd}.fits'
             # Create queries per band if requested
             if cf.split_by_band:
-                self.stout['conds'].append('')  # Dummy to be replaced
+                self.stout['cond'].append('')  # Dummy to be replaced
                 for b in cf.bands.all:
                     stout_b = f'frame.filter=\'{b}\''
                     if b in cf.bands.altnames:
                         for b_alt in cf.bands.altnames[b]:
                             stout_b += f' OR frame.filter=\'{b_alt}\''
-                    self.stout['conds'][-1] = stout_b
+                    self.stout['cond'][-1] = stout_b
                     self._assemble_query()
                     # Write to file
                     sql_file_fd_b = sql_file_fd[:-4] + f'_{b}.sql'
@@ -245,9 +249,9 @@ class queryFlags(queryBase):
             subs = cf.get_subfields(fd)
             for sfd in subs:
                 # Query within current subfield
-                self.stout['conds'] = [f'forced.field=\'{sfd}\'']
+                self.stout['cond'] = [f'forced.field=\'{sfd}\'']
                 if cf.primary_only:
-                    self.stout['conds'].append('forced.isprimary=True')
+                    self.stout['cond'].append('forced.isprimary=True')
 
                 # Combine all components of query
                 self._assemble_query()
@@ -308,11 +312,11 @@ class queryDustAttenuation(queryBase):
             subs = cf.get_subfields(fd)
             for sfd in subs:
                 # Query within current subfield
-                self.stout['conds'] = [
+                self.stout['cond'] = [
                     f'forced.field=\'{sfd}\'',
                 ]
                 if cf.primary_only:
-                    self.stout['conds'].append('forced.isprimary=True')
+                    self.stout['cond'].append('forced.isprimary=True')
 
                 # Combine all components of query
                 self._assemble_query()
@@ -388,7 +392,7 @@ class queryRandoms(queryBase):
         for i in range(N_bins):
             ad_lo = ad_bins[i]
             ad_hi = ad_bins[i + 1]
-            self.stout['conds'] = [
+            self.stout['cond'] = [
                 f'adjust_density >= {ad_lo:.2f}',
                 f'adjust_density < {ad_hi:.2f}'
             ]
@@ -503,7 +507,7 @@ class queryStarsForDepth(queryBase):
             # Get list of subfields belonging to each field
             subs = cf.get_subfields(fd)
             for sfd in subs:
-                self.stout['conds'] = stout_cond + [f'forced.field=\'{sfd}\'']
+                self.stout['cond'] = stout_cond + [f'forced.field=\'{sfd}\'']
 
                 # Combine all components of query
                 self._assemble_query()
@@ -563,20 +567,20 @@ class queryGalaxiesBase(queryBase):
                     # Remove any sample-related conditions from the end
                     n = self.nlines_samp
                     if n > 0:
-                        self.stout['conds'] = self.stout['conds'][:-n]
+                        self.stout['cond'] = self.stout['cond'][:-n]
                         # Reset nlines_samp to 0
                         self.nlines_samp = 0
 
                     # Find location of extendedness cut(s)
-                    for k, s in enumerate(self.stout['conds']):
+                    for k, s in enumerate(self.stout['cond']):
                         if 'extendedness_value' in s:
-                            self.stout['conds'][k] = \
-                                self.stout['conds'][k].replace(
+                            self.stout['cond'][k] = \
+                                self.stout['cond'][k].replace(
                                     'extendedness_value > 0',
                                     'extendedness_value = 0'
                             )
                 # Update the 'field' condition
-                self.stout['conds'][-1] = f'forced.field=\'{sfd}\''
+                self.stout['cond'][-1] = f'forced.field=\'{sfd}\''
 
                 # Combine all components of query
                 self._assemble_query()
@@ -600,11 +604,11 @@ class queryGalaxiesBase(queryBase):
         '''
         # Remove any field and sample conditions from most recent query
         n = self.nlines_samp + 1
-        self.stout['conds'] = self.stout['conds'][:-n]
+        self.stout['cond'] = self.stout['cond'][:-n]
         # Reset nlines_samp to 0
         self.nlines_samp = 0
         # Set field condition to 'cosmos'
-        self.stout['conds'].append('forced.field=\'cosmos\'')
+        self.stout['cond'].append('forced.field=\'cosmos\'')
 
         # Combine all components of query
         self._assemble_query()
@@ -787,7 +791,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
                 stout_cond_fd = stout_cond + [f'forced.field=\'{sfd}\'']
                 for s in cf.samples:
                     zmin, zmax = cf.samples[s]
-                    self.stout['conds'] = stout_cond_fd + [
+                    self.stout['cond'] = stout_cond_fd + [
                         f'{cf.z_table}.photoz_best >= {zmin}',
                         f'{cf.z_table}.photoz_best < {zmax}'
                     ]
