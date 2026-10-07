@@ -21,12 +21,12 @@ class queryBase(baseStage):
         super().__init__(config_file)
         self.queries = []
         self.outfiles = []
-        self.stout = {
+        self.sql = {
             'cols': [],  # Columns to be queried
             'from': [],  # Tables from which they will be queried
             'cond': []   # Conditions to apply when downloading
         }
-        self.stout_str = ''
+        self.sql_str = ''
         # Output directory for SQL query files (NOT the data itself)
         self.path_queries = self.config.paths.out + 'sql_queries/'
         # Base directory for the data
@@ -59,14 +59,14 @@ class queryBase(baseStage):
         '''
         Assembles all components of the query into a single string.
         '''
-        stout_cols = 'SELECT ' + ',\n\t'.join(self.stout['cols'])
-        stout_from = 'FROM ' + '\n\tLEFT JOIN '.join(self.stout['from'])
-        stout_cond = 'WHERE ' + ' AND \n\t'.join(self.stout['cond'])
-        self.stout_str = '\n'.join(
+        sql_cols = 'SELECT ' + ',\n\t'.join(self.sql['cols'])
+        sql_from = 'FROM ' + '\n\tLEFT JOIN '.join(self.sql['from'])
+        sql_cond = 'WHERE ' + ' AND \n\t'.join(self.sql['cond'])
+        self.sql_str = '\n'.join(
             [
-                stout_cols,
-                stout_from,
-                stout_cond
+                sql_cols,
+                sql_from,
+                sql_cond
             ]
         ) + '\n;'
 
@@ -148,36 +148,36 @@ class queryMetadata(queryBase):
                 os.system(f'mkdir -p {p}')
 
         # Begin assembling query
-        self.stout['cols'] = ['*']
-        self.stout['from'] = [f'{cf.dr}.frame as frame']
+        self.sql['cols'] = ['*']
+        self.sql['from'] = [f'{cf.dr}.frame as frame']
         # Create a query for each field
         for fd in cf.fields:
             ra_min, ra_max, dec_min, dec_max = cf.get_field_boundaries(fd)
             # Account for case where ra_min < ra_max (e.g. SPRING field)
             if ra_max < ra_min:
-                stout_ra = f'frame.ra2000 BETWEEN {ra_min} AND 360 OR\n'\
+                sql_ra = f'frame.ra2000 BETWEEN {ra_min} AND 360 OR\n'\
                     f'\tframe.ra2000 BETWEEN 0 AND {ra_max}'
             else:
-                stout_ra = f'frame.ra2000 BETWEEN {ra_min} AND {ra_max}'
-            stout_dec = f'frame.dec2000 BETWEEN {dec_min} AND {dec_max}'
-            self.stout['cond'] = [stout_ra, stout_dec]
+                sql_ra = f'frame.ra2000 BETWEEN {ra_min} AND {ra_max}'
+            sql_dec = f'frame.dec2000 BETWEEN {dec_min} AND {dec_max}'
+            self.sql['cond'] = [sql_ra, sql_dec]
             # SQL filename and name for downloaded data
             sql_file_fd = self.path_queries + sql_base + f'_{fd}.sql'
             out_file_fd = self.path_out + sql_base + f'_{fd}.fits'
             # Create queries per band if requested
             if cf.split_by_band:
-                self.stout['cond'].append('')  # Dummy to be replaced
+                self.sql['cond'].append('')  # Dummy to be replaced
                 for b in cf.bands.all:
-                    stout_b = f'frame.filter=\'{b}\''
+                    sql_b = f'frame.filter=\'{b}\''
                     if b in cf.bands.altnames:
                         for b_alt in cf.bands.altnames[b]:
-                            stout_b += f' OR frame.filter=\'{b_alt}\''
-                    self.stout['cond'][-1] = stout_b
+                            sql_b += f' OR frame.filter=\'{b_alt}\''
+                    self.sql['cond'][-1] = sql_b
                     self._assemble_query()
                     # Write to file
                     sql_file_fd_b = sql_file_fd[:-4] + f'_{b}.sql'
                     with open(sql_file_fd_b, 'w') as file:
-                        file.write(self.stout_str)
+                        file.write(self.sql_str)
                     # Add to list of queries to submit
                     self.queries.append(sql_file_fd_b)
                     # Add output file name to list
@@ -187,7 +187,7 @@ class queryMetadata(queryBase):
                 self._assemble_query()
                 # Write to file
                 with open(sql_file_fd, 'w') as file:
-                    file.write(self.stout_str)
+                    file.write(self.sql_str)
                 # Add to list of queries to submit
                 self.queries.append(sql_file_fd)
                 # Add output file name to list
@@ -219,27 +219,27 @@ class queryFlags(queryBase):
                 os.system(f'mkdir -p {p}')
 
         # Begin assembling query
-        self.stout['cols'] = [
+        self.sql['cols'] = [
             'object_id',
             'forced.ra',
             'forced.dec'
         ]
         if not cf.primary_only:
-            self.stout['cols'].append('forced.isprimary')
+            self.sql['cols'].append('forced.isprimary')
 
-        self.stout['from'] = [f'{cf.dr}.forced as forced']
+        self.sql['from'] = [f'{cf.dr}.forced as forced']
 
         for table in cf.flags:
             # Add any other tables to FROM statement
             if table != 'forced':
-                self.stout['from'].append(
+                self.sql['from'].append(
                     f'{cf.dr}.{table} {table} USING (object_id)'
                 )
             # Cycle through requested flags in table
             for col in cf.flags[table]:
                 # Cycle through photometric bands for each flag
                 for band in cf.flags[table][col]:
-                    self.stout['cols'].append(
+                    self.sql['cols'].append(
                         f'{table}.{band}_{col}'
                     )
 
@@ -249,9 +249,9 @@ class queryFlags(queryBase):
             subs = cf.get_subfields(fd)
             for sfd in subs:
                 # Query within current subfield
-                self.stout['cond'] = [f'forced.field=\'{sfd}\'']
+                self.sql['cond'] = [f'forced.field=\'{sfd}\'']
                 if cf.primary_only:
-                    self.stout['cond'].append('forced.isprimary=True')
+                    self.sql['cond'].append('forced.isprimary=True')
 
                 # Combine all components of query
                 self._assemble_query()
@@ -260,7 +260,7 @@ class queryFlags(queryBase):
                 sql_file = f'{self.path_queries}{sql_base}_{fd}_{sfd}.sql'
                 # Write to file and append file name to list
                 with open(sql_file, 'w') as file:
-                    file.write(self.stout_str)
+                    file.write(self.sql_str)
                 self.queries.append(sql_file)
                 # Output data file name
                 out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}.fits'
@@ -294,7 +294,7 @@ class queryDustAttenuation(queryBase):
                 os.system(f'mkdir -p {p}')
 
         # Begin assembling query
-        self.stout['cols'] = [
+        self.sql['cols'] = [
             'object_id',
             'forced.ra',
             'forced.dec'
@@ -302,9 +302,9 @@ class queryDustAttenuation(queryBase):
             f'forced.a_{b}' for b in bands
         ]
         if not cf.primary_only:
-            self.stout['cols'].append('forced.isprimary')
+            self.sql['cols'].append('forced.isprimary')
 
-        self.stout['from'] = [f'{cf.dr}.forced as forced']
+        self.sql['from'] = [f'{cf.dr}.forced as forced']
 
         # Create a query for each field
         for fd in cf.fields:
@@ -312,11 +312,11 @@ class queryDustAttenuation(queryBase):
             subs = cf.get_subfields(fd)
             for sfd in subs:
                 # Query within current subfield
-                self.stout['cond'] = [
+                self.sql['cond'] = [
                     f'forced.field=\'{sfd}\'',
                 ]
                 if cf.primary_only:
-                    self.stout['cond'].append('forced.isprimary=True')
+                    self.sql['cond'].append('forced.isprimary=True')
 
                 # Combine all components of query
                 self._assemble_query()
@@ -325,7 +325,7 @@ class queryDustAttenuation(queryBase):
                 sql_file = f'{self.path_queries}{sql_base}_{fd}_{sfd}.sql'
                 # Write to file and append file name to list
                 with open(sql_file, 'w') as file:
-                    file.write(self.stout_str)
+                    file.write(self.sql_str)
                 self.queries.append(sql_file)
                 # Output data file name
                 out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}.fits'
@@ -361,25 +361,25 @@ class queryRandoms(queryBase):
                 os.system(f'mkdir -p {p}')
 
         # Begin assembling query
-        self.stout['cols'] = [
+        self.sql['cols'] = [
             'object_id',
             'ra',
             'dec',
             'adjust_density'
         ]
         if not cf.primary_only:
-            self.stout['cols'].append('isprimary')
+            self.sql['cols'].append('isprimary')
 
         # Add each of the requested columns to the list
         if cf.band_cols is not None:
             for col in cf.band_cols:
                 for band in cf.band_cols[col]:
-                    self.stout['cols'].append(f'{band}_{col}')
+                    self.sql['cols'].append(f'{band}_{col}')
         if cf.extra_cols is not None:
             for col in cf.extra_cols:
-                self.stout['cols'].append(col)
+                self.sql['cols'].append(col)
 
-        self.stout['from'] = [f'{cf.dr}.random']
+        self.sql['from'] = [f'{cf.dr}.random']
 
         # Randoms are downloaded in bins of `adjust_density` with widths of
         # 0.05; figure out how many queries are required to reach the requested
@@ -392,7 +392,7 @@ class queryRandoms(queryBase):
         for i in range(N_bins):
             ad_lo = ad_bins[i]
             ad_hi = ad_bins[i + 1]
-            self.stout['cond'] = [
+            self.sql['cond'] = [
                 f'adjust_density >= {ad_lo:.2f}',
                 f'adjust_density < {ad_hi:.2f}'
             ]
@@ -405,7 +405,7 @@ class queryRandoms(queryBase):
                 f'-{ad_hi:.2f}.sql'
             # Write to file and append file name to list
             with open(sql_file, 'w') as file:
-                file.write(self.stout_str)
+                file.write(self.sql_str)
             self.queries.append(sql_file)
             # Output data file name
             out_file = f'{self.path_out}{sql_base}_{ad_lo:.2f}-{ad_hi:.2f}'\
@@ -445,20 +445,20 @@ class queryStarsForDepth(queryBase):
                 os.system(f'mkdir -p {p}')
 
         # Begin assembling query
-        self.stout['cols'] = [
+        self.sql['cols'] = [
             'object_id',
             'forced.ra',
             'forced.dec',
         ]
         if not cf.primary_only:
-            self.stout['cols'].append('isprimary')
+            self.sql['cols'].append('isprimary')
 
         # For keeping track of which tables need to be joined
         tables = []
 
         # Fluxes and magnitudes of the chosen type
         tflux = self.flux_tables[cf.mag_type]
-        self.stout['cols'].extend(
+        self.sql['cols'].extend(
             [
                 f'{tflux}.{b}_{cf.mag_type}_fluxerr'
                 for b in bands
@@ -469,18 +469,18 @@ class queryStarsForDepth(queryBase):
 
         # Conditions for selection (applied to all fields)
         b1 = cf.bands.primary
-        stout_cond = [
+        sql_cond = [
             f'forced.{b1}_extendedness_value = 0'
         ]
         # Primary sources only?
         if cf.primary_only:
-            stout_cond.append(
+            sql_cond.append(
                 'forced.isprimary=True'
             )
         # Flags
         for table in cf.flags:
             for col in cf.flags[table]:
-                self.stout['cols'].extend(
+                self.sql['cols'].extend(
                     [f'{table}.{b}_{col}=False'
                         for b in cf.flags[table][col]]
                 )
@@ -488,14 +488,14 @@ class queryStarsForDepth(queryBase):
                 tables.append(table)
         # Blendedness cut
         if cf.log_blendedness_max is not None:
-            stout_cond.append(
+            sql_cond.append(
                 f'meas2.{b1}_blendedness_abs < '
                 f'POWER(10, {cf.log_blendedness_max})'
             )
             tables.append('meas2')
 
         # Statement specifying the tables to join
-        self.stout['from'] = [
+        self.sql['from'] = [
             f'{cf.dr}.forced as forced'
         ] + [
             f'{cf.dr}.{table} {table} USING (object_id)'
@@ -507,7 +507,7 @@ class queryStarsForDepth(queryBase):
             # Get list of subfields belonging to each field
             subs = cf.get_subfields(fd)
             for sfd in subs:
-                self.stout['cond'] = stout_cond + [f'forced.field=\'{sfd}\'']
+                self.sql['cond'] = sql_cond + [f'forced.field=\'{sfd}\'']
 
                 # Combine all components of query
                 self._assemble_query()
@@ -517,7 +517,7 @@ class queryStarsForDepth(queryBase):
                            '_fluxerrs.sql'
                 # Write to file and append file name to list
                 with open(sql_file, 'w') as file:
-                    file.write(self.stout_str)
+                    file.write(self.sql_str)
                 self.queries.append(sql_file)
                 # Output data file name
                 out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}'\
@@ -567,20 +567,20 @@ class queryGalaxiesBase(queryBase):
                     # Remove any sample-related conditions from the end
                     n = self.nlines_samp
                     if n > 0:
-                        self.stout['cond'] = self.stout['cond'][:-n]
+                        self.sql['cond'] = self.sql['cond'][:-n]
                         # Reset nlines_samp to 0
                         self.nlines_samp = 0
 
                     # Find location of extendedness cut(s)
-                    for k, s in enumerate(self.stout['cond']):
+                    for k, s in enumerate(self.sql['cond']):
                         if 'extendedness_value' in s:
-                            self.stout['cond'][k] = \
-                                self.stout['cond'][k].replace(
+                            self.sql['cond'][k] = \
+                                self.sql['cond'][k].replace(
                                     'extendedness_value > 0',
                                     'extendedness_value = 0'
                             )
                 # Update the 'field' condition
-                self.stout['cond'][-1] = f'forced.field=\'{sfd}\''
+                self.sql['cond'][-1] = f'forced.field=\'{sfd}\''
 
                 # Combine all components of query
                 self._assemble_query()
@@ -589,7 +589,7 @@ class queryGalaxiesBase(queryBase):
                 sql_file = f'{self.path_queries_stars}stars_{fd}_{sfd}.sql'
                 # Write to file and append file name to list
                 with open(sql_file, 'w') as file:
-                    file.write(self.stout_str)
+                    file.write(self.sql_str)
                 self.queries.append(sql_file)
                 # Output data file name
                 out_file = f'{self.path_out_stars}stars_{fd}_{sfd}.fits'
@@ -604,16 +604,16 @@ class queryGalaxiesBase(queryBase):
         '''
         # Remove any field and sample conditions from most recent query
         n = self.nlines_samp + 1
-        self.stout['cond'] = self.stout['cond'][:-n]
+        self.sql['cond'] = self.sql['cond'][:-n]
         # Reset nlines_samp to 0
         self.nlines_samp = 0
         # Set field condition to 'cosmos'
-        self.stout['cond'].append('forced.field=\'cosmos\'')
+        self.sql['cond'].append('forced.field=\'cosmos\'')
 
         # Combine all components of query
         self._assemble_query()
         # Replace all instances of the Wide data release with 'pdr3_dud'
-        self.stout_str = self.stout_str.replace(
+        self.sql_str = self.sql_str.replace(
             self.config.dr,
             'pdr3_dud'
         )
@@ -623,7 +623,7 @@ class queryGalaxiesBase(queryBase):
         sql_file = f'{self.path_queries}{sql_base}_cosmos.sql'
         # Write to file and append file name to list
         with open(sql_file, 'w') as file:
-            file.write(self.stout_str)
+            file.write(self.sql_str)
         self.queries.append(sql_file)
         # Output data file name
         out_file = f'{self.path_out}{sql_base}_cosmos.fits'
@@ -671,19 +671,19 @@ class queryMaglimTomographic(queryGalaxiesBase):
                 os.system(f'mkdir -p {p}')
 
         # Begin assembling query
-        self.stout['cols'] = [
+        self.sql['cols'] = [
             'object_id',
             'forced.ra',
             'forced.dec'
         ]
         if not cf.primary_only:
-            self.stout['cols'].append('forced.isprimary')
+            self.sql['cols'].append('forced.isprimary')
         # For keeping track of which tables need to be joined
         tables = []
 
         # Fluxes and magnitudes of the chosen type
         tflux = self.flux_tables[cf.mag_type]
-        self.stout['cols'].extend(
+        self.sql['cols'].extend(
             [
                 f'{tflux}.{b}_{cf.mag_type}_{var}'
                 for b in bands
@@ -694,19 +694,19 @@ class queryMaglimTomographic(queryGalaxiesBase):
             tables.append(tflux)
 
         # Dust attenuation values
-        self.stout['cols'].extend(
+        self.sql['cols'].extend(
             [f'forced.a_{b}' for b in bands]
         )
 
         # Photo-z info
-        self.stout['cols'].extend(
+        self.sql['cols'].extend(
             [f'{cf.z_table}.photoz_{var}'
              for var in ['best', 'err68_min', 'err68_max']]
         )
         tables.append(cf.z_table)
 
         # Mag corrections for r and i bands
-        self.stout['cols'].extend(
+        self.sql['cols'].extend(
             [f'mag_corr.corr_{b}mag' for b in 'ri']
         )
         tables.append('mag_corr')
@@ -714,7 +714,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
         # Extra columns
         if cf.extra_cols is not None:
             for table in cf.extra_cols:
-                self.stout['cols'].extend(
+                self.sql['cols'].extend(
                     [f'{table}.{col}' for col in cf.extra_cols[table]]
                 )
                 if table not in tables and table != 'forced':
@@ -734,25 +734,25 @@ class queryMaglimTomographic(queryGalaxiesBase):
         # Conditions for selection (applied to all fields and z bins)
         b1 = cf.bands.primary
         b2 = cf.bands.secondary
-        stout_cond = [
+        sql_cond = [
             f'{mag_map[b1]} - a_{b1} < {cf.maglim}'
         ]
         if cf.primary_only:
-            stout_cond.append(
+            sql_cond.append(
                 'forced.isprimary=True'
             )
         # Blendedness cut
-        stout_cond.append(
+        sql_cond.append(
             f'meas2.{b1}_blendedness_abs < '
             f'POWER(10, {cf.log_blendedness_max})'
         )
         tables.append('meas2')
         # SNR cut (primary band)
-        stout_cond.append(
+        sql_cond.append(
             f'{flux_map[b1]} / {flux_map[b1]}err >= {cf.snr_min_primary}',
         )
         # SNR cut (secondary bands)
-        stout_cond.append(
+        sql_cond.append(
             '(' + ' +\n\t '.join(
                 [
                     f'(CASE WHEN {flux_map[b]} / {flux_map[b]}err >= '
@@ -764,19 +764,19 @@ class queryMaglimTomographic(queryGalaxiesBase):
         # Flags
         for table in cf.flags:
             for col in cf.flags[table]:
-                stout_cond.extend(
+                sql_cond.extend(
                     [f'{table}.{b}_{col}=False'
                      for b in cf.flags[table][col]]
                 )
             if table not in tables and table != 'forced':
                 tables.append(table)
         # Star-galaxy separator
-        stout_cond.append(
+        sql_cond.append(
             f'forced.{b1}_extendedness_value > 0'
         )
 
         # Statement specifying the tables to join
-        self.stout['from'] = [
+        self.sql['from'] = [
             f'{cf.dr}.forced as forced'
         ] + [
             f'{cf.dr}.{table} {table} USING (object_id)'
@@ -788,10 +788,10 @@ class queryMaglimTomographic(queryGalaxiesBase):
             # Get list of subfields belonging to each field
             subs = cf.get_subfields(fd)
             for sfd in subs:
-                stout_cond_fd = stout_cond + [f'forced.field=\'{sfd}\'']
+                sql_cond_fd = sql_cond + [f'forced.field=\'{sfd}\'']
                 for s in cf.samples:
                     zmin, zmax = cf.samples[s]
-                    self.stout['cond'] = stout_cond_fd + [
+                    self.sql['cond'] = sql_cond_fd + [
                         f'{cf.z_table}.photoz_best >= {zmin}',
                         f'{cf.z_table}.photoz_best < {zmax}'
                     ]
@@ -804,7 +804,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
                         '.sql'
                     # Write to file and append file name to list
                     with open(sql_file, 'w') as file:
-                        file.write(self.stout_str)
+                        file.write(self.sql_str)
                     self.queries.append(sql_file)
                     # Output data file name
                     out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}_{s}.fits'
