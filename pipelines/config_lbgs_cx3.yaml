@@ -1,0 +1,379 @@
+###########################################################################################
+
+# Stages to run
+stages:
+  queryMetadata: false
+  queryFlags: false
+  queryDustAttenuation: false
+  queryRandoms: false
+  queryStarsForDepth: false
+  queryLBGs: false
+  ingestFlags: false
+  ingestDustAttenuation: false
+  ingestStarsForDepth: false
+  ingestGalaxies: false
+  ingestLikeStars: false
+  decasuCoverage: false
+  decasuSurveyProperties: false
+  mapperDust: false
+  mapperDepth: false
+  mapperMaskedFrac: false
+
+###########################################################################################
+
+global:
+  # Name for pipeline run (outputs will be saved in a subdirectory with this name)
+  run_name: lbgs
+  # Conda environment name
+  conda_env: patch3
+  # Relevant directories
+  paths:
+    pipeline: /rds/general/user/tcornish/home/PATCH3/
+    data: /rds/general/user/tcornish/ephemeral/Data/HSC_DR3/
+    out: /rds/general/user/tcornish/home/PATCH3/outputs/
+  # Data release
+  dr: pdr3_wide
+  # Fields to run (['all'] will be treated as ['hectomap', 'spring', 'autumn'])
+  fields: [all]
+  # Photometric bands
+  bands:
+    # Main band
+    primary: i
+    # List of all other bands
+    secondary: [g, r, z, y]
+    # Alternative names for some bands
+    altnames:
+      i: [i2]
+      r: [r2]
+  # Type of magnitudes to use
+  mag_type: cmodel
+  # Specify whether metadata should be split by band for queries and mapping
+  split_by_band: true
+  # File containing required environment variables
+  envsfile: patch3_envs.sh
+
+### Data queries ###
+
+queryBase: &queryBase
+  runfile: data_queries.py
+  username: tmcornish
+  password_env: HSC_SSP_CAS_PASSWORD
+  release: pdr3-citus-columnar
+
+# Frame metadata
+queryMetadata:
+  <<: *queryBase
+  sql_base: metadata
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  do_preview: false
+  do_download: true
+  do_delete: true
+
+# Quality flags
+queryFlags:
+  <<: *queryBase
+  sql_base: flags
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  do_preview: false
+  do_download: true
+  do_delete: true
+  primary_only: true
+  # Flags split by the catalogues to which they belong
+  flags: &flags
+    forced:
+      pixelflags_edge: i
+      pixelflags_interpolatedcenter: i
+      pixelflags_saturatedcenter: i
+      pixelflags_crcenter: i
+      pixelflags_bad: i
+      pixelflags_suspectcenter: i
+      pixelflags_clipped: i
+      cmodel_flag_badcentroid: i
+    forced2:
+      sdsscentroid_flag: i
+    masks:
+      mask_brightstar_ghost15: i
+      mask_brightstar_halo: i
+      mask_brightstar_blooming: i
+      mask_brightstar_channel_stop: y
+    meas:
+      deblend_skipped: i
+
+# Dust attenuation data
+queryDustAttenuation:
+  <<: *queryBase
+  sql_base: dust
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  do_preview: false
+  do_download: true
+  do_delete: true
+  primary_only: true
+
+# Query from randoms catalogue
+queryRandoms:
+  <<: *queryBase
+  sql_base: randoms
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  do_preview: false
+  do_download: true
+  do_delete: true
+  primary_only: true
+  density: 100  # per sq. arcmin (max 100)
+  band_cols:
+    pixelflags_edge: i
+    pixelflags_interpolatedcenter: i
+    pixelflags_saturatedcenter: i
+    pixelflags_crcenter: i
+    pixelflags_bad: i
+    pixelflags_suspectcenter: i
+    sky_std: grizy
+  extra_cols: null
+
+# Magnitude-limited tomographic samples
+queryStarsForDepth:
+  <<: *queryBase
+  sql_base: stars
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  flags: []
+  do_preview: false
+  do_download: true
+  do_delete: true
+  primary_only: true
+  log_blendedness_max: null
+
+queryLBGs:
+  <<: *queryBase
+  sql_base: galaxies
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 1
+      mem: 100gb
+  primary_only: true
+  mag_type_sel: convolvedflux_0_20
+  mag_type_snr: apertureflux_15
+  cuts:
+    false_cols:
+      all:
+        forced:
+          pixelflags_edge: grizy
+          pixelflags_saturatedcenter: grizy
+          pixelflags_bad: grizy
+        masks:
+          mask_brightstar_ghost15: grizy
+          mask_brightstar_halo: grizy
+          mask_brightstar_blooming: grizy
+          mask_brightstar_channel_stop: y
+      g_dropouts:
+        forced:
+          cmodel_flag: gri
+        forced2:
+          sdsscentroid_flag: ri
+      r_dropouts:
+        forced:
+          cmodel_flag: riz
+          merge_peak: g
+        forced2:
+          sdsscentroid_flag: iz
+      i_dropouts:
+        forced:
+          cmodel_flag: izy
+          merge_peak: gr
+        forced2:
+          sdsscentroid_flag: zy
+      z_dropouts:
+        forced:
+          cmodel_flag: zy
+          merge_peak: gri
+        forced2:
+          sdsscentroid_flag: y
+    true_cols:
+      all: {}
+      g_dropouts:
+        forced:
+          merge_peak: ri
+      r_dropouts:
+        forced:
+          merge_peak: iz
+      i_dropouts:
+        forced:
+          merge_peak: zy
+      z_dropouts:
+        forced:
+          merge_peak: y
+    blendedness:
+      g_dropouts: ri
+      r_dropouts: iz
+      i_dropouts: zy
+      z_dropouts: y
+  blendedness_abs_max: 0.2
+  inputcount_min:
+      g: 3
+      r: 3
+      i: 5
+      z: 5
+      y: 5
+  query_like_stars: true
+  query_cosmos: true
+  correct_ri: true
+  correct_dust: true
+  z_table: photoz_dnnz
+  extra_cols:
+    photoz_mizuki:
+      - photoz_best
+      - photoz_err68_min
+      - photoz_err68_max
+      - stellar_mass
+      - stellar_mass_err68_min
+      - stellar_mass_err68_max
+      - sfr
+      - sfr_err68_min
+      - sfr_err68_max
+    specz_v3:
+      - specz_redshift
+      - specz_redshift_err
+      - specz_flag_homogeneous
+
+### Data ingestion ###
+
+ingestBase: &ingestBase
+  runfile: ingestion.py
+  samples:
+    - zbin0
+    - zbin1
+    - zbin2
+    - zbin3
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 64
+      mem: 100gb
+      ompthreads: 64
+  cols_include: null
+
+ingestFlags:
+  <<: *ingestBase
+
+ingestDustAttenuation:
+  <<: *ingestBase
+
+ingestStarsForDepth:
+  <<: *ingestBase
+
+ingestGalaxies:
+  <<: *ingestBase
+
+ingestLikeStars:
+  <<: *ingestBase
+
+### Mapping with decasu ###
+
+decasuCoverage:
+  runfile: metadata_mapper.py
+  qsub:
+    walltime: 48:00:00
+    resources:
+      select: 3
+      ncpus: 64
+      mem: 450gb
+      ompthreads: 64
+  bands_to_run: grizy
+  subdir: ''  # subdirectory of maps folder in which to store outputs
+  decasu_params:
+    nside: &nside_covmap 16384
+    nside_run: 16
+
+decasuSurveyProperties:
+  runfile: metadata_mapper.py
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 3
+      ncpus: 64
+      mem: 100gb
+      ompthreads: 64
+  bands_to_run: grizy
+  subdir: 'sp_maps'  # subdirectory of maps folder in which to store outputs
+  decasu_params:
+    outbase: decasu_nside1024
+    nside: 1024
+    map_types:
+      nexp: ['sum']
+      exptime: ['sum']
+      ccdtemp: ['mean']
+      airmass: ['mean', 'min', 'max']
+      seeing: ['mean']
+      maglim: ['wmean']
+      dcr_dra: ['mean']
+      dcr_ddec: ['mean']
+      dcr_e1: ['mean']
+      dcr_e2: ['mean']
+      sigma_sky: ['mean']
+      skylevel: ['mean', 'mean-scaled']
+      ellipticity: ['mean']
+      weight: ['sum']
+
+
+### Mapping from catalogues ###
+
+mapperBase: &mapperBase
+  runfile: catalogue_mapper.py
+  qsub:
+    walltime: 24:00:00
+    resources:
+      select: 1
+      ncpus: 64
+      mem: 100gb
+      ompthreads: 64
+  nside: 1024
+  nside_coverage: 32
+  combine_fields: true
+
+mapperDust:
+  <<: *mapperBase
+
+mapperDepth:
+  <<: *mapperBase
+  Nsig: 10  # Sets N-sigma for the depth maps
+  Nmin: 4  # Minimum number of sources required per pixel for mean to be used
+
+mapperMaskedFrac:
+  <<: *mapperBase
+  nside_covmap: 16384
+  save_hi_res_fp: true
+  save_hi_res_bm: true
+  flags_mask:
+    mask_brightstar_ghost15: i
+    mask_brightstar_halo: i
+    mask_brightstar_blooming: i
+    mask_brightstar_channel_stop: y
+    pixelflags_edge: i
+    pixelflags_saturatedcenter: i
+    pixelflags_clipped: i
