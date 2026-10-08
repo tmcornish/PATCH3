@@ -542,6 +542,9 @@ class queryGalaxiesBase(queryBase):
         # Paths for additional outputs
         self.path_queries_stars = self.path_queries + 'stars/'
         self.path_out_stars = self.path_out + f'stars/{self.config.run_name}'
+        # For mapping from each band to the corresponding magnitude flux
+        self.mag_map = {}
+        self.flux_map = {}
 
     def _write_sql_stars(self):
         '''
@@ -721,21 +724,21 @@ class queryMaglimTomographic(queryGalaxiesBase):
                     tables.append(table)
 
         # Mapping from each band to the corresponding magnitude and flux
-        mag_map = {
+        self.mag_map = {
             b: f'{tflux}.{b}_{cf.mag_type}_mag' for b in bands
         }
-        flux_map = {
+        self.flux_map = {
             b: f'{tflux}.{b}_{cf.mag_type}_flux' for b in bands
         }
         if cf.correct_ri:
-            mag_map['r'] += ' - mag_corr.corr_rmag'
-            mag_map['i'] += ' - mag_corr.corr_imag'
+            self.mag_map['r'] += ' - mag_corr.corr_rmag'
+            self.mag_map['i'] += ' - mag_corr.corr_imag'
 
         # Conditions for selection (applied to all fields and z bins)
         b1 = cf.bands.primary
         b2 = cf.bands.secondary
         sql_cond = [
-            f'{mag_map[b1]} - a_{b1} < {cf.maglim}'
+            f'{self.mag_map[b1]} - a_{b1} < {cf.maglim}'
         ]
         if cf.primary_only:
             sql_cond.append(
@@ -749,14 +752,15 @@ class queryMaglimTomographic(queryGalaxiesBase):
         tables.append('meas2')
         # SNR cut (primary band)
         sql_cond.append(
-            f'{flux_map[b1]} / {flux_map[b1]}err >= {cf.snr_min_primary}',
+            f'{self.flux_map[b1]} / {self.flux_map[b1]}err >= '
+            f'{cf.snr_min_primary}',
         )
         # SNR cut (secondary bands)
         sql_cond.append(
             '(' + ' +\n\t '.join(
                 [
-                    f'(CASE WHEN {flux_map[b]} / {flux_map[b]}err >= '
-                    f'{cf.snr_min_secondary} THEN 1 ELSE 0 END)'
+                    f'(CASE WHEN {self.flux_map[b]} / {self.flux_map[b]}err '
+                    f'>= {cf.snr_min_secondary} THEN 1 ELSE 0 END)'
                     for b in b2
                 ]
             ) + f') >= {cf.N_sec}'
