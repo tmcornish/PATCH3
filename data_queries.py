@@ -822,3 +822,274 @@ class queryMaglimTomographic(queryGalaxiesBase):
         # Query analogous stars from each (sub)field?
         if cf.query_like_stars:
             self._write_sql_stars()
+
+
+class queryLBGs(queryGalaxiesBase):
+    '''
+    Creates queries for downloading various LBG dropout samples.
+
+    Applies the colour-colour and colour-magnitude cuts employed in the
+    GOLDRUSH analyses (Harikane et al. 2022) to select g-, r-, i-, and/or
+    z-dropouts. Flags can also be specified in the config file for each
+    sample.
+    '''
+    def _parse_cuts(self, sample, sql_cond, tables):
+        '''
+        Constructs SQL-formatted cuts from the config file.
+
+        Parameters
+        ----------
+        sample: str
+            Name of the sample for which the cuts are intended.
+            Must be one of ['all', 'g_dropouts', 'r_dropouts',
+            'i_dropouts', 'z_dropouts'].
+
+        sql_cond: list[str]
+            List of conditions to which the new cuts will be appended.
+
+        tables: list[str]
+            List for keeping track of which tables need to be queried.
+        '''
+        cf = self.config
+        cond = []
+        # Columns whose values should be False
+        for t in cf.cuts.false_cols[sample]:
+            for col in cf.cuts.false_cols[sample][t]:
+                if col == 'merge_peak':
+                    cond.extend(
+                        [f'{t}.{col}_{b}=False'
+                            for b in cf.cuts.false_cols[sample][t][col]]
+                    )
+                else:
+                    cond.extend(
+                        [f'{t}.{b}_{col}=False'
+                            for b in cf.cuts.false_cols[sample][t][col]]
+                    )
+            if t not in tables and t != 'forced':
+                tables.append(t)
+        # Columns whose values should be True
+        for t in cf.cuts.true_cols[sample]:
+            for col in cf.cuts.true_cols[sample][t]:
+                if col == 'merge_peak':
+                    cond.extend(
+                        [f'{t}.{col}_{b}=True'
+                         for b in cf.cuts.true_cols[sample][t][col]]
+                    )
+                else:
+                    cond.extend(
+                        [f'{t}.{b}_{col}=True'
+                         for b in cf.cuts.true_cols[sample][t][col]]
+                    )
+            if t not in tables and t != 'forced':
+                tables.append(t)
+
+        # Blendedness cuts
+        if sample != 'all':
+            t = 'meas2'
+            cond.extend(
+                [f'meas2.{b}_blendedness_abs < {cf.blendedness_abs_max}'
+                 for b in cf.cuts.blendedness[sample]]
+            )
+            if t not in tables and t != 'forced':
+                tables.append(t)
+        sql_cond.extend(cond)
+
+    def _dropout_conditions(self, sample, sql_cond):
+        '''
+        Constructs the colour-colour/magnitude cuts for a dropout sample.
+
+        Parameters
+        ----------
+        sample: str
+            Dropout band ('g_dropouts', 'r_dropouts', 'i_dropouts', or
+            'z_dropouts').
+
+        sql_cond: list[str]
+            List of SQL-formatted conditions.
+        '''
+        # g-dropouts
+        if sample == 'g_dropouts':
+            cond = [
+                f'({self.flux_map["i"]} / {self.flux_map["i"]}err) >= 5',
+                f'({self.mag_map["g"]} - {self.mag_map["r"]}) > 1.0',
+                f'({self.mag_map["r"]} - {self.mag_map["i"]}) < 1.0',
+                f'({self.mag_map["g"]} - {self.mag_map["r"]}) > 1.5'
+                f'* ({self.mag_map["r"]} - {self.mag_map["i"]}) + 0.8'
+            ]
+        # r-dropouts
+        elif sample == 'r_dropouts':
+            cond = [
+                f'({self.flux_map["g"]} / {self.flux_map["g"]}err) < 2.0',
+                f'({self.flux_map["z"]} / {self.flux_map["z"]}err) >= 5',
+                f'({self.mag_map["r"]} - {self.mag_map["i"]}) > 1.2',
+                f'({self.mag_map["i"]} - {self.mag_map["z"]}) < 0.7',
+                f'({self.mag_map["r"]} - {self.mag_map["i"]}) > 1.5'
+                f'* ({self.mag_map["i"]} - {self.mag_map["z"]}) + 1.0'
+            ]
+        # i-dropouts
+        elif sample == 'i_dropouts':
+            cond = [
+                f'({self.flux_map["g"]} / {self.flux_map["g"]}err) < 2.0',
+                f'({self.flux_map["r"]} / {self.flux_map["r"]}err) < 2.0',
+                f'({self.flux_map["z"]} / {self.flux_map["z"]}err) >= 5',
+                f'({self.flux_map["y"]} / {self.flux_map["y"]}err) >= 4',
+                f'({self.mag_map["i"]} - {self.mag_map["z"]}) > 1.5',
+                f'({self.mag_map["z"]} - {self.mag_map["y"]}) < 0.7',
+                f'({self.mag_map["i"]} - {self.mag_map["z"]}) > 2.0'
+                f'* ({self.mag_map["z"]} - {self.mag_map["y"]}) + 1.1'
+            ]
+        # z-dropouts
+        elif sample == 'z_dropouts':
+            cond = [
+                f'({self.flux_map["g"]} / {self.flux_map["g"]}err) < 2.0',
+                f'({self.flux_map["r"]} / {self.flux_map["r"]}err) < 2.0',
+                f'({self.flux_map["i"]} / {self.flux_map["i"]}err) < 2.0',
+                f'({self.flux_map["y"]} / {self.flux_map["y"]}err) >= 4',
+                f'({self.mag_map["z"]} - {self.mag_map["y"]}) > 1.6'
+            ]
+        sql_cond.extend(cond)
+
+    def write_sql(self):
+        '''
+        Generates queries and writes them to a SQL files.
+        '''
+        cf = self.config
+        # Photometric bands
+        bands = cf.bands.all
+        # Directories for queries and downloaded data
+        self.path_queries += 'galaxies/'
+        self.path_out += f'galaxies/{cf.run_name}/'
+        paths = [self.path_queries, self.path_out]
+        # Basis for SQL file names
+        sql_base = cf.sql_base
+        # Check directories exist
+        for p in paths:
+            if not os.path.exists(p):
+                os.system(f'mkdir -p {p}')
+
+        # Begin assembling query
+        self.sql['cols'] = [
+            'object_id',
+            'forced.ra',
+            'forced.dec'
+        ]
+        if not cf.primary_only:
+            self.sql['cols'].append('forced.isprimary')
+        # For keeping track of which tables need to be joined
+        tables = []
+
+        # Magnitudes of the chosen type for colour cuts
+        tflux_sel = self.flux_tables[cf.mag_type_sel]
+        self.sql['cols'].extend(
+            [
+                f'{tflux_sel}.{b}_{cf.mag_type_sel}_{var}'
+                for b in bands
+                for var in ['mag', 'magerr']
+            ]
+        )
+        if tflux_sel != 'forced':
+            tables.append(tflux_sel)
+        # Fluxes of the chosen type for SNR cuts
+        tflux_snr = self.flux_tables[cf.mag_type_snr]
+        self.sql['cols'].extend(
+            [
+                f'{tflux_snr}.{b}_{cf.mag_type_snr}_{var}'
+                for b in bands
+                for var in ['flux', 'fluxerr']
+            ]
+        )
+        if tflux_snr != 'forced':
+            tables.append(tflux_snr)
+
+        # Dust attenuation values
+        self.sql['cols'].extend(
+            [f'forced.a_{b}' for b in bands]
+        )
+
+        # Photo-z info
+        self.sql['cols'].extend(
+            [f'{cf.z_table}.photoz_{var}'
+                for var in ['best', 'err68_min', 'err68_max']]
+        )
+        tables.append(cf.z_table)
+
+        # Mag corrections for r and i bands
+        self.sql['cols'].extend(
+            [f'mag_corr.corr_{b}mag' for b in 'ri']
+        )
+        tables.append('mag_corr')
+
+        # Extra columns
+        if cf.extra_cols is not None:
+            for table in cf.extra_cols:
+                self.sql['cols'].extend(
+                    [f'{table}.{col}' for col in cf.extra_cols[table]]
+                )
+                if table not in tables and table != 'forced':
+                    tables.append(table)
+
+        # Mapping from each band to the corresponding magnitude and flux
+        for b in bands:
+            self.mag_map[b] = f'{tflux_sel}.{b}_{cf.mag_type_sel}_mag'
+            self.flux_map[b] = f'{tflux_snr}.{b}_{cf.mag_type_snr}_flux'
+            if cf.correct_dust:
+                self.mag_map[b] += f' - forced.a_{b}'
+        if cf.correct_ri:
+            self.mag_map['r'] += ' - mag_corr.corr_rmag'
+            self.mag_map['i'] += ' - mag_corr.corr_imag'
+
+        # True/False and blendedness cuts applied to all samples
+        sql_cond = []
+        self._parse_cuts('all', sql_cond, tables)
+        # Cuts on inputcount_value in each band, applied to all samples
+        sql_cond.extend(
+            [f'forced.{b}_inputcount_value >= {cf.inputcount_min[b]}'
+             for b in bands]
+        )
+
+        # Create a query per (sub)field per sample
+        for fd in cf.fields:
+            # Get list of subfields belonging to each field
+            subs = cf.get_subfields(fd)
+            for sfd in subs:
+                sql_cond_fd = sql_cond + [f'forced.field=\'{sfd}\'']
+                # Cuts specific to each dropout sample
+                for b in 'griz':
+                    sample = f'{b}_dropouts'
+                    sql_cond_samp = sql_cond_fd.copy()
+                    self._parse_cuts(sample, sql_cond_samp, tables)
+                    self._dropout_conditions(sample, sql_cond_samp)
+
+                    self.sql['cond'] = sql_cond_samp
+
+                    # Statement specifying the tables to join
+                    self.sql['from'] = [
+                        f'{cf.dr}.forced as forced'
+                    ] + [
+                        f'{cf.dr}.{table} {table} USING (object_id)'
+                        for table in tables
+                    ]
+
+                    # Combine all components of query
+                    self._assemble_query()
+
+                    # SQL query file name
+                    sql_file = f'{self.path_queries}{sql_base}_{fd}_{sfd}'\
+                        f'_{sample}.sql'
+                    # Write to file and append file name to list
+                    with open(sql_file, 'w') as file:
+                        file.write(self.sql_str)
+                    self.queries.append(sql_file)
+                    # Output data file name
+                    out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}'\
+                        f'_{sample}.fits'
+                    self.outfiles.append(out_file)
+        self.nlines_samp = len(self.sql['cond']) - len(sql_cond_fd)
+
+        # Query galaxies from COSMOS with same quality control applied?
+        if cf.query_cosmos:
+            self._write_sql_cosmos_dud()
+
+        # Query analogous stars from each (sub)field?
+        if cf.query_like_stars:
+            self._write_sql_stars()
