@@ -448,3 +448,103 @@ class mapperMaskedFrac(mapperBase):
             for b in self.config.flags_mask[fl]
         ]
         return flags
+
+
+class mapperMask(mapperBase):
+    '''
+    Constructs a mask defining the survey geometry.
+    '''
+    def build_maps(self):
+        '''
+        Constructs the maps required of this stage and stores them.
+
+        Requires that a high-resolution coverage map following ingredients
+        from previous stages:
+        - masked fraction map (mapperMaskedFrac)
+        - depth map (mapperDepth)
+        '''
+        import os
+
+        cf = self.config
+        path_out = f'{cf.paths.out}{self.field}/'
+        path_maps = f'{path_out}maps/'
+
+        # Load the masked fraction map
+        masked_frac = hsp.HealSparseMap.read(
+            f'{path_maps}masked_frac_nside{cf.nside}.hsp'
+        )
+
+        # Create directory for interim masked products if required
+        path_interim = 'interim_masks/'
+        if cf.save_interim and not os.path.exists(path_maps + path_interim):
+            os.system(f'mkdir -p {path_interim}')
+
+        # Remove any pixels below the threshold fractional coverage
+        mask = masked_frac.copy()
+        vpix = mask.valid_pixels
+        badpix = vpix[mask[vpix] < cf.fcov_min]
+        mask[badpix] = hp.UNSEEN
+        if cf.save_interim:
+            map_name = f'mask_basic_nside{cf.nside}'
+            self.maps[f'{path_interim}{map_name}.hsp'] = mask
+
+        # Remove pixels below a certain depth in the specified band(s)
+        depth_bin = np.ones(hp.nside2npix(cf.nside), dtype=int)
+        for b in cf.depth_cuts:
+            depth_map = hsp.HealSparseMap.read(
+                f'{path_maps}depth_{b}_nside{cf.nside}.hsp'
+            )
+            vpix = mask.valid_pixels
+            badpix = vpix[depth_map[vpix] < cf.depth_cuts[b]]
+            mask[badpix] = hp.UNSEEN
+            if cf.save_interim:
+                depth_str = f'{cf.depth_cuts[b]:.1f}'.replace('.', 'p')
+                map_name += f'{b}{depth_str}'
+                self.maps[f'{path_interim}{map_name}.hsp'] = mask
+
+            # Update binarised map of depth cuts
+            depth_bin *= depth_map[:] >= cf.depth_cuts[b]
+
+        # Smooth the binarised depth map and use to mask edges
+        if cf.smooth_depth:
+            r = np.radians(cf.r_smooth_depth)
+            t = cf.t_smooth_depth
+            depth_bin = hp.smoothing(depth_bin, r, nest=True)
+            vpix = mask.valid_pixels
+            remove = np.where(depth_bin[vpix] < t)[0]
+            mask[vpix[remove]] = hp.UNSEEN
+            if cf.save_interim:
+                r_str = f'{r:.1f}'.replace('.', 'p')
+                map_name += f'smoothdepth{r_str}'
+                self.maps[f'{path_interim}{map_name}.hsp'] = mask
+
+        # Smooth the fractional coverage map and use to mask edges
+        if cf.smooth_fcov:
+            r = np.radians(cf.r_smooth_fcov)
+            t = cf.t_smooth_fcov
+            fcov_smooth = masked_frac.generate_healpix_map(nest=False)
+            fcov_smooth[fcov_smooth < 0.] = 0.
+            fcov_smooth = hp.smoothing(fcov_smooth, r, nest=True)
+            remove = np.where(depth_bin[vpix] < t)[0]
+            mask[vpix[remove]] = hp.UNSEEN
+            if cf.save_interim:
+                r_str = f'{r:.1f}'.replace('.', 'p')
+                map_name += f'smoothfcov{r_str}'
+                self.maps[f'{path_interim}{map_name}.hsp'] = mask
+
+    def remove_islands(self, m):
+        '''
+        Removes pixels if they have more than N invalid neighbours.
+        '''
+        n_removed = -1
+        while n_removed != 0:
+            neighbours = hp.get_all_neighbours(
+                m.nside_sparse,
+                m.valid_pixels,
+                nest=True
+            )
+            Nbad = np.sum(m[neighbours] == m._sentinel, axis=0)
+            remove = m.valid_pixels[Nbad > self.config.Nbad_max]
+            n_removed = len(remove)
+            m[remove] = m._sentinel
+        return m

@@ -329,3 +329,16 @@ mapperMaskedFrac:
     pixelflags_edge: i
     pixelflags_saturatedcenter: i
     pixelflags_clipped: i
+
+mapperMaskedFrac:
+  <<: *mapperBase
+  fcov_min: 0.5
+  save_interim: true
+  depth_cuts:
+    i: 24.5
+  smooth_depth: true
+  r_smooth_depth: 2.  # degrees
+  t_smooth_depth: 0.7  # threshold for smoothed binarised depth map
+  smooth_fcov: true
+  r_smooth_fcov: 2.  # degrees
+  t_smooth_fcov: 0.7  # threshold for smoothed binarised depth map
