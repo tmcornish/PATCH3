@@ -211,7 +211,7 @@ class mapperBase(baseStage):
 
             # Save to file
             path_out = self.config.paths.out + self.field + '/maps/'
-            outfile = f'{path_out}/{name}.hsp'
+            outfile = f'{path_out}{name}.hsp'
             map_out.write(outfile, clobber=True)
 
     def combine_maps(self):
