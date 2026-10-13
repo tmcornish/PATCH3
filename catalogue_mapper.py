@@ -466,8 +466,9 @@ class mapperMask(mapperBase):
         import os
 
         cf = self.config
-        path_out = f'{cf.paths.out}{self.field}/'
-        path_maps = f'{path_out}maps/'
+        path_out = cf.paths.out
+        path_fd = f'{path_out}{self.field}/'
+        path_maps = f'{path_fd}maps/'
 
         # Load the masked fraction map
         masked_frac = hsp.HealSparseMap.read(
