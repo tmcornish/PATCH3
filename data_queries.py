@@ -210,7 +210,7 @@ class queryFlags(queryBase):
         cf = self.config
         # Directories for queries and downloaded data
         self.path_queries += 'flags/'
-        self.path_out += 'flags/'
+        self.path_out += f'flags/{cf.run_name}/'
         # Basis for SQL file names
         sql_base = cf.sql_base
         # Check directories exist
