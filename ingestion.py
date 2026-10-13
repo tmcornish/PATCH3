@@ -64,6 +64,11 @@ class ingestBase(baseStage):
         '''
         Constructs the output HDF5 file and saves it.
         '''
+        # Verify output path exists
+        path, _ = os.path.split(self.outfile)
+        if not os.path.exists(path):
+            os.system(f'mkdir -p {path}')
+
         with h5py.File(self.outfile, 'w') as f:
             # Create a Group for each sample
             for sample in self.infiles:
