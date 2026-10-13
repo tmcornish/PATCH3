@@ -477,7 +477,7 @@ class mapperMask(mapperBase):
         # Create directory for interim masked products if required
         path_interim = 'interim_masks/'
         if cf.save_interim and not os.path.exists(path_maps + path_interim):
-            os.system(f'mkdir -p {path_interim}')
+            os.system(f'mkdir -p {path_maps + path_interim}')
 
         # Remove any pixels below the threshold fractional coverage
         mask = masked_frac.copy()
