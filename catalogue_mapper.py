@@ -478,6 +478,10 @@ class mapperMask(mapperBase):
         path_interim = 'interim_masks/'
         if cf.save_interim and not os.path.exists(path_maps + path_interim):
             os.system(f'mkdir -p {path_maps + path_interim}')
+            # Ensure similar directory exists for combined maps
+            path_inter_comb = f'{path_out}combined/maps/{path_interim}/'
+            if cf.combine_fields and not os.path.exists(path_inter_comb):
+                os.system(f'mkdir -p {path_inter_comb}')
 
         # Remove any pixels below the threshold fractional coverage
         mask = masked_frac.copy()
