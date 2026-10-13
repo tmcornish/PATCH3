@@ -541,6 +541,10 @@ class mapperMask(mapperBase):
                 map_name += f'smoothfcov{r_str}'
                 self.maps[f'{path_interim}{map_name}'] = mask
 
+        # Save final version of mask
+        map_name = f'mask_nside{cf.nside}'
+        self.maps[map_name] = mask
+
     def remove_islands(self, m):
         '''
         Removes pixels if they have more than N invalid neighbours.
