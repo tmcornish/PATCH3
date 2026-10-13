@@ -495,7 +495,7 @@ class mapperMask(mapperBase):
         mask[badpix] = hp.UNSEEN
         if cf.save_interim:
             map_name = f'mask_basic_nside{cf.nside}'
-            self.maps[f'{path_interim}{map_name}'] = mask
+            self.maps[f'{path_interim}{map_name}'] = mask.copy()
 
         # Remove pixels below a certain depth in the specified band(s)
         depth_bin = np.ones(hp.nside2npix(cf.nside), dtype=int)
@@ -509,7 +509,7 @@ class mapperMask(mapperBase):
             if cf.save_interim:
                 depth_str = f'{cf.depth_cuts[b]:.1f}'.replace('.', 'p')
                 map_name += f'{b}{depth_str}'
-                self.maps[f'{path_interim}{map_name}'] = mask
+                self.maps[f'{path_interim}{map_name}'] = mask.copy()
 
             # Update binarised map of depth cuts
             depth_bin *= depth_map[:] >= cf.depth_cuts[b]
@@ -525,7 +525,7 @@ class mapperMask(mapperBase):
             if cf.save_interim:
                 r_str = f'{r:.1f}'.replace('.', 'p')
                 map_name += f'smoothdepth{r_str}'
-                self.maps[f'{path_interim}{map_name}'] = mask
+                self.maps[f'{path_interim}{map_name}'] = mask.copy()
 
         # Smooth the fractional coverage map and use to mask edges
         if cf.smooth_fcov:
@@ -539,7 +539,7 @@ class mapperMask(mapperBase):
             if cf.save_interim:
                 r_str = f'{r:.1f}'.replace('.', 'p')
                 map_name += f'smoothfcov{r_str}'
-                self.maps[f'{path_interim}{map_name}'] = mask
+                self.maps[f'{path_interim}{map_name}'] = mask.copy()
 
         # Save final version of mask
         map_name = f'mask_nside{cf.nside}'
