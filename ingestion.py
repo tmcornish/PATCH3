@@ -143,7 +143,7 @@ class ingestFlags(ingestBase):
         self.infiles['/'] = sorted(
             glob.glob(
                 self.config.paths.data +
-                f'flags/*_{self.field}_*.fits'
+                f'flags/{self.config.run_name}/*_{self.field}_*.fits'
             )
         )
 
