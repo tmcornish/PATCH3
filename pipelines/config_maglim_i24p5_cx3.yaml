@@ -330,6 +330,12 @@ mapperMaskedFrac:
     pixelflags_edge: i
     pixelflags_saturatedcenter: i
     pixelflags_clipped: i
+  icvalue_cuts:
+    g: 0
+    r: 0
+    i: 0
+    z: 0
+    y: 0
 
 mapperMask:
   <<: *mapperBase

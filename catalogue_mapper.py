@@ -400,7 +400,11 @@ class mapperMaskedFrac(mapperBase):
             # Find pixels containing any flagged sources
             remove = np.zeros_like(pix, dtype=bool)
             for fl in self._parse_flags():
-                remove += hf[fl][:]
+                if 'inputcount_value' in fl:
+                    b = fl[0]
+                    remove += hf[fl][:] < cf.icvalue_cuts[b]
+                else:
+                    remove += hf[fl][:]
         # Get unique pixel IDs
         remove = np.unique(pix[remove])
 

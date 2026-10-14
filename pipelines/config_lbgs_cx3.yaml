@@ -374,3 +374,9 @@ mapperMaskedFrac:
     pixelflags_edge: i
     pixelflags_saturatedcenter: i
     pixelflags_clipped: i
+  icvalue_cuts:
+    g: 3
+    r: 3
+    i: 5
+    z: 5
+    y: 5
