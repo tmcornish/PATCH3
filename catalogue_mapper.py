@@ -7,6 +7,8 @@ import healpy as hp
 import healsparse as hsp
 import numpy as np
 import h5py
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 
 class mapperBase(baseStage):
@@ -69,7 +71,7 @@ class mapperBase(baseStage):
         Returns
         -------
         m: healsparse.HealSparseMap
-            Map displaying the desired summary statistic in each pixel
+            Map displaying the desired summary statistic in each pixel.
         '''
         # Check operation is compatible if data is None
         if data is None and operation not in ['binary', 'count']:
@@ -167,6 +169,57 @@ class mapperBase(baseStage):
                 allow_partial=True
             )
             m[pix_few] = vals_interp
+
+        return m
+
+    def remove_islands(self, m, max_size=5):
+        '''
+        Removes regions of size smaller than the specified threshold.
+
+        Parameters
+        ----------
+        m: healsparse.HealSparseMap
+            Map from which small islands are to be removed.
+
+        max_size: int (5)
+            Maximum size (in pixels) of regions to be removed.
+        '''
+        # Get valid pixels and nside of map
+        vpix = m.valid_pixels
+        nside = m.nside_sparse
+
+        # Get IDs of the 8 neighbours of each valid pixel
+        nbrs = hp.get_all_neighbours(nside, vpix, nest=True)
+
+        # Set up parallel arrays for listing every edge of each valid pixel;
+        # a pixel at index rows[k] is a neighbour of the pixel at cols[k]
+        rows, cols = [], []
+        n = len(vpix)
+        # Cycle through each of the 8 neighbours (SW, W, NW, N, NE, E, SE, S)
+        for i in range(8):
+            nb = nbrs[i]
+            # Identify valid neighbours
+            pos = np.clip(np.searchsorted(vpix, nb), 0, len(vpix)-1)
+            ok = (vpix[pos] == nb)
+            rows.append(np.arange(len(vpix))[ok])
+            cols.append(pos[ok])
+        rows = np.concatenate(rows)
+        cols = np.concatenate(cols)
+
+        # Identify connected regions
+        graph = coo_matrix((np.ones_like(rows), (rows, cols)), shape=(n, n))
+        ncomp, labels = connected_components(graph, directed=False)
+        print(f'Found {ncomp} disconnected regions.')
+
+        # Count pixels in each connected region
+        sizes = np.bincount(labels)
+        print(f'Region sizes (Nside={nside}):')
+        for i, s in enumerate(sizes):
+            print(f'{i}: {s}')
+
+        # Keep regions above size threshold
+        remove = sizes[labels] <= max_size
+        m.update_values_pix(remove, m.sentinel)
 
         return m
 
@@ -411,6 +464,10 @@ class mapperMaskedFrac(mapperBase):
         # Construct high-res binary mask
         mask_hi_res = footprint.copy()
         mask_hi_res[remove] = 0
+
+        # Remove any isolated regions below a certain size
+        mask_hi_res = self.remove_islands(mask_hi_res, cf.Npix_min)
+
         # Convert to HEALPix before degrading
         mask_hi_res = mask_hi_res.generate_healpix_map()
         mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
@@ -548,20 +605,3 @@ class mapperMask(mapperBase):
         # Save final version of mask
         map_name = f'mask_nside{cf.nside}'
         self.maps[map_name] = mask
-
-    def remove_islands(self, m):
-        '''
-        Removes pixels if they have more than N invalid neighbours.
-        '''
-        n_removed = -1
-        while n_removed != 0:
-            neighbours = hp.get_all_neighbours(
-                m.nside_sparse,
-                m.valid_pixels,
-                nest=True
-            )
-            Nbad = np.sum(m[neighbours] == m._sentinel, axis=0)
-            remove = m.valid_pixels[Nbad > self.config.Nbad_max]
-            n_removed = len(remove)
-            m[remove] = m._sentinel
-        return m
