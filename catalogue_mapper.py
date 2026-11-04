@@ -20,7 +20,6 @@ class mapperBase(baseStage):
             config_file
     ):
         super().__init__(config_file)
-        self.catalogue = None
         self.nside = self.config.nside
         self.nside_cover = self.config.nside_coverage
         self.data = {}
