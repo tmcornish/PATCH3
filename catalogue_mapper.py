@@ -218,7 +218,7 @@ class mapperBase(baseStage):
 
         # Keep regions above size threshold
         remove = sizes[labels] <= max_size
-        m.update_values_pix(remove, m.sentinel)
+        m.update_values_pix(vpix[remove], m.sentinel)
 
         return m
 
