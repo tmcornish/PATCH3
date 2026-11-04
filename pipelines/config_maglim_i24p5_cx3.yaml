@@ -336,6 +336,7 @@ mapperMaskedFrac:
     i: 0
     z: 0
     y: 0
+  Npix_min: 5  # regions of fewer than this no. of pixels are removed
 
 mapperMask:
   <<: *mapperBase
