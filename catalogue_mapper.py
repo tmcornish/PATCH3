@@ -466,7 +466,8 @@ class mapperMaskedFrac(mapperBase):
         mask_hi_res[remove] = 0
 
         # Remove any isolated regions below a certain size
-        mask_hi_res = self.remove_islands(mask_hi_res, cf.Npix_min)
+        if cf.Npix_min > 0:
+            mask_hi_res = self.remove_islands(mask_hi_res, cf.Npix_min)
 
         # Convert to HEALPix before degrading
         mask_hi_res = mask_hi_res.generate_healpix_map()
