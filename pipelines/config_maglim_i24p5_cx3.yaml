@@ -350,3 +350,6 @@ mapperMask:
   smooth_fcov: true
   r_smooth_fcov: 2.  # degrees
   t_smooth_fcov: 0.7  # threshold for smoothed binarised depth map
+
+mapperGalaxyCounts:
+  <<: *mapperBase

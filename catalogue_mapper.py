@@ -608,3 +608,70 @@ class mapperMask(mapperBase):
         # Save final version of mask
         map_name = f'mask_nside{self.nside}'
         self.maps[map_name] = mask
+
+
+class mapperGalaxyCounts(mapperBase):
+    '''
+    Constructs maps of galaxy counts for each sample.
+
+    Galaxies are counted regardless of whether or not they reside in
+    unmasked pixels; the mask gets considered later when constructing
+    galaxy overdensity maps. Results from all samples are stored in a
+    single HealSparse file.
+    '''
+    def build_maps(self):
+        '''
+        Constructs the maps required of this stage and stores them.
+        '''
+        cf = self.config
+
+        pixels = []
+        counts = []
+        dtypes = []
+        samples = []
+
+        # Load galaxy catalogue for this field
+        cat = f'{cf.paths.out}{self.field}/galaxy_catalogue.hdf5'
+
+        with h5py.File(cat, 'r') as hf:
+            # Cycle through samples
+            for s in hf.keys():
+                gp = hf[s]
+                # Pixels corresponding to each source
+                pix_data = hp.ang2pix(
+                    self.nside,
+                    gp['ra'][:],
+                    gp['dec'][:],
+                    lonlat=True,
+                    nest=True
+                )
+                # Galaxy counts map
+                m_counts = self.compute_statistic(
+                    pix_data,
+                    operation='count'
+                )
+                vpix = m_counts.valid_pixels
+                pixels.append(vpix)
+                counts.append(m_counts[vpix])
+                dtypes.append((s, np.int32))
+                samples.append(s)
+
+        # Construct empty recarray map
+        m_all = hsp.HealSparseMap.make_empty(
+            self.nside_cover,
+            self.nside,
+            dtypes,
+            primary=dtypes[0][0]
+        )
+
+        # Find set of pixels containing galaxies in *any* sample
+        pix_all = np.unique(np.concatenate(pixels))
+        # Initialise these to 0
+        m_all[pix_all] = np.zeros(len(pix_all), dtype=dtypes)
+        # Now occupy with counts for each sample
+        for i, s in enumerate(samples):
+            m_all[s][pixels[i]] = counts[i]
+
+        # Store map for writing
+        map_name = f'ngal_nside{self.nside}'
+        self.maps[map_name] = m_all
