@@ -80,8 +80,10 @@ class mapperBase(baseStage):
             )
 
         # Define dtype of map based on summary statistic
-        if operation in ['binary', 'count']:
+        if operation == 'binary':
             dt = np.int8
+        elif operation == 'count':
+            dt = np.int32
         else:
             dt = np.float64
 
@@ -110,7 +112,7 @@ class mapperBase(baseStage):
 
         # If operation is 'count', fill map with counts
         if operation == 'count':
-            m[pix_comp] = N
+            m[pix_comp] = N.astype(np.int32)
 
         # If 'binary', identify which pixels actually contain sources
         elif operation == 'binary':
@@ -321,7 +323,7 @@ class mapperBase(baseStage):
             self.build_maps()
             self.write_maps()
 
-        if self.combine_fields:
+        if self.combine_fields and len(self.config.fields) > 1:
             self.combine_maps()
 
 
@@ -348,7 +350,7 @@ class mapperDust(mapperBase):
             # Dust attenuation at position of each source
             for b in cf.bands.all:
                 data = hf[f'a_{b}'][:]
-                map_name = f'sp_maps/dust_{b}_nside{cf.nside}'
+                map_name = f'sp_maps/dust_{b}_nside{self.nside}'
                 self.maps[map_name] = self.compute_statistic(
                     pix_data,
                     data,
@@ -391,7 +393,7 @@ class mapperDepth(mapperBase):
                     Nmin=cf.Nmin
                 )
                 # Convert to magnitudes
-                map_name = f'depth_{b}_nside{cf.nside}'
+                map_name = f'depth_{b}_nside{self.nside}'
                 vpix = m.valid_pixels
                 m[vpix] = -2.5 * np.log10(m[vpix] * 10. ** (-9.)) + 8.9
                 self.maps[map_name] = m
@@ -423,7 +425,7 @@ class mapperMaskedFrac(mapperBase):
         covmaps = hsp.and_intersection(covmaps)
         # Convert into integer map of 1s and 0s
         footprint = hsp.HealSparseMap.make_empty(
-            cf.nside_coverage,
+            self.nside_cover,
             cf.nside_covmap,
             dtype=np.uint8,
             sentinel=0
@@ -480,7 +482,7 @@ class mapperMaskedFrac(mapperBase):
         # Degrade to analysis resolution
         mask_lo_res = hp.ud_grade(
             mask_hi_res,
-            cf.nside,
+            self.nside,
             order_in='NEST',
             order_out='NEST',
             dtype=float
@@ -488,16 +490,16 @@ class mapperMaskedFrac(mapperBase):
 
         # Convert to HealSparse
         covfrac = hsp.HealSparseMap.make_empty(
-            cf.nside_coverage,
-            cf.nside,
+            self.nside_cover,
+            self.nside,
             dtype=float
         )
-        npix = hp.nside2npix(cf.nside)
+        npix = hp.nside2npix(self.nside)
         vpix = np.arange(npix)[mask_lo_res > 0]
         covfrac[vpix] = mask_lo_res[vpix]
 
         # Store map for writing
-        map_name = f'masked_frac_nside{cf.nside}'
+        map_name = f'masked_frac_nside{self.nside}'
         self.maps[map_name] = covfrac
 
     def _parse_flags(self):
@@ -534,7 +536,7 @@ class mapperMask(mapperBase):
 
         # Load the masked fraction map
         masked_frac = hsp.HealSparseMap.read(
-            f'{path_maps}masked_frac_nside{cf.nside}.hsp'
+            f'{path_maps}masked_frac_nside{self.nside}.hsp'
         )
 
         # Create directory for interim masked products if required
@@ -556,14 +558,14 @@ class mapperMask(mapperBase):
         badpix = vpix[mask[vpix] < cf.fcov_min]
         mask[badpix] = hp.UNSEEN
         if cf.save_interim:
-            map_name = f'mask_basic_nside{cf.nside}'
+            map_name = f'mask_basic_nside{self.nside}'
             self.maps[f'{path_interim}{map_name}'] = mask.copy()
 
         # Remove pixels below a certain depth in the specified band(s)
-        depth_bin = np.ones(hp.nside2npix(cf.nside), dtype=int)
+        depth_bin = np.ones(hp.nside2npix(self.nside), dtype=int)
         for b in cf.depth_cuts:
             depth_map = hsp.HealSparseMap.read(
-                f'{path_maps}depth_{b}_nside{cf.nside}.hsp'
+                f'{path_maps}depth_{b}_nside{self.nside}.hsp'
             )
             vpix = mask.valid_pixels
             badpix = vpix[depth_map[vpix] < cf.depth_cuts[b]]
@@ -604,5 +606,5 @@ class mapperMask(mapperBase):
                 self.maps[f'{path_interim}{map_name}'] = mask.copy()
 
         # Save final version of mask
-        map_name = f'mask_nside{cf.nside}'
+        map_name = f'mask_nside{self.nside}'
         self.maps[map_name] = mask
