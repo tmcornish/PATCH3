@@ -468,13 +468,14 @@ class mapperMaskedFrac(mapperBase):
         if cf.Npix_min > 0:
             mask_hi_res = self.remove_islands(mask_hi_res, cf.Npix_min)
 
-        # Convert to HEALPix before degrading
-        mask_hi_res = mask_hi_res.generate_healpix_map()
-        mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
-        # Save this high-res binary mask?
+        # Save this high-res binary mask (healsparse format)?
         if cf.save_hi_res_bm:
             map_name = f'binary_mask_nside{cf.nside_covmap}'
             self.maps[map_name] = mask_hi_res
+
+        # Convert to HEALPix before degrading
+        mask_hi_res = mask_hi_res.generate_healpix_map()
+        mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
 
         # Degrade to analysis resolution
         mask_lo_res = hp.ud_grade(
