@@ -11,6 +11,58 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
 
+def remove_islands(m, max_size=5):
+    '''
+    Removes regions of size smaller than the specified threshold.
+
+    Parameters
+    ----------
+    m: healsparse.HealSparseMap
+        Map from which small islands are to be removed.
+
+    max_size: int (5)
+        Maximum size (in pixels) of regions to be removed.
+    '''
+    # Get valid pixels and nside of map
+    vpix = m.valid_pixels
+    nside = m.nside_sparse
+
+    # Get IDs of the 8 neighbours of each valid pixel
+    nbrs = hp.get_all_neighbours(nside, vpix, nest=True)
+
+    # Set up parallel arrays for listing every edge of each valid pixel;
+    # a pixel at index rows[k] is a neighbour of the pixel at cols[k]
+    rows, cols = [], []
+    n = len(vpix)
+    # Cycle through each of the 8 neighbours (SW, W, NW, N, NE, E, SE, S)
+    for i in range(8):
+        nb = nbrs[i]
+        # Identify valid neighbours
+        pos = np.clip(np.searchsorted(vpix, nb), 0, len(vpix)-1)
+        ok = (vpix[pos] == nb)
+        rows.append(np.arange(len(vpix))[ok])
+        cols.append(pos[ok])
+    rows = np.concatenate(rows)
+    cols = np.concatenate(cols)
+
+    # Identify connected regions
+    graph = coo_matrix((np.ones_like(rows), (rows, cols)), shape=(n, n))
+    ncomp, labels = connected_components(graph, directed=False)
+    print(f'Found {ncomp} disconnected regions.')
+
+    # Count pixels in each connected region
+    sizes = np.bincount(labels)
+    print(f'Region sizes (Nside={nside}):')
+    for i, s in enumerate(sizes):
+        print(f'{i}: {s}')
+
+    # Keep regions above size threshold
+    remove = sizes[labels] <= max_size
+    m.update_values_pix(vpix[remove], m.sentinel)
+
+    return m
+
+
 class mapperBase(baseStage):
     '''
     Base class for constructing maps from catalogue data.
@@ -170,57 +222,6 @@ class mapperBase(baseStage):
                 allow_partial=True
             )
             m[pix_few] = vals_interp
-
-        return m
-
-    def remove_islands(self, m, max_size=5):
-        '''
-        Removes regions of size smaller than the specified threshold.
-
-        Parameters
-        ----------
-        m: healsparse.HealSparseMap
-            Map from which small islands are to be removed.
-
-        max_size: int (5)
-            Maximum size (in pixels) of regions to be removed.
-        '''
-        # Get valid pixels and nside of map
-        vpix = m.valid_pixels
-        nside = m.nside_sparse
-
-        # Get IDs of the 8 neighbours of each valid pixel
-        nbrs = hp.get_all_neighbours(nside, vpix, nest=True)
-
-        # Set up parallel arrays for listing every edge of each valid pixel;
-        # a pixel at index rows[k] is a neighbour of the pixel at cols[k]
-        rows, cols = [], []
-        n = len(vpix)
-        # Cycle through each of the 8 neighbours (SW, W, NW, N, NE, E, SE, S)
-        for i in range(8):
-            nb = nbrs[i]
-            # Identify valid neighbours
-            pos = np.clip(np.searchsorted(vpix, nb), 0, len(vpix)-1)
-            ok = (vpix[pos] == nb)
-            rows.append(np.arange(len(vpix))[ok])
-            cols.append(pos[ok])
-        rows = np.concatenate(rows)
-        cols = np.concatenate(cols)
-
-        # Identify connected regions
-        graph = coo_matrix((np.ones_like(rows), (rows, cols)), shape=(n, n))
-        ncomp, labels = connected_components(graph, directed=False)
-        print(f'Found {ncomp} disconnected regions.')
-
-        # Count pixels in each connected region
-        sizes = np.bincount(labels)
-        print(f'Region sizes (Nside={nside}):')
-        for i, s in enumerate(sizes):
-            print(f'{i}: {s}')
-
-        # Keep regions above size threshold
-        remove = sizes[labels] <= max_size
-        m.update_values_pix(vpix[remove], m.sentinel)
 
         return m
 
@@ -468,7 +469,7 @@ class mapperMaskedFrac(mapperBase):
 
         # Remove any isolated regions below a certain size
         if cf.Npix_min > 0:
-            mask_hi_res = self.remove_islands(mask_hi_res, cf.Npix_min)
+            mask_hi_res = remove_islands(mask_hi_res, cf.Npix_min)
 
         # Save this high-res binary mask (healsparse format)?
         if cf.save_hi_res_bm:
