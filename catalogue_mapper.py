@@ -63,6 +63,47 @@ def remove_islands(m, max_size=5):
     return m
 
 
+def compute_deltag(Ngal, mask, vpix=None):
+    '''
+    Computes galaxy overdensity given a map of galaxy counts and
+    a mask showing the fractional coverage of each pixel.
+
+    Parameters
+    ----------
+    Ngal: numpy.ndarray[int] or healsparse.HealSparseMap
+        Map of galaxy counts in HEALPix or healsparse format. Pixel
+        ordering is assumed to be the same as for `mask`.
+
+    mask: numpy.ndarray[float] or healsparse.HealSparseMap
+        Map of galaxy counts in HEALPix or healsparse format. Assumed
+        to show the fractional coverage of each pixel, with the same
+        ordering as for `Ngal`.
+
+    vpix: numpy.ndarray[int] (None)
+        IDs for pixels to be included in the calculation. If None,
+        will use pixels in the mask with values greater than 0.
+
+    Returns
+    -------
+    dg: numpy.ndarray[float]
+        Galaxy overdensity parameter in the desired pixels.
+    '''
+    # Check if pixel IDs have been provieded
+    if vpix is None:
+        # Check if mask is in HealSparseMap format
+        if isinstance(mask, hsp.HealSparseMap):
+            vpix = mask.valid_pixels
+        # Otherwise, find all pixels > 0
+        else:
+            (vpix, ) = np.where(mask > 0)
+    # Compute mean galaxy density per fully observed pixel
+    Nbar = (Ngal[vpix].sum() / mask[vpix].sum())
+    # Compute galaxy overdensity in each valid pixel
+    dg = (Ngal[vpix] / (Nbar * mask[vpix])) - 1.
+
+    return dg
+
+
 class mapperBase(baseStage):
     '''
     Base class for constructing maps from catalogue data.
@@ -676,3 +717,113 @@ class mapperGalaxyCounts(mapperBase):
         # Store map for writing
         map_name = f'ngal_nside{self.nside}'
         self.maps[map_name] = m_all
+
+
+class mapperGalaxyDensity(mapperBase):
+    '''
+    Constructs maps of galaxy overdensity (delta_g) for each sample.
+
+    Requires that the mask and maps of the galaxy counts (`mapperMask`
+    and `mapperGalaxyCounts`, respectively) have been created.
+    '''
+    def build_maps(self):
+        '''
+        Constructs the maps required of this stage and stores them.
+        '''
+        cf = self.config
+
+        # Load the survey mask
+        mask = hsp.HealSparseMap.read(
+            f'{cf.paths.out}{self.field}/maps/mask_nside{self.nside}.hsp'
+        )
+
+        # Load the galaxy counts
+        Ngal = hsp.HealSparseMap.read(
+            f'{cf.paths.out}{self.field}/maps/ngal_nside{self.nside}.hsp'
+        )
+
+        m_deltag = self.make_deltag_maps(Ngal, mask)
+
+        # Store map for writing
+        map_name = f'deltag_nside{self.nside}'
+        self.maps[map_name] = m_deltag
+
+    def combine_maps(self):
+        '''
+        Combines maps from each individual HSC field and writes to files.
+
+        For galaxy overdensity maps, one can either compute delta_g in each
+        field (as done in `build_maps()`), in which case these can be combined
+        as normal, or one can recompute delta_g considering galaxies in all
+        fields simultaneously. Both options are allowed here, with the option
+        to switch between them set by the `separate_deltag` config parameter:
+        if `separate_deltag` is True, the delta_g maps from each field will be
+        combined as normal; otherwise, delta_g will be recomputed.
+        '''
+        cf = self.config
+        if cf.separate_deltag:
+            PATH_MAPS = f'{cf.paths.out}{self.field}/maps/'
+
+            # Load the mask for the combined field
+            try:
+                mask = hsp.HealSparseMap.read(
+                    f'{PATH_MAPS}mask_nside{self.nside}.hsp'
+                )
+            except OSError:
+                print(
+                    'No mask found for combined footprint. Run `mapperMask` '
+                    'with `fields` set to `[all]` in the config file and try '
+                    'again.'
+                )
+
+            # Load the galaxy counts map for the combined field
+            try:
+                Ngal = hsp.HealSparseMap.read(
+                    f'{PATH_MAPS}ngal_nside{self.nside}.hsp'
+                )
+            except OSError:
+                print(
+                    'No galaxy counts map found for combined footprint. Run '
+                    '`mapperGalaxyCounts` with `fields` set to `[all]` in the '
+                    'config file and try again.'
+                )
+
+            m_deltag = self.make_deltag_maps(Ngal, mask)
+            m_deltag.write(
+                f'{PATH_MAPS}deltag_nside{self.nside}.hsp',
+                clobber=True
+            )
+        else:
+            super().combine_maps()
+
+    def make_deltag_maps(self, Ngal, mask):
+        '''
+        Constructs maps of galaxy overdensity for each sample.
+
+        Parameters
+        ----------
+        Ngal: healsparse.HealSparseMap
+            Recarray map containing galaxy counts for each sample.
+
+        mask: healsparse.HealSparseMap
+            Mask showing the fractional coverage of each pixel.
+        '''
+        # Get valid pixels from mask
+        vpix = mask.valid_pixels
+
+        # Initialise delta_g maps
+        dtypes = [(n, float) for n in Ngal.dtype.names]
+        m_deltag = hsp.HealSparseMap.make_empty(
+            self.nside_cover,
+            self.nside,
+            dtype=dtypes,
+            primary=dtypes[0][0]
+        )
+        m_deltag[vpix] = np.zeros(len(vpix), dtypes)
+
+        # Compute delta_g for each sample
+        for name in Ngal.dtype.names:
+            ng = Ngal[name]
+            m_deltag[name][vpix] = compute_deltag(ng, mask, vpix)
+
+        return m_deltag
