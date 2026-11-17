@@ -612,11 +612,12 @@ class mapperMask(mapperBase):
         ):
             os.system(f'mkdir -p {path_inter_comb}')
 
-        # Remove any pixels below the threshold fractional coverage
+        # Set to 0 any pixels below the threshold fractional coverage
         mask = masked_frac.copy()
         vpix = mask.valid_pixels
-        badpix = vpix[mask[vpix] < cf.fcov_min]
-        mask[badpix] = hp.UNSEEN
+        for samp in mask.dtype.names:
+            badpix = vpix[mask[samp][vpix] < cf.fcov_min]
+            mask[samp][badpix] = 0.
         if cf.save_interim:
             map_name = f'mask_basic_nside{self.nside}'
             self.maps[f'{path_interim}{map_name}'] = mask.copy()
