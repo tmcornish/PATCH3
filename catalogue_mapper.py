@@ -843,6 +843,10 @@ class mapperGalaxyDensity(mapperBase):
         # Compute delta_g for each sample
         for name in Ngal.dtype.names:
             ng = Ngal[name]
-            m_deltag[name][vpix] = compute_deltag(ng, mask, vpix)
+            if name in mask.dtype.names:
+                mask_name = name
+            else:
+                mask_name = 'all'
+            m_deltag[name][vpix] = compute_deltag(ng, mask[mask_name], vpix)
 
         return m_deltag
