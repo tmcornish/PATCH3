@@ -19,6 +19,8 @@ stages:
   mapperDepth: false
   mapperMaskedFrac: false
   mapperMask: false
+  mapperGalaxyCounts: false
+  mapperGalaxyDensity: false
 
 ###########################################################################################
 
@@ -354,4 +356,7 @@ mapperMask:
   t_smooth_fcov: 0.7  # threshold for smoothed binarised depth map
 
 mapperGalaxyCounts:
+  <<: *mapperBase
+
+mapperGalaxyDensity:
   <<: *mapperBase
