@@ -593,10 +593,11 @@ class mapperMask(mapperBase):
         path_fd = f'{path_out}{self.field}/'
         path_maps = f'{path_fd}maps/'
 
-        # Load the masked fraction map
+        # Load the masked fraction map(s)
         masked_frac = hsp.HealSparseMap.read(
             f'{path_maps}masked_frac_nside{self.nside}.hsp'
         )
+        dt = masked_frac.dtype
 
         # Create directory for interim masked products if required
         path_interim = 'interim_masks/'
@@ -628,7 +629,7 @@ class mapperMask(mapperBase):
             )
             vpix = mask.valid_pixels
             badpix = vpix[depth_map[vpix] < cf.depth_cuts[b]]
-            mask[badpix] = hp.UNSEEN
+            mask[badpix] = np.full(len(badpix), hp.UNSEEN, dtype=dt)
             if cf.save_interim:
                 depth_str = f'{cf.depth_cuts[b]:.1f}'.replace('.', 'p')
                 map_name += f'{b}{depth_str}'
@@ -644,7 +645,7 @@ class mapperMask(mapperBase):
             depth_bin = hp.smoothing(depth_bin, r, nest=True)
             vpix = mask.valid_pixels
             remove = np.where(depth_bin[vpix] < t)[0]
-            mask[vpix[remove]] = hp.UNSEEN
+            mask[vpix[remove]] = np.full(remove.sum(), hp.UNSEEN, dtype=dt)
             if cf.save_interim:
                 r_str = f'{r:.1f}'.replace('.', 'p')
                 map_name += f'smoothdepth{r_str}'
@@ -658,7 +659,7 @@ class mapperMask(mapperBase):
             fcov_smooth[fcov_smooth < 0.] = 0.
             fcov_smooth = hp.smoothing(fcov_smooth, r, nest=True)
             remove = np.where(depth_bin[vpix] < t)[0]
-            mask[vpix[remove]] = hp.UNSEEN
+            mask[vpix[remove]] = np.full(remove.sum(), hp.UNSEEN, dtype=dt)
             if cf.save_interim:
                 r_str = f'{r:.1f}'.replace('.', 'p')
                 map_name += f'smoothfcov{r_str}'
