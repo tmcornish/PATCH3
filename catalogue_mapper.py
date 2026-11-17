@@ -344,7 +344,7 @@ class mapperBase(baseStage):
                 union.update_values_pix(
                     vpix_all,
                     np.rec.fromarrays(
-                        [m[self.vpix] for m in unions_indiv],
+                        [m[vpix_all] for m in unions_indiv],
                         dtype=dt
                     )
                 )
