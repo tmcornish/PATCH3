@@ -478,6 +478,26 @@ class mapperMaskedFrac(mapperBase):
             map_name = f'footprint_nside{cf.nside_covmap}'
             self.maps[map_name] = footprint
 
+        # Initialise recarray map at desired resolution
+        dt = [(samp, float) for samp in cf.cuts]
+        covfrac = hsp.HealSparseMap.make_empty(
+            self.nside_cover,
+            self.nside,
+            dtype=dt,
+            primary=dt[0][0]
+        )
+        ipix = hp.ang2pix(
+            self.nside,
+            *hp.pix2ang(
+                cf.nside_covmap,
+                covmaps.valid_pixels,
+                nest=True
+            ),
+            nest=True
+        )
+        ipix = np.unique(ipix)
+        covfrac[ipix] = np.zeros(len(ipix), dtype=dt)
+
         # Load flag data
         flags_file = f'{path_out}flags.hdf5'
         with h5py.File(flags_file, 'r') as hf:
@@ -493,65 +513,62 @@ class mapperMaskedFrac(mapperBase):
                 nest=True
             )
 
-            # Find pixels containing any flagged sources
-            remove = np.zeros_like(pix, dtype=bool)
-            for fl in self._parse_flags():
-                if 'inputcount_value' in fl:
-                    b = fl[0]
-                    remove += hf[fl][:] < cf.icvalue_cuts[b]
-                else:
-                    remove += hf[fl][:]
-        # Get unique pixel IDs
-        remove = np.unique(pix[remove])
+            for samp in cf.cuts:
+                # Find pixels containing any flagged sources
+                remove = np.zeros_like(pix, dtype=bool)
+                for fl in self._parse_flags(samp):
+                    if 'inputcount_value' in fl:
+                        b = fl[0]
+                        remove += hf[fl][:] < cf.icvalue[b]
+                    else:
+                        remove += hf[fl][:]
+                # Get unique pixel IDs
+                remove = np.unique(pix[remove])
 
-        # Construct high-res binary mask
-        mask_hi_res = footprint.copy()
-        mask_hi_res[remove] = 0
+                # Construct high-res binary mask
+                mask_hi_res = footprint.copy()
+                mask_hi_res[remove] = 0
 
-        # Remove any isolated regions below a certain size
-        if cf.Npix_min > 0:
-            mask_hi_res = remove_islands(mask_hi_res, cf.Npix_min)
+                # Remove any isolated regions below a certain size
+                if cf.Npix_min > 0:
+                    mask_hi_res = remove_islands(mask_hi_res, cf.Npix_min)
 
-        # Save this high-res binary mask (healsparse format)?
-        if cf.save_hi_res_bm:
-            map_name = f'binary_mask_nside{cf.nside_covmap}'
-            self.maps[map_name] = mask_hi_res
+                # Save this high-res binary mask (healsparse format)?
+                if cf.save_hi_res_bm:
+                    map_name = f'binary_mask_nside{cf.nside_covmap}'
+                    self.maps[map_name] = mask_hi_res
 
-        # Convert to HEALPix before degrading
-        mask_hi_res = mask_hi_res.generate_healpix_map()
-        mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
+                # Convert to HEALPix before degrading
+                mask_hi_res = mask_hi_res.generate_healpix_map()
+                mask_hi_res[mask_hi_res == hp.UNSEEN] = 0
 
-        # Degrade to analysis resolution
-        mask_lo_res = hp.ud_grade(
-            mask_hi_res,
-            self.nside,
-            order_in='NEST',
-            order_out='NEST',
-            dtype=float
-        )
+                # Degrade to analysis resolution
+                mask_lo_res = hp.ud_grade(
+                    mask_hi_res,
+                    self.nside,
+                    order_in='NEST',
+                    order_out='NEST',
+                    dtype=float
+                )
 
-        # Convert to HealSparse
-        covfrac = hsp.HealSparseMap.make_empty(
-            self.nside_cover,
-            self.nside,
-            dtype=float
-        )
-        npix = hp.nside2npix(self.nside)
-        vpix = np.arange(npix)[mask_lo_res > 0]
-        covfrac[vpix] = mask_lo_res[vpix]
+                # Convert to HealSparse
+                npix = hp.nside2npix(self.nside)
+                vpix = np.arange(npix)[mask_lo_res > 0]
+                covfrac[samp][vpix] = mask_lo_res[vpix]
 
         # Store map for writing
         map_name = f'masked_frac_nside{self.nside}'
         self.maps[map_name] = covfrac
 
-    def _parse_flags(self):
+    def _parse_flags(self, samp):
         '''
         Converts flag info from the config into a list.
         '''
+        cuts = self.config.cuts[samp]['flags_mask']
         flags = [
             f'{b}_{fl}'
-            for fl in self.config.flags_mask
-            for b in self.config.flags_mask[fl]
+            for fl in cuts
+            for b in cuts[fl]
         ]
         return flags
 

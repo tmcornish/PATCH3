@@ -322,21 +322,23 @@ mapperMaskedFrac:
   nside_covmap: 16384
   save_hi_res_fp: true
   save_hi_res_bm: true
-  flags_mask:
-    mask_brightstar_ghost15: i
-    mask_brightstar_halo: i
-    mask_brightstar_blooming: i
-    mask_brightstar_channel_stop: y
-    pixelflags_edge: i
-    pixelflags_saturatedcenter: i
-    pixelflags_clipped: i
-  icvalue_cuts:
-    g: 0
-    r: 0
-    i: 0
-    z: 0
-    y: 0
   Npix_min: 5  # regions of fewer than this no. of pixels are removed
+  cuts:
+    all:
+      flags_mask:
+        mask_brightstar_ghost15: i
+        mask_brightstar_halo: i
+        mask_brightstar_blooming: i
+        mask_brightstar_channel_stop: y
+        pixelflags_edge: i
+        pixelflags_saturatedcenter: i
+        pixelflags_clipped: i
+      icvalue:
+        g: 0
+        r: 0
+        i: 0
+        z: 0
+        y: 0
 
 mapperMask:
   <<: *mapperBase
