@@ -495,8 +495,8 @@ class mapperMaskedFrac(mapperBase):
             ),
             nest=True
         )
-        ipix = np.unique(ipix)
-        covfrac[ipix] = np.zeros(len(ipix), dtype=dt)
+        self.vpix = np.unique(ipix)
+        covfrac[self.vpix] = np.zeros(len(self.vpix), dtype=dt)
 
         # Load flag data
         flags_file = f'{path_out}flags.hdf5'
