@@ -628,9 +628,8 @@ class mapperMask(mapperBase):
             depth_map = hsp.HealSparseMap.read(
                 f'{path_maps}depth_{b}_nside{self.nside}.hsp'
             )
-            vpix = mask.valid_pixels
             badpix = vpix[depth_map[vpix] < cf.depth_cuts[b]]
-            mask[badpix] = np.full(len(badpix), hp.UNSEEN, dtype=dt)
+            mask[badpix] = np.zeros(len(badpix), dtype=dt)
             if cf.save_interim:
                 depth_str = f'{cf.depth_cuts[b]:.1f}'.replace('.', 'p')
                 map_name += f'{b}{depth_str}'
@@ -644,9 +643,8 @@ class mapperMask(mapperBase):
             r = np.radians(cf.r_smooth_depth)
             t = cf.t_smooth_depth
             depth_bin = hp.smoothing(depth_bin, r, nest=True)
-            vpix = mask.valid_pixels
-            remove = np.where(depth_bin[vpix] < t)[0]
-            mask[vpix[remove]] = np.full(remove.sum(), hp.UNSEEN, dtype=dt)
+            vpix_remove = vpix[np.where(depth_bin[vpix] < t)[0]]
+            mask[vpix_remove] = np.zeros(len(vpix_remove), dtype=dt)
             if cf.save_interim:
                 r_str = f'{r:.1f}'.replace('.', 'p')
                 map_name += f'smoothdepth{r_str}'
@@ -656,11 +654,13 @@ class mapperMask(mapperBase):
         if cf.smooth_fcov:
             r = np.radians(cf.r_smooth_fcov)
             t = cf.t_smooth_fcov
-            fcov_smooth = masked_frac.generate_healpix_map(nest=False)
-            fcov_smooth[fcov_smooth < 0.] = 0.
-            fcov_smooth = hp.smoothing(fcov_smooth, r, nest=True)
-            remove = np.where(depth_bin[vpix] < t)[0]
-            mask[vpix[remove]] = np.full(remove.sum(), hp.UNSEEN, dtype=dt)
+            for samp in mask.dtype.names:
+                fcov_smooth = masked_frac[samp]
+                fcov_smooth = fcov_smooth.generate_healpix_map(nest=False)
+                fcov_smooth[fcov_smooth < 0.] = 0.
+                fcov_smooth = hp.smoothing(fcov_smooth, r, nest=True)
+                vpix_remove = vpix[np.where(depth_bin[vpix] < t)[0]]
+                mask[samp][vpix_remove] = 0.
             if cf.save_interim:
                 r_str = f'{r:.1f}'.replace('.', 'p')
                 map_name += f'smoothfcov{r_str}'
