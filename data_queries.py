@@ -6,6 +6,35 @@ import os
 from stage import baseStage
 
 
+#############################
+#          GLOBALS          #
+#############################
+
+# Mapping from different flux types to the tables to which they belong
+aper_sizes = [10, 15, 20, 30, 40, 57, 84, 118, 168, 235]
+seeings = [0, 1, 2, 3]
+conv_sizes = [11, 15, 20, 'kron']
+flux_tables = {
+    'cmodel': 'forced',
+    'gaussianflux': 'forced2',
+    'psfflux': 'forced2',
+    'kronflux': 'forced2',
+    'sdssshape': 'forced2',
+    'undeblended_psfflux': 'forced2',
+    'undeblended_kronflux': 'forced2'
+} | {
+    f'apertureflux_{i}': 'forced3' for i in aper_sizes
+} | {
+    f'undeblended_apertureflux_{i}': 'forced3' for i in aper_sizes
+} | {
+    f'convolvedflux_{s}_{c}': 'forced4'
+    for s in seeings for c in conv_sizes
+} | {
+    f'undeblended_convolvedflux_{s}_{c}': 'forced5'
+    for s in seeings for c in conv_sizes
+}
+
+
 ############################
 #          STAGES          #
 ############################
@@ -31,29 +60,6 @@ class queryBase(baseStage):
         self.path_queries = self.config.paths.out + 'sql_queries/'
         # Base directory for the data
         self.path_out = self.config.paths.data
-        # Mapping from different flux types to the tables to which they belong
-        aper_sizes = [10, 15, 20, 30, 40, 57, 84, 118, 168, 235]
-        seeings = [0, 1, 2, 3]
-        conv_sizes = [11, 15, 20, 'kron']
-        self.flux_tables = {
-            'cmodel': 'forced',
-            'gaussianflux': 'forced2',
-            'psfflux': 'forced2',
-            'kronflux': 'forced2',
-            'sdssshape': 'forced2',
-            'undeblended_psfflux': 'forced2',
-            'undeblended_kronflux': 'forced2'
-        } | {
-            f'apertureflux_{i}': 'forced3' for i in aper_sizes
-        } | {
-            f'undeblended_apertureflux_{i}': 'forced3' for i in aper_sizes
-        } | {
-            f'convolvedflux_{s}_{c}': 'forced4'
-            for s in seeings for c in conv_sizes
-        } | {
-            f'undeblended_convolvedflux_{s}_{c}': 'forced5'
-            for s in seeings for c in conv_sizes
-        }
         # For keeping track of which tables need to be joined
         self.tables_join = []
 
@@ -456,7 +462,7 @@ class queryStarsForDepth(queryBase):
             self.sql['cols'].append('isprimary')
 
         # Fluxes and magnitudes of the chosen type
-        tflux = self.flux_tables[cf.mag_type]
+        tflux = flux_tables[cf.mag_type]
         self.sql['cols'].extend(
             [
                 f'{tflux}.{b}_{cf.mag_type}_fluxerr'
@@ -682,7 +688,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
             self.sql['cols'].append('forced.isprimary')
 
         # Fluxes and magnitudes of the chosen type
-        tflux = self.flux_tables[cf.mag_type]
+        tflux = flux_tables[cf.mag_type]
         self.sql['cols'].extend(
             [
                 f'{tflux}.{b}_{cf.mag_type}_{var}'
@@ -971,7 +977,7 @@ class queryLBGs(queryGalaxiesBase):
             self.sql['cols'].append('forced.isprimary')
 
         # Magnitudes of the chosen type for colour cuts
-        tflux_sel = self.flux_tables[cf.mag_type_sel]
+        tflux_sel = flux_tables[cf.mag_type_sel]
         self.sql['cols'].extend(
             [
                 f'{tflux_sel}.{b}_{cf.mag_type_sel}_{var}'
@@ -982,7 +988,7 @@ class queryLBGs(queryGalaxiesBase):
         if tflux_sel != 'forced':
             self.tables_join.append(tflux_sel)
         # Fluxes of the chosen type for SNR cuts
-        tflux_snr = self.flux_tables[cf.mag_type_snr]
+        tflux_snr = flux_tables[cf.mag_type_snr]
         self.sql['cols'].extend(
             [
                 f'{tflux_snr}.{b}_{cf.mag_type_snr}_{var}'
