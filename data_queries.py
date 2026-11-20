@@ -54,6 +54,8 @@ class queryBase(baseStage):
             f'undeblended_convolvedflux_{s}_{c}': 'forced5'
             for s in seeings for c in conv_sizes
         }
+        # For keeping track of which tables need to be joined
+        self.tables_join = []
 
     def _assemble_query(self):
         '''
@@ -453,9 +455,6 @@ class queryStarsForDepth(queryBase):
         if not cf.primary_only:
             self.sql['cols'].append('isprimary')
 
-        # For keeping track of which tables need to be joined
-        tables = []
-
         # Fluxes and magnitudes of the chosen type
         tflux = self.flux_tables[cf.mag_type]
         self.sql['cols'].extend(
@@ -465,7 +464,7 @@ class queryStarsForDepth(queryBase):
             ]
         )
         if tflux != 'forced':
-            tables.append(tflux)
+            self.tables_join.append(tflux)
 
         # Conditions for selection (applied to all fields)
         b1 = cf.bands.primary
@@ -484,22 +483,22 @@ class queryStarsForDepth(queryBase):
                     [f'{table}.{b}_{col}=False'
                         for b in cf.flags[table][col]]
                 )
-            if table not in tables and table != 'forced':
-                tables.append(table)
+            if table not in self.tables_join and table != 'forced':
+                self.tables_join.append(table)
         # Blendedness cut
         if cf.log_blendedness_max is not None:
             sql_cond.append(
                 f'meas2.{b1}_blendedness_abs < '
                 f'POWER(10, {cf.log_blendedness_max})'
             )
-            tables.append('meas2')
+            self.tables_join.append('meas2')
 
         # Statement specifying the tables to join
         self.sql['from'] = [
             f'{cf.dr}.forced as forced'
         ] + [
             f'{cf.dr}.{table} {table} USING (object_id)'
-            for table in tables
+            for table in self.tables_join
         ]
 
         # Create a query per (sub)field per bin
@@ -681,8 +680,6 @@ class queryMaglimTomographic(queryGalaxiesBase):
         ]
         if not cf.primary_only:
             self.sql['cols'].append('forced.isprimary')
-        # For keeping track of which tables need to be joined
-        tables = []
 
         # Fluxes and magnitudes of the chosen type
         tflux = self.flux_tables[cf.mag_type]
@@ -694,7 +691,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
             ]
         )
         if tflux != 'forced':
-            tables.append(tflux)
+            self.tables_join.append(tflux)
 
         # Dust attenuation values
         self.sql['cols'].extend(
@@ -706,13 +703,13 @@ class queryMaglimTomographic(queryGalaxiesBase):
             [f'{cf.z_table}.photoz_{var}'
              for var in ['best', 'err68_min', 'err68_max']]
         )
-        tables.append(cf.z_table)
+        self.tables_join.append(cf.z_table)
 
         # Mag corrections for r and i bands
         self.sql['cols'].extend(
             [f'mag_corr.corr_{b}mag' for b in 'ri']
         )
-        tables.append('mag_corr')
+        self.tables_join.append('mag_corr')
 
         # Extra columns
         if cf.extra_cols is not None:
@@ -720,8 +717,8 @@ class queryMaglimTomographic(queryGalaxiesBase):
                 self.sql['cols'].extend(
                     [f'{table}.{col}' for col in cf.extra_cols[table]]
                 )
-                if table not in tables and table != 'forced':
-                    tables.append(table)
+                if table not in self.tables_join and table != 'forced':
+                    self.tables_join.append(table)
 
         # Mapping from each band to the corresponding magnitude and flux
         self.mag_map = {
@@ -749,7 +746,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
             f'meas2.{b1}_blendedness_abs < '
             f'POWER(10, {cf.log_blendedness_max})'
         )
-        tables.append('meas2')
+        self.tables_join.append('meas2')
         # SNR cut (primary band)
         sql_cond.append(
             f'{self.flux_map[b1]} / {self.flux_map[b1]}err >= '
@@ -772,8 +769,8 @@ class queryMaglimTomographic(queryGalaxiesBase):
                     [f'{table}.{b}_{col}=False'
                      for b in cf.flags[table][col]]
                 )
-            if table not in tables and table != 'forced':
-                tables.append(table)
+            if table not in self.tables_join and table != 'forced':
+                self.tables_join.append(table)
         # Star-galaxy separator
         sql_cond.append(
             f'forced.{b1}_extendedness_value > 0'
@@ -784,7 +781,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
             f'{cf.dr}.forced as forced'
         ] + [
             f'{cf.dr}.{table} {table} USING (object_id)'
-            for table in tables
+            for table in self.tables_join
         ]
 
         # Create a query per (sub)field per bin
@@ -833,7 +830,7 @@ class queryLBGs(queryGalaxiesBase):
     z-dropouts. Flags can also be specified in the config file for each
     sample.
     '''
-    def _parse_cuts(self, sample, sql_cond, tables):
+    def _parse_cuts(self, sample, sql_cond):
         '''
         Constructs SQL-formatted cuts from the config file.
 
@@ -846,9 +843,6 @@ class queryLBGs(queryGalaxiesBase):
 
         sql_cond: list[str]
             List of conditions to which the new cuts will be appended.
-
-        tables: list[str]
-            List for keeping track of which tables need to be queried.
         '''
         cf = self.config
         cond = []
@@ -865,8 +859,8 @@ class queryLBGs(queryGalaxiesBase):
                         [f'{t}.{b}_{col}=False'
                             for b in cf.cuts.false_cols[sample][t][col]]
                     )
-            if t not in tables and t != 'forced':
-                tables.append(t)
+            if t not in self.tables_join and t != 'forced':
+                self.tables_join.append(t)
         # Columns whose values should be True
         for t in cf.cuts.true_cols[sample]:
             for col in cf.cuts.true_cols[sample][t]:
@@ -880,8 +874,8 @@ class queryLBGs(queryGalaxiesBase):
                         [f'{t}.{b}_{col}=True'
                          for b in cf.cuts.true_cols[sample][t][col]]
                     )
-            if t not in tables and t != 'forced':
-                tables.append(t)
+            if t not in self.tables_join and t != 'forced':
+                self.tables_join.append(t)
 
         # Blendedness cuts
         if sample != 'all':
@@ -890,8 +884,8 @@ class queryLBGs(queryGalaxiesBase):
                 [f'meas2.{b}_blendedness_abs < {cf.blendedness_abs_max}'
                  for b in cf.cuts.blendedness[sample]]
             )
-            if t not in tables and t != 'forced':
-                tables.append(t)
+            if t not in self.tables_join and t != 'forced':
+                self.tables_join.append(t)
         sql_cond.extend(cond)
 
     def _dropout_conditions(self, sample, sql_cond):
@@ -975,8 +969,6 @@ class queryLBGs(queryGalaxiesBase):
         ]
         if not cf.primary_only:
             self.sql['cols'].append('forced.isprimary')
-        # For keeping track of which tables need to be joined
-        tables = []
 
         # Magnitudes of the chosen type for colour cuts
         tflux_sel = self.flux_tables[cf.mag_type_sel]
@@ -988,7 +980,7 @@ class queryLBGs(queryGalaxiesBase):
             ]
         )
         if tflux_sel != 'forced':
-            tables.append(tflux_sel)
+            self.tables_join.append(tflux_sel)
         # Fluxes of the chosen type for SNR cuts
         tflux_snr = self.flux_tables[cf.mag_type_snr]
         self.sql['cols'].extend(
@@ -999,7 +991,7 @@ class queryLBGs(queryGalaxiesBase):
             ]
         )
         if tflux_snr != 'forced':
-            tables.append(tflux_snr)
+            self.tables_join.append(tflux_snr)
 
         # Dust attenuation values
         self.sql['cols'].extend(
@@ -1011,13 +1003,13 @@ class queryLBGs(queryGalaxiesBase):
             [f'{cf.z_table}.photoz_{var}'
                 for var in ['best', 'err68_min', 'err68_max']]
         )
-        tables.append(cf.z_table)
+        self.tables_join.append(cf.z_table)
 
         # Mag corrections for r and i bands
         self.sql['cols'].extend(
             [f'mag_corr.corr_{b}mag' for b in 'ri']
         )
-        tables.append('mag_corr')
+        self.tables_join.append('mag_corr')
 
         # Extra columns
         if cf.extra_cols is not None:
@@ -1025,8 +1017,8 @@ class queryLBGs(queryGalaxiesBase):
                 self.sql['cols'].extend(
                     [f'{table}.{col}' for col in cf.extra_cols[table]]
                 )
-                if table not in tables and table != 'forced':
-                    tables.append(table)
+                if table not in self.tables_join and table != 'forced':
+                    self.tables_join.append(table)
 
         # Mapping from each band to the corresponding magnitude and flux
         for b in bands:
@@ -1040,7 +1032,7 @@ class queryLBGs(queryGalaxiesBase):
 
         # True/False and blendedness cuts applied to all samples
         sql_cond = []
-        self._parse_cuts('all', sql_cond, tables)
+        self._parse_cuts('all', sql_cond)
         # Cuts on inputcount_value in each band, applied to all samples
         sql_cond.extend(
             [f'forced.{b}_inputcount_value >= {cf.inputcount_min[b]}'
@@ -1057,7 +1049,7 @@ class queryLBGs(queryGalaxiesBase):
                 for b in 'griz':
                     sample = f'{b}_dropouts'
                     sql_cond_samp = sql_cond_fd.copy()
-                    self._parse_cuts(sample, sql_cond_samp, tables)
+                    self._parse_cuts(sample, sql_cond_samp)
                     self._dropout_conditions(sample, sql_cond_samp)
 
                     self.sql['cond'] = sql_cond_samp
@@ -1067,7 +1059,7 @@ class queryLBGs(queryGalaxiesBase):
                         f'{cf.dr}.forced as forced'
                     ] + [
                         f'{cf.dr}.{table} {table} USING (object_id)'
-                        for table in tables
+                        for table in self.tables_join
                     ]
 
                     # Combine all components of query
