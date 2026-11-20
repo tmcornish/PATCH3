@@ -977,10 +977,10 @@ class queryLBGs(queryGalaxiesBase):
             self.sql['cols'].append('forced.isprimary')
 
         # Magnitudes of the chosen type for colour cuts
-        tflux_sel = flux_tables[cf.mag_type_sel]
+        tflux_sel = flux_tables[cf.mag_type]
         self.sql['cols'].extend(
             [
-                f'{tflux_sel}.{b}_{cf.mag_type_sel}_{var}'
+                f'{tflux_sel}.{b}_{cf.mag_type}_{var}'
                 for b in bands
                 for var in ['mag', 'magerr']
             ]
@@ -1028,7 +1028,7 @@ class queryLBGs(queryGalaxiesBase):
 
         # Mapping from each band to the corresponding magnitude and flux
         for b in bands:
-            self.mag_map[b] = f'{tflux_sel}.{b}_{cf.mag_type_sel}_mag'
+            self.mag_map[b] = f'{tflux_sel}.{b}_{cf.mag_type}_mag'
             self.flux_map[b] = f'{tflux_snr}.{b}_{cf.mag_type_snr}_flux'
             if cf.correct_dust:
                 self.mag_map[b] += f' - forced.a_{b}'

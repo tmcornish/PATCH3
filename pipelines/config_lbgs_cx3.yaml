@@ -46,7 +46,7 @@ global:
       i: [i2]
       r: [r2]
   # Type of magnitudes to use
-  mag_type: cmodel
+  mag_type_main: cmodel
   # Specify whether metadata should be split by band for queries and mapping
   split_by_band: true
   # File containing required environment variables
@@ -229,6 +229,11 @@ queryLBGs:
       r_dropouts: iz
       i_dropouts: zy
       z_dropouts: y
+    maglim:
+      g_dropouts: {i: inf}
+      r_dropouts: {z: inf}
+      i_dropouts: {z: inf}
+      z_dropouts: {y: inf}
   blendedness_abs_max: 0.2
   inputcount_min:
       g: 3
