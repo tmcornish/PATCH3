@@ -60,8 +60,13 @@ class queryBase(baseStage):
         self.path_queries = self.config.paths.out + 'sql_queries/'
         # Base directory for the data
         self.path_out = self.config.paths.data
+        # Table containing flux/mag info for chosen mag type
+        self.tflux = flux_tables[self.config.mag_type]
         # For keeping track of which tables need to be joined
         self.tables_join = []
+        # Append with tflux unless 'forced' ('forced' table is always used)
+        if self.tflux != 'forced':
+            self.tables_join.append(self.tflux)
 
     def _assemble_query(self):
         '''
@@ -462,15 +467,12 @@ class queryStarsForDepth(queryBase):
             self.sql['cols'].append('isprimary')
 
         # Fluxes and magnitudes of the chosen type
-        tflux = flux_tables[cf.mag_type]
         self.sql['cols'].extend(
             [
-                f'{tflux}.{b}_{cf.mag_type}_fluxerr'
+                f'{self.tflux}.{b}_{cf.mag_type}_fluxerr'
                 for b in bands
             ]
         )
-        if tflux != 'forced':
-            self.tables_join.append(tflux)
 
         # Conditions for selection (applied to all fields)
         b1 = cf.bands.primary
@@ -688,16 +690,13 @@ class queryMaglimTomographic(queryGalaxiesBase):
             self.sql['cols'].append('forced.isprimary')
 
         # Fluxes and magnitudes of the chosen type
-        tflux = flux_tables[cf.mag_type]
         self.sql['cols'].extend(
             [
-                f'{tflux}.{b}_{cf.mag_type}_{var}'
+                f'{self.tflux}.{b}_{cf.mag_type}_{var}'
                 for b in bands
                 for var in ['flux', 'fluxerr', 'mag', 'magerr']
             ]
         )
-        if tflux != 'forced':
-            self.tables_join.append(tflux)
 
         # Dust attenuation values
         self.sql['cols'].extend(
@@ -728,10 +727,10 @@ class queryMaglimTomographic(queryGalaxiesBase):
 
         # Mapping from each band to the corresponding magnitude and flux
         self.mag_map = {
-            b: f'{tflux}.{b}_{cf.mag_type}_mag' for b in bands
+            b: f'{self.tflux}.{b}_{cf.mag_type}_mag' for b in bands
         }
         self.flux_map = {
-            b: f'{tflux}.{b}_{cf.mag_type}_flux' for b in bands
+            b: f'{self.tflux}.{b}_{cf.mag_type}_flux' for b in bands
         }
         if cf.correct_ri:
             self.mag_map['r'] += ' - mag_corr.corr_rmag'
@@ -977,16 +976,13 @@ class queryLBGs(queryGalaxiesBase):
             self.sql['cols'].append('forced.isprimary')
 
         # Magnitudes of the chosen type for colour cuts
-        tflux_sel = flux_tables[cf.mag_type]
         self.sql['cols'].extend(
             [
-                f'{tflux_sel}.{b}_{cf.mag_type}_{var}'
+                f'{self.tflux}.{b}_{cf.mag_type}_{var}'
                 for b in bands
                 for var in ['mag', 'magerr']
             ]
         )
-        if tflux_sel != 'forced':
-            self.tables_join.append(tflux_sel)
         # Fluxes of the chosen type for SNR cuts
         tflux_snr = flux_tables[cf.mag_type_snr]
         self.sql['cols'].extend(
@@ -1028,7 +1024,7 @@ class queryLBGs(queryGalaxiesBase):
 
         # Mapping from each band to the corresponding magnitude and flux
         for b in bands:
-            self.mag_map[b] = f'{tflux_sel}.{b}_{cf.mag_type}_mag'
+            self.mag_map[b] = f'{self.tflux}.{b}_{cf.mag_type}_mag'
             self.flux_map[b] = f'{tflux_snr}.{b}_{cf.mag_type_snr}_flux'
             if cf.correct_dust:
                 self.mag_map[b] += f' - forced.a_{b}'
