@@ -46,7 +46,7 @@ global:
       i: [i2]
       r: [r2]
   # Type of magnitudes to use
-  mag_type_main: cmodel
+  mag_type: convolvedflux_0_20
   # Specify whether metadata should be split by band for queries and mapping
   split_by_band: true
   # File containing required environment variables
@@ -160,8 +160,13 @@ queryStarsForDepth:
   primary_only: true
   log_blendedness_max: null
 
-queryLBGs:
+queryGalaxiesBase: &queryGalaxiesBase
   <<: *queryBase
+  correct_ri: true
+  correct_dust: false
+
+queryLBGs:
+  <<: *queryGalaxiesBase
   sql_base: galaxies
   qsub:
     walltime: 24:00:00
@@ -173,7 +178,6 @@ queryLBGs:
   do_download: true
   do_delete: true
   primary_only: true
-  mag_type_sel: convolvedflux_0_20
   mag_type_snr: apertureflux_15
   cuts:
     false_cols:
@@ -243,8 +247,6 @@ queryLBGs:
       y: 5
   query_like_stars: true
   query_cosmos: true
-  correct_ri: true
-  correct_dust: true
   z_table: photoz_dnnz
   extra_cols:
     photoz_mizuki:

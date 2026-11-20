@@ -549,9 +549,25 @@ class queryGalaxiesBase(queryBase):
         # Paths for additional outputs
         self.path_queries_stars = self.path_queries + 'stars/'
         self.path_out_stars = self.path_out + f'stars/{self.config.run_name}'
+
         # For mapping from each band to the corresponding magnitude flux
-        self.mag_map = {}
-        self.flux_map = {}
+        self.mag_map = {
+            b: f'{self.tflux}.{b}_{self.config.mag_type}_mag'
+            for b in self.config.bands.all
+        }
+        self.flux_map = {
+            b: f'{self.tflux}.{b}_{self.config.mag_type}_flux'
+            for b in self.config.bands.all
+        }
+
+        # Correction to r- and i-band mags to account for change in filters
+        if self.config.correct_ri:
+            self.mag_map['r'] += ' - mag_corr.corr_rmag'
+            self.mag_map['i'] += ' - mag_corr.corr_imag'
+        # Dust corrections in each band
+        if self.config.correct_dust:
+            for b in self.config.bands.all:
+                self.mag_map[b] += f' - a_{b}'
 
     def _write_sql_stars(self):
         '''
@@ -725,22 +741,11 @@ class queryMaglimTomographic(queryGalaxiesBase):
                 if table not in self.tables_join and table != 'forced':
                     self.tables_join.append(table)
 
-        # Mapping from each band to the corresponding magnitude and flux
-        self.mag_map = {
-            b: f'{self.tflux}.{b}_{cf.mag_type}_mag' for b in bands
-        }
-        self.flux_map = {
-            b: f'{self.tflux}.{b}_{cf.mag_type}_flux' for b in bands
-        }
-        if cf.correct_ri:
-            self.mag_map['r'] += ' - mag_corr.corr_rmag'
-            self.mag_map['i'] += ' - mag_corr.corr_imag'
-
         # Conditions for selection (applied to all fields and z bins)
         b1 = cf.bands.primary
         b2 = cf.bands.secondary
         sql_cond = [
-            f'{self.mag_map[b1]} - a_{b1} < {cf.maglim}'
+            f'{self.mag_map[b1]} < {cf.maglim}'
         ]
         if cf.primary_only:
             sql_cond.append(
@@ -1022,15 +1027,12 @@ class queryLBGs(queryGalaxiesBase):
                 if table not in self.tables_join and table != 'forced':
                     self.tables_join.append(table)
 
-        # Mapping from each band to the corresponding magnitude and flux
+        # Update flux mapping to the SNR mag type
         for b in bands:
-            self.mag_map[b] = f'{self.tflux}.{b}_{cf.mag_type}_mag'
-            self.flux_map[b] = f'{tflux_snr}.{b}_{cf.mag_type_snr}_flux'
-            if cf.correct_dust:
-                self.mag_map[b] += f' - forced.a_{b}'
-        if cf.correct_ri:
-            self.mag_map['r'] += ' - mag_corr.corr_rmag'
-            self.mag_map['i'] += ' - mag_corr.corr_imag'
+            s_old = self.flux_map[b]
+            s_new = s_old.replace(self.tflux, tflux_snr)
+            s_new = s_new.replace(cf.mag_type, cf.mag_type_snr)
+            self.flux_map[b] = s_new
 
         # True/False and blendedness cuts applied to all samples
         sql_cond = []

@@ -169,9 +169,14 @@ queryStarsForDepth:
   primary_only: true
   log_blendedness_max: null
 
+queryGalaxiesBase: &queryGalaxiesBase
+  <<: *queryBase
+  correct_ri: true
+  correct_dust: true
+
 # Magnitude-limited tomographic samples
 queryMaglimTomographic:
-  <<: *queryBase
+  <<: *queryGalaxiesBase
   sql_base: galaxies
   qsub:
     walltime: 24:00:00
@@ -197,7 +202,6 @@ queryMaglimTomographic:
   N_sec: 2
   query_like_stars: true
   query_cosmos: true
-  correct_ri: true
   z_table: photoz_dnnz
   extra_cols:
     photoz_mizuki:
