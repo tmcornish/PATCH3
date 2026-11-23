@@ -152,9 +152,15 @@ class queryBase(baseStage):
         ----------
         b: str
             The photometric band of interest.
+
+        Returns
+        -------
+        s: str
+            String containing the correct table, band and flux type for
+            querying.
         '''
         cf = self.config
-        return _mag_str(b, cf.mag_type, cf.correct_ri, cf.correct_dust)
+        return f'({_mag_str(b, cf.mag_type, cf.correct_ri, cf.correct_dust)})'
 
     def flux_map(self, b):
         '''
@@ -914,6 +920,55 @@ class queryLBGs(queryGalaxiesBase):
     z-dropouts. Flags can also be specified in the config file for each
     sample.
     '''
+    def __init__(
+            self,
+            config_file
+    ):
+        super().__init__(config_file)
+        # Detection bands for each dropout sample
+        self.det_bands = {
+            'g_dropouts': 'i',
+            'r_dropouts': 'z',
+            'i_dropouts': 'z',
+            'z_dropouts': 'y',
+        }
+
+    def mag_map_snr(self, b):
+        '''
+        Similar to `mag_map()`, but using the SNR magnitude type.
+
+        Parameters
+        ----------
+        b: str
+            The photometric band of interest.
+
+        Returns
+        -------
+        s: str
+            String containing the correct table, band and flux type for
+            querying.
+        '''
+        cf = self.config
+        s = f'({_mag_str(b, cf.mag_type_snr, cf.correct_ri, cf.correct_dust)})'
+        return s
+
+    def flux_map_snr(self, b):
+        '''
+        Similar to `flux_map()`, but using the SNR magnitude type.
+
+        Parameters
+        ----------
+        b: str
+            The photometric band of interest.
+
+        Returns
+        -------
+        s: str
+            String containing the correct table, band and flux type for
+            querying.
+        '''
+        return _flux_str(b, self.config.mag_type_snr)
+
     def _parse_cuts(self, sample, sql_cond):
         '''
         Constructs SQL-formatted cuts from the config file.
@@ -988,43 +1043,60 @@ class queryLBGs(queryGalaxiesBase):
         # g-dropouts
         if sample == 'g_dropouts':
             cond = [
-                f'({self.flux_map["i"]} / {self.flux_map["i"]}err) >= 5',
-                f'({self.mag_map["g"]} - {self.mag_map["r"]}) > 1.0',
-                f'({self.mag_map["r"]} - {self.mag_map["i"]}) < 1.0',
-                f'({self.mag_map["g"]} - {self.mag_map["r"]}) > 1.5'
-                f'* ({self.mag_map["r"]} - {self.mag_map["i"]}) + 0.8'
+                f'({self.flux_map_snr("i")} / {self.flux_map_snr("i")}err) '
+                '>= 5',
+                f'({self.mag_map("g")} - {self.mag_map("r")}) > 1.0',
+                f'({self.mag_map("r")} - {self.mag_map("i")}) < 1.0',
+                f'({self.mag_map("g")} - {self.mag_map("r")}) > 1.5 '
+                f'* ({self.mag_map("r")} - {self.mag_map("i")}) + 0.8'
             ]
         # r-dropouts
         elif sample == 'r_dropouts':
             cond = [
-                f'({self.flux_map["g"]} / {self.flux_map["g"]}err) < 2.0',
-                f'({self.flux_map["z"]} / {self.flux_map["z"]}err) >= 5',
-                f'({self.mag_map["r"]} - {self.mag_map["i"]}) > 1.2',
-                f'({self.mag_map["i"]} - {self.mag_map["z"]}) < 0.7',
-                f'({self.mag_map["r"]} - {self.mag_map["i"]}) > 1.5'
-                f'* ({self.mag_map["i"]} - {self.mag_map["z"]}) + 1.0'
+                f'({self.flux_map_snr("g")} / {self.flux_map_snr("g")}err) '
+                '< 2.0',
+                f'({self.flux_map_snr("z")} / {self.flux_map_snr("z")}err) '
+                '>= 5',
+                f'({self.mag_map("r")} - {self.mag_map("i")}) > 1.2',
+                f'({self.mag_map("i")} - {self.mag_map("z")}) < 0.7',
+                f'({self.mag_map("r")} - {self.mag_map("i")}) > 1.5 '
+                f'* ({self.mag_map("i")} - {self.mag_map("z")}) + 1.0'
             ]
         # i-dropouts
         elif sample == 'i_dropouts':
             cond = [
-                f'({self.flux_map["g"]} / {self.flux_map["g"]}err) < 2.0',
-                f'({self.flux_map["r"]} / {self.flux_map["r"]}err) < 2.0',
-                f'({self.flux_map["z"]} / {self.flux_map["z"]}err) >= 5',
-                f'({self.flux_map["y"]} / {self.flux_map["y"]}err) >= 4',
-                f'({self.mag_map["i"]} - {self.mag_map["z"]}) > 1.5',
-                f'({self.mag_map["z"]} - {self.mag_map["y"]}) < 0.7',
-                f'({self.mag_map["i"]} - {self.mag_map["z"]}) > 2.0'
-                f'* ({self.mag_map["z"]} - {self.mag_map["y"]}) + 1.1'
+                f'({self.flux_map_snr("g")} / {self.flux_map_snr("g")}err) '
+                '< 2.0',
+                f'({self.flux_map_snr("r")} / {self.flux_map_snr("r")}err) '
+                '< 2.0',
+                f'({self.flux_map_snr("z")} / {self.flux_map_snr("z")}err) '
+                '>= 5',
+                f'({self.flux_map_snr("y")} / {self.flux_map_snr("y")}err) '
+                '>= 4',
+                f'({self.mag_map("i")} - {self.mag_map("z")}) > 1.5',
+                f'({self.mag_map("z")} - {self.mag_map("y")}) < 0.7',
+                f'({self.mag_map("i")} - {self.mag_map("z")}) > 2.0 '
+                f'* ({self.mag_map("z")} - {self.mag_map("y")}) + 1.1'
             ]
         # z-dropouts
         elif sample == 'z_dropouts':
             cond = [
-                f'({self.flux_map["g"]} / {self.flux_map["g"]}err) < 2.0',
-                f'({self.flux_map["r"]} / {self.flux_map["r"]}err) < 2.0',
-                f'({self.flux_map["i"]} / {self.flux_map["i"]}err) < 2.0',
-                f'({self.flux_map["y"]} / {self.flux_map["y"]}err) >= 4',
-                f'({self.mag_map["z"]} - {self.mag_map["y"]}) > 1.6'
+                f'({self.flux_map_snr("g")} / {self.flux_map_snr("g")}err) '
+                '< 2.0',
+                f'({self.flux_map_snr("r")} / {self.flux_map_snr("r")}err) '
+                '< 2.0',
+                f'({self.flux_map_snr("i")} / {self.flux_map_snr("i")}err) '
+                '< 2.0',
+                f'({self.flux_map_snr("y")} / {self.flux_map_snr("y")}err) '
+                '>= 4',
+                f'({self.mag_map("z")} - {self.mag_map("y")}) > 1.6'
             ]
+        # Limiting magnitude in detection band
+        mlim = self.config.cuts.maglim[sample]
+        if mlim is not None:
+            cond.append(
+                f'{self.mag_map_snr(self.det_bands[sample])} < {mlim}'
+            )
         sql_cond.extend(cond)
 
     def write_sql(self):
@@ -1057,20 +1129,20 @@ class queryLBGs(queryGalaxiesBase):
         # Magnitudes of the chosen type for colour cuts
         self.sql['cols'].extend(
             [
-                f'{self.tflux}.{b}_{cf.mag_type}_{var}'
+                f'{_mag_str(b, cf.mag_type)}{var}'
                 for b in bands
-                for var in ['mag', 'magerr']
+                for var in ['', 'err']
             ]
         )
         # Fluxes of the chosen type for SNR cuts
-        tflux_snr = flux_tables[cf.mag_type_snr]
         self.sql['cols'].extend(
             [
-                f'{tflux_snr}.{b}_{cf.mag_type_snr}_{var}'
+                f'{_flux_str(b, cf.mag_type_snr)}{var}'
                 for b in bands
-                for var in ['flux', 'fluxerr']
+                for var in ['', 'err']
             ]
         )
+        tflux_snr = flux_tables[cf.mag_type_snr]
         if tflux_snr != 'forced':
             self.tables_join.append(tflux_snr)
 
@@ -1100,13 +1172,6 @@ class queryLBGs(queryGalaxiesBase):
                 )
                 if table not in self.tables_join and table != 'forced':
                     self.tables_join.append(table)
-
-        # Update flux mapping to the SNR mag type
-        for b in bands:
-            s_old = self.flux_map[b]
-            s_new = s_old.replace(self.tflux, tflux_snr)
-            s_new = s_new.replace(cf.mag_type, cf.mag_type_snr)
-            self.flux_map[b] = s_new
 
         # True/False and blendedness cuts applied to all samples
         sql_cond = []
