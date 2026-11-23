@@ -5,7 +5,6 @@
 import os
 from stage import baseStage
 
-
 #############################
 #          GLOBALS          #
 #############################
@@ -33,6 +32,68 @@ flux_tables = {
     f'undeblended_convolvedflux_{s}_{c}': 'forced5'
     for s in seeings for c in conv_sizes
 }
+
+
+###############################
+#          FUNCTIONS          #
+###############################
+
+def _flux_str(b, flux_type):
+    '''
+    Constructs a string for queries involving fluxes of a specific type.
+
+    Parameters
+    ----------
+    b: str
+        The photometric band of interest.
+
+    flux_type: str
+        Type of flux being queried.
+
+    Returns
+    -------
+    s: str
+        String containing the correct table, band and flux type for querying.
+    '''
+    table = flux_tables[flux_type]
+    s = f'{table}.{b}_{flux_type}_flux'
+    return s
+
+
+def _mag_str(b, mag_type, correct_ri=False, correct_dust=False):
+    '''
+    Constructs a string for queries involving magnitudes of a specific type.
+
+    Parameters
+    ----------
+    b: str
+        The photometric band of interest.
+
+    mag_type: str
+        Type of magnitude being queried.
+
+    correct_ri: bool (False)
+        Whether or not to apply corrections to the r- and i-band magnitudes
+        to acocunt for the mid-survey transition from r/i to r2/i2.
+
+    correct_dust: bool (False)
+        Whether or not to include a correction for dust attentuation.
+
+    Returns
+        -------
+        s: str
+            String containing the correct table, band and mag type for
+            querying.
+    '''
+    table = flux_tables[mag_type]
+    s = f'{table}.{b}_{mag_type}_mag'
+    # r/i correction?
+    if correct_ri and b in 'ri':
+        s += f' - mag_corr.corr_{b}mag'
+    # Dust correction?
+    if correct_dust:
+        s += f' - forced.a_{b}'
+    return s
 
 
 ############################
@@ -82,6 +143,38 @@ class queryBase(baseStage):
                 sql_cond
             ]
         ) + '\n;'
+
+    def mag_map(self, b):
+        '''
+        Constructs a string for queries involving mags of a specific type.
+
+        Parameters
+        ----------
+        b: str
+            The photometric band of interest.
+        '''
+        cf = self.config
+        return _mag_str(b, cf.mag_type, cf.correct_ri, cf.correct_dust)
+
+    def flux_map(self, b):
+        '''
+        Constructs a string for queries involving fluxes of a specific type.
+
+        Parameters
+        ----------
+        b: str
+            The photometric band of interest.
+
+        flux_type: str
+            Type of flux being queried.
+
+        Returns
+        -------
+        s: str
+            String containing the correct table, band and flux type for
+            querying.
+        '''
+        return _flux_str(b, self.config.mag_type)
 
     def write_sql(self):
         '''
@@ -469,7 +562,7 @@ class queryStarsForDepth(queryBase):
         # Fluxes and magnitudes of the chosen type
         self.sql['cols'].extend(
             [
-                f'{self.tflux}.{b}_{cf.mag_type}_fluxerr'
+                f'{self.flux_map(b)}err'
                 for b in bands
             ]
         )
@@ -549,25 +642,6 @@ class queryGalaxiesBase(queryBase):
         # Paths for additional outputs
         self.path_queries_stars = self.path_queries + 'stars/'
         self.path_out_stars = self.path_out + f'stars/{self.config.run_name}'
-
-        # For mapping from each band to the corresponding magnitude flux
-        self.mag_map = {
-            b: f'{self.tflux}.{b}_{self.config.mag_type}_mag'
-            for b in self.config.bands.all
-        }
-        self.flux_map = {
-            b: f'{self.tflux}.{b}_{self.config.mag_type}_flux'
-            for b in self.config.bands.all
-        }
-
-        # Correction to r- and i-band mags to account for change in filters
-        if self.config.correct_ri:
-            self.mag_map['r'] += ' - mag_corr.corr_rmag'
-            self.mag_map['i'] += ' - mag_corr.corr_imag'
-        # Dust corrections in each band
-        if self.config.correct_dust:
-            for b in self.config.bands.all:
-                self.mag_map[b] += f' - a_{b}'
 
     def _write_sql_stars(self):
         '''
@@ -745,7 +819,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
         b1 = cf.bands.primary
         b2 = cf.bands.secondary
         sql_cond = [
-            f'{self.mag_map[b1]} < {cf.maglim}'
+            self.mag_map(b1) + f' < {cf.maglim}'
         ]
         if cf.primary_only:
             sql_cond.append(
@@ -759,14 +833,14 @@ class queryMaglimTomographic(queryGalaxiesBase):
         self.tables_join.append('meas2')
         # SNR cut (primary band)
         sql_cond.append(
-            f'{self.flux_map[b1]} / {self.flux_map[b1]}err >= '
+            f'{self.flux_map(b1)} / {self.flux_map(b1)}err >= '
             f'{cf.snr_min_primary}',
         )
         # SNR cut (secondary bands)
         sql_cond.append(
             '(' + ' +\n\t '.join(
                 [
-                    f'(CASE WHEN {self.flux_map[b]} / {self.flux_map[b]}err '
+                    f'(CASE WHEN {self.flux_map(b)} / {self.flux_map(b)}err '
                     f'>= {cf.snr_min_secondary} THEN 1 ELSE 0 END)'
                     for b in b2
                 ]
@@ -887,14 +961,14 @@ class queryLBGs(queryGalaxiesBase):
             if t not in self.tables_join and t != 'forced':
                 self.tables_join.append(t)
 
-        # Blendedness cuts
         if sample != 'all':
+            # Blendedness cuts
             t = 'meas2'
             cond.extend(
-                [f'meas2.{b}_blendedness_abs < {cf.blendedness_abs_max}'
+                [f'{t}.{b}_blendedness_abs < {cf.blendedness_abs_max}'
                  for b in cf.cuts.blendedness[sample]]
             )
-            if t not in self.tables_join and t != 'forced':
+            if t not in self.tables_join:
                 self.tables_join.append(t)
         sql_cond.extend(cond)
 
