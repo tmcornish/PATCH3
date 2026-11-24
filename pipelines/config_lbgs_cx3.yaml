@@ -166,6 +166,7 @@ queryGalaxiesBase: &queryGalaxiesBase
   <<: *queryBase
   correct_ri: true
   correct_dust: false
+  dr_cosmos: pdr3_dud
 
 queryLBGs:
   <<: *queryGalaxiesBase

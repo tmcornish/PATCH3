@@ -175,6 +175,7 @@ queryGalaxiesBase: &queryGalaxiesBase
   <<: *queryBase
   correct_ri: true
   correct_dust: true
+  dr_cosmos: pdr3_dud
 
 # Magnitude-limited tomographic samples
 queryMaglimTomographic:

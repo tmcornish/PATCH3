@@ -721,7 +721,7 @@ class queryGalaxiesBase(queryBase):
         # Replace all instances of the Wide data release with 'pdr3_dud'
         self.sql_str = self.sql_str.replace(
             self.config.dr,
-            'pdr3_dud'
+            self.config.dr_cosmos
         )
 
         # SQL query file name
