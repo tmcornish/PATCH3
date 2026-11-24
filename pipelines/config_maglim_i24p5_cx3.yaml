@@ -38,6 +38,7 @@ global:
   dr: pdr3_wide
   # Fields to run (['all'] will be treated as ['hectomap', 'spring', 'autumn'])
   fields: [all]
+  combine_fields: true
   # Photometric bands
   bands:
     # Main band
@@ -169,6 +170,7 @@ queryStarsForDepth:
   primary_only: true
   log_blendedness_max: null
 
+# Base class for querying galaxy samples
 queryGalaxiesBase: &queryGalaxiesBase
   <<: *queryBase
   correct_ri: true
@@ -313,7 +315,6 @@ mapperBase: &mapperBase
       ompthreads: 64
   nside: 1024
   nside_coverage: 32
-  combine_fields: true
 
 mapperDust:
   <<: *mapperBase
