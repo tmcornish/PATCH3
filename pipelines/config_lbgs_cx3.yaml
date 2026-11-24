@@ -11,6 +11,7 @@ stages:
   ingestFlags: false
   ingestDustAttenuation: false
   ingestStarsForDepth: false
+  ingestCosmosHSC: false
   ingestGalaxies: false
   ingestLikeStars: false
   decasuCoverage: false

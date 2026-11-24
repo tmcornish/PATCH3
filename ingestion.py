@@ -253,3 +253,27 @@ class ingestLikeStars(ingestBase):
             self.field,
             'star_catalogue.hdf5'
         )
+
+
+class ingestCosmosHSC(ingestBase):
+    '''
+    Stage for ingesting the data for analogous COSMOS galaxies.
+    '''
+    def define_io(self):
+        '''
+        Identifies the input files and sets the output file location.
+        '''
+        # Identify files corresponding to each sample
+        self.infiles['/'] = sorted(
+            glob.glob(
+                self.config.paths.data +
+                f'galaxies/{self.run_name}/*_cosmos.fits'
+            )
+        )
+
+        # Set output file
+        self.outfile = os.path.join(
+            self.config.paths.out,
+            self.field,
+            'dir_catalogue.hdf5'
+        )
