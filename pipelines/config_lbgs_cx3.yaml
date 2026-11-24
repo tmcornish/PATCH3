@@ -160,6 +160,7 @@ queryStarsForDepth:
   primary_only: true
   log_blendedness_max: null
 
+# Base class for querying galaxy samples
 queryGalaxiesBase: &queryGalaxiesBase
   <<: *queryBase
   correct_ri: true
@@ -234,10 +235,10 @@ queryLBGs:
       i_dropouts: zy
       z_dropouts: y
     maglim:
-      g_dropouts: {i: inf}
-      r_dropouts: {z: inf}
-      i_dropouts: {z: inf}
-      z_dropouts: {y: inf}
+      g_dropouts: null
+      r_dropouts: null
+      i_dropouts: null
+      z_dropouts: null
   blendedness_abs_max: 0.2
   inputcount_min:
       g: 3
