@@ -53,6 +53,12 @@ global:
   split_by_band: true
   # File containing required environment variables
   envsfile: patch3_envs.sh
+  # Names to be given to each sample
+  samples:
+    - g_dropouts
+    - r_dropouts
+    - i_dropouts
+    - z_dropouts
 
 ### Data queries ###
 
@@ -272,11 +278,6 @@ queryLBGs:
 
 ingestBase: &ingestBase
   runfile: ingestion.py
-  samples:
-    - zbin0
-    - zbin1
-    - zbin2
-    - zbin3
   qsub:
     walltime: 24:00:00
     resources:

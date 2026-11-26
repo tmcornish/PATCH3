@@ -56,6 +56,12 @@ global:
   split_by_band: true
   # File containing required environment variables
   envsfile: patch3_envs.sh
+  # Names to be given to each sample
+  samples:
+    - zbin0
+    - zbin1
+    - zbin2
+    - zbin3
 
 ### Data queries ###
 
@@ -231,11 +237,6 @@ queryMaglimTomographic:
 
 ingestBase: &ingestBase
   runfile: ingestion.py
-  samples:
-    - zbin0
-    - zbin1
-    - zbin2
-    - zbin3
   qsub:
     walltime: 24:00:00
     resources:
