@@ -193,8 +193,12 @@ queryMaglimTomographic:
     zbin1: [0.6, 0.9]
     zbin2: [0.9, 1.2]
     zbin3: [1.2, 1.5]
-  flags: 
-    <<: *flags
+  cuts:
+    false_cols:
+      all:
+        <<: *flags
+    true_cols:
+      all: {}
   do_preview: false
   do_download: true
   do_delete: true

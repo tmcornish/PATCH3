@@ -649,6 +649,57 @@ class queryGalaxiesBase(queryBase):
         self.path_queries_stars = self.path_queries + 'stars/'
         self.path_out_stars = self.path_out + f'stars/{self.config.run_name}'
 
+    def _parse_cuts(self, sample, sql_cond):
+        '''
+        Constructs SQL-formatted cuts from the config file.
+
+        By default, handles True and False conditions. Additional cuts can
+        be specified in the config for subclasses but their handling must
+        also be defined for each subclass separately.
+
+        Parameters
+        ----------
+        sample: str
+            Name of the sample for which the cuts are intended.
+            Can be 'all' if cuts are to be applied regardless of sample.
+
+        sql_cond: list[str]
+            List of conditions to which the new cuts will be appended.
+        '''
+        cf = self.config
+        cond = []
+        # Columns whose values should be False
+        for t in cf.cuts.false_cols[sample]:
+            for col in cf.cuts.false_cols[sample][t]:
+                if col == 'merge_peak':
+                    cond.extend(
+                        [f'{t}.{col}_{b}=False'
+                            for b in cf.cuts.false_cols[sample][t][col]]
+                    )
+                else:
+                    cond.extend(
+                        [f'{t}.{b}_{col}=False'
+                            for b in cf.cuts.false_cols[sample][t][col]]
+                    )
+            if t not in self.tables_join and t != 'forced':
+                self.tables_join.append(t)
+        # Columns whose values should be True
+        for t in cf.cuts.true_cols[sample]:
+            for col in cf.cuts.true_cols[sample][t]:
+                if col == 'merge_peak':
+                    cond.extend(
+                        [f'{t}.{col}_{b}=True'
+                            for b in cf.cuts.true_cols[sample][t][col]]
+                    )
+                else:
+                    cond.extend(
+                        [f'{t}.{b}_{col}=True'
+                            for b in cf.cuts.true_cols[sample][t][col]]
+                    )
+            if t not in self.tables_join and t != 'forced':
+                self.tables_join.append(t)
+        sql_cond.extend(cond)
+
     def _write_sql_stars(self):
         '''
         Generates queries for stellar analogues to the target galaxies.
@@ -853,14 +904,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
             ) + f') >= {cf.N_sec}'
         )
         # Flags
-        for table in cf.flags:
-            for col in cf.flags[table]:
-                sql_cond.extend(
-                    [f'{table}.{b}_{col}=False'
-                     for b in cf.flags[table][col]]
-                )
-            if table not in self.tables_join and table != 'forced':
-                self.tables_join.append(table)
+        self._parse_cuts('all', sql_cond)
         # Star-galaxy separator
         sql_cond.append(
             f'forced.{b1}_extendedness_value > 0'
@@ -983,39 +1027,10 @@ class queryLBGs(queryGalaxiesBase):
         sql_cond: list[str]
             List of conditions to which the new cuts will be appended.
         '''
+        super()._parse_cuts(sample, sql_cond)
+
         cf = self.config
         cond = []
-        # Columns whose values should be False
-        for t in cf.cuts.false_cols[sample]:
-            for col in cf.cuts.false_cols[sample][t]:
-                if col == 'merge_peak':
-                    cond.extend(
-                        [f'{t}.{col}_{b}=False'
-                            for b in cf.cuts.false_cols[sample][t][col]]
-                    )
-                else:
-                    cond.extend(
-                        [f'{t}.{b}_{col}=False'
-                            for b in cf.cuts.false_cols[sample][t][col]]
-                    )
-            if t not in self.tables_join and t != 'forced':
-                self.tables_join.append(t)
-        # Columns whose values should be True
-        for t in cf.cuts.true_cols[sample]:
-            for col in cf.cuts.true_cols[sample][t]:
-                if col == 'merge_peak':
-                    cond.extend(
-                        [f'{t}.{col}_{b}=True'
-                         for b in cf.cuts.true_cols[sample][t][col]]
-                    )
-                else:
-                    cond.extend(
-                        [f'{t}.{b}_{col}=True'
-                         for b in cf.cuts.true_cols[sample][t][col]]
-                    )
-            if t not in self.tables_join and t != 'forced':
-                self.tables_join.append(t)
-
         if sample != 'all':
             # Blendedness cuts
             t = 'meas2'
