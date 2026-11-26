@@ -297,6 +297,7 @@ ingestStarsForDepth:
 
 ingestGalaxies:
   <<: *ingestBase
+  cuts: null
 
 ingestLikeStars:
   <<: *ingestBase

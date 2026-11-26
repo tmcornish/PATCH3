@@ -7,6 +7,7 @@ import glob
 from stage import baseStage
 from astropy.table import Table
 import h5py
+import numpy as np
 
 
 ############################
@@ -60,6 +61,61 @@ class ingestBase(baseStage):
                 col for col in self.columns if col in t.colnames
             ]
 
+    def _apply_cuts(self, sample, t):
+        '''
+        Applies any additional cuts not applied at the query stages.
+
+        Cuts are specified via the config file in the form of True/False
+        flags or min/max thresholds on certain columns. Note that this
+        requires that the relevant columns have been downloaded.
+
+        Parameters
+        ----------
+        t: astropy.table.Table
+            Table of data to which the cuts will be applied.
+
+        sample: str
+            Name of the sample for which the cuts are relevant. Can be
+            'all' if the cuts are agnostic to the sample.
+
+        Returns
+        -------
+        t_masked: astropy.table.Table
+            Trimmed version of the table with the cuts applied.
+        '''
+        cf = self.config
+        mask = np.ones(len(t), dtype=bool)
+
+        # Select sources where these columns are False
+        for col in cf.cuts.false_cols[sample]:
+            for b in cf.cuts.false_cols[sample][col]:
+                if col == 'merge_peak':
+                    mask *= ~t[f'{col}_{b}']
+                else:
+                    mask *= ~t[f'{b}_{col}']
+
+        # Select sources where these columns are True
+        for col in cf.cuts.true_cols[sample]:
+            for b in cf.cuts.true_cols[sample][col]:
+                if col == 'merge_peak':
+                    mask *= t[f'{col}_{b}']
+                else:
+                    mask *= t[f'{b}_{col}']
+
+        # Select sources above these minimum thresholds
+        for col in cf.cuts.min_cols[sample]:
+            for b in cf.cuts.min_cols[sample][col]:
+                mask *= (t[f'{col}_{b}']
+                         >= cf.cuts.min_cols[sample][col][b])
+
+        # Select sources below these maximum thresholds
+        for col in cf.cuts.max_cols[sample]:
+            for b in cf.cuts.max_cols[sample][col]:
+                mask *= (t[f'{col}_{b}']
+                         < cf.cuts.max_cols[sample][col][b])
+
+        return t[mask]
+
     def write_hdf5(self):
         '''
         Constructs the output HDF5 file and saves it.
@@ -77,6 +133,10 @@ class ingestBase(baseStage):
                 # Load first input file and use it to define the HDF5 datasets
                 t = Table.read(infiles[0])
                 t.sort('object_id')
+
+                # Apply additional cuts (if any)
+                if self.config.cuts is not None:
+                    self._apply_cuts(t)
 
                 # For initialising resizable datasets
                 rowcount = len(t)
