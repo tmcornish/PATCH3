@@ -918,7 +918,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
         ]
 
         # Create a query per (sub)field per bin
-        for fd in cf.fields:
+        for i_fd, fd in enumerate(cf.fields):
             # Get list of subfields belonging to each field
             subs = cf.get_subfields(fd)
             for sfd in subs:
@@ -945,7 +945,7 @@ class queryMaglimTomographic(queryGalaxiesBase):
                     self.outfiles.append(out_file)
 
                     # Query COSMOS galaxies with same cuts applied?
-                    if cf.query_cosmos:
+                    if cf.query_cosmos and i_fd == 0:
                         self._write_sql_cosmos_dud(s)
 
         # Query analogous stars from each (sub)field?
@@ -1196,7 +1196,7 @@ class queryLBGs(queryGalaxiesBase):
         )
 
         # Create a query per (sub)field per sample
-        for fd in cf.fields:
+        for i_fd, fd in enumerate(cf.fields):
             # Get list of subfields belonging to each field
             subs = cf.get_subfields(fd)
             for sfd in subs:
@@ -1235,7 +1235,7 @@ class queryLBGs(queryGalaxiesBase):
                     self.outfiles.append(out_file)
 
                     # Query COSMOS galaxies with same cuts?
-                    if cf.query_cosmos:
+                    if cf.query_cosmos and i_fd == 0:
                         self._write_sql_cosmos_dud(sample)
 
         # Query analogous stars from each (sub)field?
