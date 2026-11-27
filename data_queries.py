@@ -752,20 +752,17 @@ class queryGalaxiesBase(queryBase):
                 out_file = f'{self.path_out_stars}stars_{fd}_{sfd}.fits'
                 self.outfiles.append(out_file)
 
-    def _write_sql_cosmos_dud(self):
+    def _write_sql_cosmos_dud(self, sample):
         '''
         Generates queries for galaxies in COSMOS deep/ultra-deep catalogue.
 
         This creates a single query to select galaxies in the COSMOS field
-        satisfying all quality control cuts applied to the target samples.
+        satisfying all quality control and sample selection cuts applied
+        to the target samples.
         '''
-        # Remove any field and sample conditions from most recent query
+        # Replace the field condition
         n = self.nlines_samp + 1
-        self.sql['cond'] = self.sql['cond'][:-n]
-        # Reset nlines_samp to 0
-        self.nlines_samp = 0
-        # Set field condition to 'cosmos'
-        self.sql['cond'].append('forced.field=\'cosmos\'')
+        self.sql['cond'][-n] = 'forced.field=\'cosmos\''
 
         # Combine all components of query
         self._assemble_query()
@@ -777,13 +774,13 @@ class queryGalaxiesBase(queryBase):
 
         # SQL query file name
         sql_base = self.config.sql_base
-        sql_file = f'{self.path_queries}{sql_base}_cosmos.sql'
+        sql_file = f'{self.path_queries}{sql_base}_cosmos_{sample}.sql'
         # Write to file and append file name to list
         with open(sql_file, 'w') as file:
             file.write(self.sql_str)
         self.queries.append(sql_file)
         # Output data file name
-        out_file = f'{self.path_out}{sql_base}_cosmos.fits'
+        out_file = f'{self.path_out}{sql_base}_cosmos_{sample}.fits'
         self.outfiles.append(out_file)
 
 
@@ -822,6 +819,8 @@ class queryMaglimTomographic(queryGalaxiesBase):
         paths = [self.path_queries, self.path_out]
         # Basis for SQL file names
         sql_base = cf.sql_base
+        # Number of lines specific to each sample
+        self.nlines_samp = 2
         # Check directories exist
         for p in paths:
             if not os.path.exists(p):
@@ -944,11 +943,10 @@ class queryMaglimTomographic(queryGalaxiesBase):
                     # Output data file name
                     out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}_{s}.fits'
                     self.outfiles.append(out_file)
-        self.nlines_samp = 2
 
-        # Query galaxies from COSMOS with same quality control applied?
-        if cf.query_cosmos:
-            self._write_sql_cosmos_dud()
+                    # Query COSMOS galaxies with same cuts applied?
+                    if cf.query_cosmos:
+                        self._write_sql_cosmos_dud(s)
 
         # Query analogous stars from each (sub)field?
         if cf.query_like_stars:
@@ -1211,6 +1209,7 @@ class queryLBGs(queryGalaxiesBase):
                     self._dropout_conditions(sample, sql_cond_samp)
 
                     self.sql['cond'] = sql_cond_samp
+                    self.nlines_samp = len(self.sql['cond']) - len(sql_cond_fd)
 
                     # Statement specifying the tables to join
                     self.sql['from'] = [
@@ -1234,11 +1233,10 @@ class queryLBGs(queryGalaxiesBase):
                     out_file = f'{self.path_out}{sql_base}_{fd}_{sfd}'\
                         f'_{sample}.fits'
                     self.outfiles.append(out_file)
-        self.nlines_samp = len(self.sql['cond']) - len(sql_cond_fd)
 
-        # Query galaxies from COSMOS with same quality control applied?
-        if cf.query_cosmos:
-            self._write_sql_cosmos_dud()
+                    # Query COSMOS galaxies with same cuts?
+                    if cf.query_cosmos:
+                        self._write_sql_cosmos_dud(sample)
 
         # Query analogous stars from each (sub)field?
         if cf.query_like_stars:
